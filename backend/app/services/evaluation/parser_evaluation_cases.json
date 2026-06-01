@@ -1,7 +1,7 @@
 [
   {
     "case_id": "quote_001",
-    "file_path": "data/sample.pdf",
+    "file_path": "sample.pdf",
     "expected": {
       "vendor_name": "(주) 다올씨앤씨",
       "project_name": "일강이앤아이 회의실 디스플레이",

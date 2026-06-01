@@ -1,6 +1,6 @@
-from pathlib import Path
 from pprint import pprint
 
+from config.paths import DATA_DIR
 from services.requirement_ingestion.factory import (
     create_requirement_ingestion_pipeline,
 )
@@ -44,7 +44,7 @@ def run_text_ingestion_test():
 def run_file_ingestion_test() -> None:
     print("\n========== Requirement File Ingestion Test ==========")
     pipeline = create_requirement_ingestion_pipeline()
-    sample_dir = Path("samples/requirements")
+    sample_dir = DATA_DIR / "sample_files" / "requirements"
     file_paths = []
     for pattern in ["*.png", "*.jpg", "*.jpeg", "*.pdf"]:
         file_paths.extend(sorted(sample_dir.glob(pattern)))

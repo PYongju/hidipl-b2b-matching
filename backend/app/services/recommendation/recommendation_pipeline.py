@@ -186,6 +186,7 @@ class RecommendationPipeline:
         if snapshot is None:
             return {}
         return {
+            "vendor_id": getattr(snapshot, "vendor_id", None),
             "vendor_name": snapshot.vendor_name,
             "is_premium_partner": snapshot.is_premium_partner,
             "past_success_rate": snapshot.past_success_rate,
@@ -194,6 +195,19 @@ class RecommendationPipeline:
             "financial_status": snapshot.financial_status,
             "is_excluded": snapshot.is_excluded,
             "specialty_tags": snapshot.specialty_tags,
+            "installation_count": getattr(snapshot, "installation_count", None),
+            "industry_breakdown": getattr(snapshot, "industry_breakdown", {}) or {},
+            "solution_breakdown": getattr(snapshot, "solution_breakdown", {}) or {},
+            "scale_breakdown": getattr(snapshot, "scale_breakdown", {}) or {},
+            "avg_projects_3yr": getattr(snapshot, "avg_projects_3yr", None),
+            "avg_revenue_3yr": getattr(snapshot, "avg_revenue_3yr", None),
+            "avg_revenue_3yr_million": getattr(snapshot, "avg_revenue_3yr_million", None),
+            "years_in_business": getattr(snapshot, "years_in_business", None),
+            "representative": getattr(snapshot, "representative", None),
+            "company_age_years": getattr(snapshot, "company_age_years", None),
+            "avg_project_count_3y": getattr(snapshot, "avg_project_count_3y", None),
+            "avg_revenue_3y_million": getattr(snapshot, "avg_revenue_3y_million", None),
+            "company_location": getattr(snapshot, "company_location", None),
             "source": snapshot.source,
         }
 

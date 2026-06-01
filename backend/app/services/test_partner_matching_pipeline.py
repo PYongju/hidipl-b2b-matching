@@ -1,6 +1,7 @@
 from pathlib import Path
 from pprint import pprint
 
+from config.paths import PARTNER_EMBEDDINGS_PATH
 from services.config import get_settings
 from services.partner_matching.factory import create_partner_matching_pipeline
 from services.partner_matching.partner_matching_provider import PartnerMatchingProvider
@@ -86,7 +87,7 @@ def run_azure_integration_test() -> None:
         return
 
     print_partner_matching_result(result)
-    print("partner embedding cache exists:", Path("data/partner_embeddings.json").exists())
+    print("partner embedding cache exists:", PARTNER_EMBEDDINGS_PATH.exists())
 
 
 def print_partner_matching_result(result) -> None:

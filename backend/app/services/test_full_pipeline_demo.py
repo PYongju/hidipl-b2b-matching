@@ -9,6 +9,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from config.paths import DATA_DIR, OUTPUT_DIR
 from services.explanation.factory import create_explanation_provider
 from services.explanation.schemas import RecommendationExplanationResult
 from services.partner_matching.factory import create_partner_matching_pipeline
@@ -22,7 +23,7 @@ from services.quote_ingestion.factory import create_quote_ingestion_pipeline
 
 REQUEST_ID = "demo_request_001"
 SUPPORTED_QUOTE_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".xlsx", ".xls"}
-OUTPUT_PATH = Path("data/demo_outputs/full_pipeline_demo_result_ilgang.json")
+OUTPUT_PATH = OUTPUT_DIR / "full_pipeline_demo_result_ilgang.json"
 
 
 # def get_demo_requirement_text() -> str:
@@ -61,7 +62,7 @@ def get_demo_requirement_text() -> str:
 
 
 def find_quote_files() -> list[Path]:
-    for directory in [Path("data"), Path("samples/quotes")]:
+    for directory in [DATA_DIR, DATA_DIR / "sample_files" / "quotes"]:
         if not directory.exists():
             continue
 

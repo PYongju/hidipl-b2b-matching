@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from pprint import pprint
 
+from config.paths import DATA_DIR, OUTPUT_DIR
 from services.api_demo.response_builders import strip_heavy_fields
 from services.api_demo.routers import (
     compare_quotes,
@@ -28,9 +29,11 @@ def get_demo_request_text() -> str:
 
 
 def find_demo_files() -> list[Path]:
+    if not DATA_DIR.exists():
+        return []
     files = [
         path
-        for path in sorted(Path("data").iterdir())
+        for path in sorted(DATA_DIR.iterdir())
         if path.suffix.lower() in {".pdf", ".xlsx", ".png", ".jpg", ".jpeg"}
     ]
     return files[:3]
@@ -120,19 +123,61 @@ def main() -> None:
     )
     print("POST /api/v1/projects/{id}/compare")
     print("rows:", len(compare_response["rows"]))
-    print("vendor_snapshot 비교 필드:")
+    if compare_response["rows"]:
+        first_row = compare_response["rows"][0]
+        print("첫 번째 row 섹션 확인:")
+        for section in [
+            "company_info",
+            "hardware",
+            "cost_breakdown",
+            "conditions",
+            "total",
+            "scores",
+            "vendor_snapshot",
+            "highlights",
+        ]:
+            print(f"{section}: {'ok' if section in first_row else 'missing'}")
+    print("compare 주요 필드:")
     for row in compare_response["rows"]:
         print(
             row["vendor_name"],
-            row["is_premium_partner"],
-            row["past_success_rate"],
-            row["response_speed_score"],
-            row["financial_status"],
+            "age:",
+            row["company_info"]["company_age_years"],
+            "revenue_million:",
+            row["company_info"]["avg_revenue_3y_million"],
+            "avg_projects:",
+            row["company_info"]["avg_project_count_3y"],
+            "installation_count:",
+            row["company_info"]["installation_count"],
+            "screen:",
+            row["hardware"]["screen_size_mm"],
+            "pitch:",
+            row["hardware"]["pixel_pitch"],
+            "display_hw:",
+            row["cost_breakdown"]["display_hw"]["amount"],
+            "installation:",
+            row["cost_breakdown"]["installation"]["status"],
+            "delivery:",
+            row["conditions"]["delivery"],
+            "warranty:",
+            row["conditions"]["warranty_display"],
+            "total:",
+            row["total"]["display_text"],
+            "highlights:",
+            row["highlights"],
         )
     assert compare_response["rows"]
     full_result["compare"] = compare_response
 
-    output_path = Path("data/demo_outputs/api_demo_flow_result.json")
+    compare_output_path = OUTPUT_DIR / "api_demo_compare_response.json"
+    compare_output_path.parent.mkdir(parents=True, exist_ok=True)
+    compare_output_path.write_text(
+        json.dumps(strip_heavy_fields(compare_response), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    print("Compare response JSON saved:", compare_output_path)
+
+    output_path = OUTPUT_DIR / "api_demo_flow_result.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
         json.dumps(strip_heavy_fields(full_result), ensure_ascii=False, indent=2),

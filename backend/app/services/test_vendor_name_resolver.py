@@ -1,6 +1,6 @@
 from datetime import datetime
-from pathlib import Path
 
+from config.paths import DATA_DIR
 from services.parser.schemas import QuoteDocument
 from services.parser.vendor_name_resolver import (
     VendorNameResolver,
@@ -20,7 +20,7 @@ def test_hyosung_itx() -> None:
     vendor_name, debug = resolver.resolve(
         current_vendor_name="",
         source_text=source_text,
-        source_file_path="data/스노우스페이스_FlatLED&커브드LED_효성itx.pdf",
+        source_file_path=str(DATA_DIR / "스노우스페이스_FlatLED&커브드LED_효성itx.pdf"),
     )
     assert vendor_name == "효성ITX", (vendor_name, debug)
     print("효성ITX:", vendor_name, debug)
@@ -41,7 +41,7 @@ def test_youzone() -> None:
     vendor_name, debug = resolver.resolve(
         current_vendor_name="사업자",
         source_text=source_text,
-        source_file_path="data/스노우스페이스_FlatLED_유어존.pdf",
+        source_file_path=str(DATA_DIR / "스노우스페이스_FlatLED_유어존.pdf"),
     )
     assert vendor_name == "유어존", (vendor_name, debug)
     assert vendor_name != "사업자"
@@ -56,7 +56,7 @@ def test_guidesamjung() -> None:
     vendor_name, debug = resolver.resolve(
         current_vendor_name=None,
         source_text=source_text,
-        source_file_path="data/스노우스페이스_커브드LED_가이드삼정.xlsx",
+        source_file_path=str(DATA_DIR / "스노우스페이스_커브드LED_가이드삼정.xlsx"),
     )
     assert normalize_company_name(vendor_name or "") == "가이드삼정", (vendor_name, debug)
     print("가이드삼정:", vendor_name, debug)
@@ -86,13 +86,13 @@ def test_quote_id_uniqueness() -> None:
 
     pipeline._enrich_quote_document(
         quote_document=flat_quote,
-        path=Path("data/스노우스페이스_FlatLED_유어존.pdf"),
+        path=DATA_DIR / "스노우스페이스_FlatLED_유어존.pdf",
         short_hash="13584d41",
         explicit_quote_id=None,
     )
     pipeline._enrich_quote_document(
         quote_document=curved_quote,
-        path=Path("data/스노우스페이스_커브드LED_유어존.pdf"),
+        path=DATA_DIR / "스노우스페이스_커브드LED_유어존.pdf",
         short_hash="2e559147",
         explicit_quote_id=None,
     )

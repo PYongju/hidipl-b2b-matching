@@ -44,4 +44,18 @@ def dict_to_partner_profile(partner: dict[str, Any]) -> PartnerProfile:
         response_speed=str(partner.get("response_speed") or ""),
         financial_status=str(partner.get("financial_status") or ""),
         is_excluded=bool(partner.get("is_excluded")),
+        vendor_id=partner.get("vendor_id"),
+        installation_count=partner.get("installation_count"),
+        industry_breakdown=dict(partner.get("industry_breakdown") or {}),
+        solution_breakdown=dict(partner.get("solution_breakdown") or {}),
+        scale_breakdown=dict(partner.get("scale_breakdown") or {}),
+        avg_projects_3yr=partner.get("avg_projects_3yr"),
+        avg_revenue_3yr=partner.get("avg_revenue_3yr"),
+        years_in_business=partner.get("years_in_business"),
+        representative=partner.get("representative"),
+        company_location=(
+            partner.get("company_location")
+            or partner.get("location")
+            or partner.get("address_city")
+        ),
     )

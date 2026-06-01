@@ -71,6 +71,19 @@ class VendorSnapshot:
     financial_status: str | None = None
     is_excluded: bool = False
     specialty_tags: list[str] = field(default_factory=list)
+    installation_count: int | None = None
+    industry_breakdown: dict[str, int] = field(default_factory=dict)
+    solution_breakdown: dict[str, int] = field(default_factory=dict)
+    scale_breakdown: dict[str, int] = field(default_factory=dict)
+    avg_projects_3yr: float | None = None
+    avg_revenue_3yr: str | None = None
+    avg_revenue_3yr_million: float | None = None
+    years_in_business: int | None = None
+    representative: str | None = None
+    company_age_years: int | None = None
+    avg_project_count_3y: float | None = None
+    avg_revenue_3y_million: float | None = None
+    company_location: str | None = None
     source: str = "data/partners.py"
 
 

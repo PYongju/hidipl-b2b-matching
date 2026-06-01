@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from config.paths import UPLOAD_DIR
 from services.api_demo.response_builders import (
     build_compare_response,
     build_explanation_response,
@@ -46,7 +47,7 @@ def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
 
 def upload_quote_paths(project_id: str, file_paths: list[Path]) -> dict[str, Any]:
     project = _require_project(project_id)
-    upload_dir = Path("data/api_demo_uploads") / project_id
+    upload_dir = UPLOAD_DIR / project_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     stored_paths = []

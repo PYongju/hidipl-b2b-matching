@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from config.paths import APP_ROOT, DATA_DIR
 from services.config import get_settings
 from services.ocr.factory import create_ocr_provider
 from services.parser.factory import create_parser_provider
@@ -50,6 +51,14 @@ def main() -> None:
             continue
 
         file_path = Path(raw_file_path)
+        if not file_path.is_absolute():
+            app_relative_path = APP_ROOT / file_path
+            data_relative_path = DATA_DIR / file_path
+            file_path = (
+                app_relative_path
+                if app_relative_path.exists()
+                else data_relative_path
+            )
 
         if not file_path.exists():
             print(f"  ERROR: file does not exist: {file_path}")

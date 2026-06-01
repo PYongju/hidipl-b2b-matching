@@ -1,6 +1,6 @@
-from pathlib import Path
 from pprint import pprint
 
+from config.paths import DATA_DIR
 from services.config import get_settings
 from services.ocr.factory import create_ocr_provider
 from services.parser.factory import create_parser_provider
@@ -12,9 +12,12 @@ def main() -> None:
     ocr_provider = create_ocr_provider(settings)
     parser_provider = create_parser_provider("rule")
 
-    file_path = Path("data/일강_LED전광판(p1_5)_다올씨앤씨.pdf")
+    file_paths = sorted(DATA_DIR.glob("*.pdf"))
+    if not file_paths:
+        print("테스트할 PDF 파일이 없습니다.")
+        return
 
-    ocr_result = ocr_provider.extract(file_path)
+    ocr_result = ocr_provider.extract(file_paths[0])
     parsed_result = parser_provider.parse(ocr_result)
 
     print("\n========== 추출된 견적 정보 ==========")

@@ -4,6 +4,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 
+from config.paths import DATA_DIR
 from services.explanation.factory import create_explanation_provider
 from services.recommendation.schemas import RecommendationItem, RecommendationPipelineResult
 
@@ -25,7 +26,7 @@ def build_recommendation_fixture() -> RecommendationPipelineResult:
             business_sort_key=[1, 3.0, 1, 0.1, 3, 2, 92.4, 85.0],
             vendor_name="㈜가이드삼정",
             project_name="스노우스페이스 LED 전광판",
-            source_file_path="data/스노우스페이스_커브드LED_가이드삼정.xlsx",
+            source_file_path=str(DATA_DIR / "스노우스페이스_커브드LED_가이드삼정.xlsx"),
             final_score=92.4,
             spec_score=88.5,
             price_score=85.0,
@@ -63,7 +64,7 @@ def build_recommendation_fixture() -> RecommendationPipelineResult:
             business_sort_key=[1, 1.0, 0, 0.04, 2, 2, 88.0, 100.0],
             vendor_name="(주) 다올씨앤씨",
             project_name="일강이앤아이 회의실 디스플레이",
-            source_file_path="data/sample.pdf",
+            source_file_path=str(DATA_DIR / "sample.pdf"),
             final_score=88.0,
             spec_score=81.0,
             price_score=100.0,

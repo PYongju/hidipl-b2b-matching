@@ -4,6 +4,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from config.paths import PARTNER_EMBEDDINGS_PATH
 from services.partner_matching.partner_embedding_text_builder import (
     build_partner_embedding_text,
 )
@@ -11,7 +12,7 @@ from services.partner_matching.schemas import PartnerEmbeddingRecord
 from services.ranking.schemas import PartnerProfile
 
 
-DEFAULT_PARTNER_EMBEDDING_PATH = Path("data/partner_embeddings.json")
+DEFAULT_PARTNER_EMBEDDING_PATH = PARTNER_EMBEDDINGS_PATH
 
 
 def load_partner_embeddings(

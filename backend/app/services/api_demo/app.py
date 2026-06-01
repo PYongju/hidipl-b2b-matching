@@ -6,8 +6,7 @@ except ImportError:
     HTTPException = Exception
     UploadFile = None
 
-from pathlib import Path
-
+from config.paths import UPLOAD_DIR
 from services.api_demo.routers import (
     compare_quotes,
     create_project,
@@ -32,7 +31,7 @@ if FastAPI is not None:
 
     @app.post("/api/v1/projects/{project_id}/quotes")
     async def post_quotes(project_id: str, files: list[UploadFile] = File(...)):
-        upload_dir = Path("data/api_demo_uploads") / project_id
+        upload_dir = UPLOAD_DIR / project_id
         upload_dir.mkdir(parents=True, exist_ok=True)
         paths = []
         for file in files:

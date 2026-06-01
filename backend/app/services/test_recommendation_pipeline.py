@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from pprint import pprint
 
+from config.paths import DATA_DIR
 from services.parser.schemas import LineItem, LineItemCategory, QuoteDocument
 from services.quote_ingestion.factory import create_quote_ingestion_pipeline
 from services.quote_ingestion.schemas import QuoteIngestionResult
@@ -108,9 +109,9 @@ def run_azure_integration_test() -> None:
         print(f"Requirement ingestion 실패로 integration test를 중단합니다: {e}")
         return
 
-    file_paths = sorted(Path("data").glob("*.pdf")) + sorted(Path("data").glob("*.xlsx"))
+    file_paths = sorted(DATA_DIR.glob("*.pdf")) + sorted(DATA_DIR.glob("*.xlsx"))
     if not file_paths:
-        file_paths = sorted(Path("samples/quotes").glob("*.pdf"))
+        file_paths = sorted((DATA_DIR / "sample_files" / "quotes").glob("*.pdf"))
 
     if not file_paths:
         print("Azure integration test용 견적서 파일이 없습니다.")
@@ -260,7 +261,7 @@ def _build_quote_ingestion_result(
     return QuoteIngestionResult(
         quote_id=quote_id,
         request_id="test_request_001",
-        source_file_path=f"samples/{quote_id}.pdf",
+        source_file_path=str(DATA_DIR / "sample_files" / f"{quote_id}.pdf"),
         quote=quote,
         embedding_text="",
         embedding_vector=embedding_vector,

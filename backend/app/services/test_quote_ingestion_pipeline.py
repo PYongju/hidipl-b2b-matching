@@ -1,6 +1,6 @@
-from pathlib import Path
 from pprint import pprint
 
+from config.paths import DATA_DIR
 from services.quote_ingestion.factory import create_quote_ingestion_pipeline
 
 
@@ -10,9 +10,7 @@ def main() -> None:
 
 
 def run_pdf_quote_ingestion_test() -> None:
-    # sample_dir = Path("samples/quotes")
-    sample_dir = Path("data/")
-    file_paths = sorted(sample_dir.glob("*.pdf"))
+    file_paths = sorted(DATA_DIR.glob("*.pdf"))
 
     if not file_paths:
         print("테스트할 견적서 PDF가 없습니다.")
@@ -51,15 +49,15 @@ def run_pdf_quote_ingestion_test() -> None:
 
 def run_excel_quote_ingestion_test() -> None:
     print("\n========== Excel Quote Ingestion Test ==========")
-    file_path = Path("data/스노우스페이스_커브드LED_가이드삼정.xlsx")
+    excel_files = sorted(DATA_DIR.glob("*.xlsx"))
 
-    if not file_path.exists():
+    if not excel_files:
         print("테스트할 Excel 견적서가 없습니다.")
         return
 
     pipeline = create_quote_ingestion_pipeline()
     result = pipeline.process_file(
-        file_path,
+        excel_files[0],
         request_id="excel_test_request_001",
     )
 

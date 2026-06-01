@@ -14,6 +14,16 @@ class PartnerProfile:
     response_speed: str
     financial_status: str
     is_excluded: bool
+    vendor_id: str | None = None
+    installation_count: int | None = None
+    industry_breakdown: dict[str, int] = field(default_factory=dict)
+    solution_breakdown: dict[str, int] = field(default_factory=dict)
+    scale_breakdown: dict[str, int] = field(default_factory=dict)
+    avg_projects_3yr: float | None = None
+    avg_revenue_3yr: str | None = None
+    years_in_business: int | None = None
+    representative: str | None = None
+    company_location: str | None = None
 
 
 @dataclass

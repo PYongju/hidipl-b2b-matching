@@ -1,5 +1,4 @@
-from pathlib import Path
-
+from config.paths import DATA_DIR
 from services.config import get_settings
 from services.ocr.factory import create_ocr_provider
 
@@ -8,9 +7,12 @@ def main() -> None:
     settings = get_settings()
     ocr_provider = create_ocr_provider(settings)
 
-    file_path = Path("data/일강_LED전광판(p1_5)_다올씨앤씨.pdf")
+    file_paths = sorted(DATA_DIR.glob("*.pdf"))
+    if not file_paths:
+        print("테스트할 PDF 파일이 없습니다.")
+        return
 
-    result = ocr_provider.extract(file_path)
+    result = ocr_provider.extract(file_paths[0])
 
     print("\n========= 전체 텍스트 ============")
     print(result.text[:2000])

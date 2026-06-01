@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from services.parser.schemas import QuoteDocument, VendorSnapshot
@@ -45,10 +46,21 @@ class VendorSnapshotEnricher:
                 "financial_status",
                 "is_excluded",
                 "specialty_tags",
+                "installation_count",
+                "industry_breakdown",
+                "solution_breakdown",
+                "scale_breakdown",
+                "avg_projects_3yr",
+                "avg_revenue_3yr",
+                "years_in_business",
+                "representative",
             ],
         }
 
     def _profile_to_snapshot(self, partner: PartnerProfile) -> VendorSnapshot:
+        avg_revenue_3yr_million = parse_revenue_to_million(
+            getattr(partner, "avg_revenue_3yr", None)
+        )
         return VendorSnapshot(
             vendor_id=getattr(partner, "vendor_id", None),
             vendor_name=partner.name,
@@ -59,6 +71,19 @@ class VendorSnapshotEnricher:
             financial_status=partner.financial_status,
             is_excluded=partner.is_excluded,
             specialty_tags=list(partner.specialty_tags),
+            installation_count=getattr(partner, "installation_count", None),
+            industry_breakdown=dict(getattr(partner, "industry_breakdown", {}) or {}),
+            solution_breakdown=dict(getattr(partner, "solution_breakdown", {}) or {}),
+            scale_breakdown=dict(getattr(partner, "scale_breakdown", {}) or {}),
+            avg_projects_3yr=getattr(partner, "avg_projects_3yr", None),
+            avg_revenue_3yr=getattr(partner, "avg_revenue_3yr", None),
+            avg_revenue_3yr_million=avg_revenue_3yr_million,
+            years_in_business=getattr(partner, "years_in_business", None),
+            representative=getattr(partner, "representative", None),
+            company_age_years=getattr(partner, "years_in_business", None),
+            avg_project_count_3y=getattr(partner, "avg_projects_3yr", None),
+            avg_revenue_3y_million=avg_revenue_3yr_million,
+            company_location=getattr(partner, "company_location", None),
             source="data/partners.py",
         )
 
@@ -68,3 +93,29 @@ class VendorSnapshotEnricher:
             "normal": 70.0,
             "slow": 40.0,
         }.get((value or "").lower())
+
+
+def parse_revenue_to_million(value: str | None) -> float | None:
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    number_match = re.search(r"([0-9][0-9,]*(?:\.[0-9]+)?)", text)
+    if not number_match:
+        return None
+
+    try:
+        number = float(number_match.group(1).replace(",", ""))
+    except ValueError:
+        return None
+
+    normalized = text.replace(" ", "")
+    if "억원" in normalized or "억" in normalized:
+        return number * 100.0
+    if "백만원" in normalized:
+        return number
+
+    return number

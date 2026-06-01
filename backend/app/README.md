@@ -145,7 +145,7 @@ POST /api/v1/projects/{project_id}/compare
 
 ## TEST 를 위해, 테스트 콘솔용 요약 출력으로 제한되어있음.
 
-## test_api_demo_flow.py 실행 시, /data/demo_outputs 에서 전체 JSON 확인가능
+## test_api_demo_flow.py 실행 시, config.paths.OUTPUT_DIR 에서 전체 JSON 확인가능
 
 ## 7. GitHub에 포함되지 않은 파일 안내
 
@@ -155,9 +155,9 @@ POST /api/v1/projects/{project_id}/compare
 .env
 .venv/
 __pycache__/
-data/demo_outputs/
-data/api_demo_uploads/
-data/partner_embeddings.json
+config.paths.OUTPUT_DIR
+config.paths.UPLOAD_DIR
+config.paths.PARTNER_EMBEDDINGS_PATH
 실제 견적서 PDF/XLSX/이미지 파일
 Azure Key 또는 비밀정보가 포함된 파일
 ```
@@ -182,3 +182,20 @@ services/api_demo/
 ```
 
 1차 MVP의 핵심은 `list[QuoteDocument]` 형태의 견적서 풀을 준비한 뒤, 이를 비교·랭킹·설명하는 뒷단 파이프라인을 안정적으로 동작시키는 것입니다.
+
+## 9. 경로의존성 관련 추가사항
+
+프론트/백엔드에서 파일 업로드
+↓
+UPLOAD_DIR / project_id / filename 으로 저장
+↓
+저장된 file_path를 QuoteIngestionPipeline에 전달
+↓
+OCR / Parser / Embedding / Ranking 실행
+
+백엔드 실행 기준 루트는 backend/app 입니다.
+공통 경로는 backend/app/config/paths.py에서 관리합니다.
+
+모든 파일 경로는 backend/app/config/paths.py의 공통 Path 상수를 기준으로 정리했습니다.
+API에서 업로드 파일을 UPLOAD_DIR에 저장한 뒤, 해당 file_path를 QuoteIngestionPipeline에 전달하면 OCR/Parser/Embedding/Ranking까지 실행됩니다.
+서비스 모듈 내부에는 특정 로컬 절대경로나 샘플 파일 경로를 직접 참조하지 않도록 정리했습니다.
