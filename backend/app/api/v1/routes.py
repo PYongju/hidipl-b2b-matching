@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/v1")
 async def create_project(body: dict):
     return {
         "ok": True,
-        "data": { 
+        "data": {
             "project_id": "P-20260529-001",
             "created_at": "2026-05-29T10:00:00+09:00",
         },
@@ -61,8 +61,8 @@ async def get_matches(project_id: str, match_id: Optional[str] = None):
 
 
 # [P5] LLM 근거 생성 결과
-@router.get("/matches/{match_id}/explanation")
-async def get_explanation(match_id: str):
+@router.get("/projects/{project_id}/matches/{match_id}/explanation")
+async def get_explanation(project_id: str, match_id: str):
     return {
         "ok": True,
         "data": {
@@ -73,14 +73,16 @@ async def get_explanation(match_id: str):
     }
 
 
-# [P6] 견적 비교표 생성 (FR-2) — 5/29 회의에서 상세 확정 예정
-@router.post("/compare")
-async def compare_quotes(body: dict):
+# [P6] 견적 비교표 생성 (FR-2)
+# delivery_basis_raw == '별도협의' 시 프론트에서 "출장비 별도" 배지 처리
+# check_required null 항목은 프론트에서 "확인 필요" 배지 처리
+# rows 배열은 rank 순 고정
+@router.post("/projects/{project_id}/compare")
+async def compare_quotes(project_id: str, body: dict):
     return {
         "ok": True,
         "data": {
-            "category": "",
-            "items": [],               # /compare 상세 합의 후 채움
+        "rows": [],   # build_compare_response() 연동 후 채움
         },
         "error": None,
     }
