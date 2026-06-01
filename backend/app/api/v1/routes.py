@@ -1,0 +1,208 @@
+import tempfile
+import shutil
+from pathlib import Path
+from services.api_demo import routers as demo_routers
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from typing import Optional, List
+from pydantic import BaseModel
+from services.api_demo.schemas import (
+    ProjectCreateRequest as DemoProjectCreateRequest,
+    MatchRunRequest,
+)
+from services.api_demo.schemas import CompareRequest
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from datetime import datetime
+from core.database import get_db
+from sqlalchemy import text
+
+router = APIRouter(prefix="/api/v1")
+
+class ProjectCreateRequest(BaseModel):
+    company_name: str
+    location: str | None = None
+    deadline: str | None = None
+    request_text: str
+
+# [P1] 프로젝트 등록
+@router.post("/projects")
+async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_db)):
+    result = demo_routers.create_project(
+        DemoProjectCreateRequest(
+            company_name=body.company_name,
+            location=body.location,
+            deadline=body.deadline,
+            request_text=body.request_text,
+        )
+    )
+    try:
+        db.execute(
+            text("INSERT INTO projects (project_id, created_at) VALUES (:project_id, :created_at)"),
+            {
+                "project_id": result["project_id"],
+                "created_at": datetime.now(),
+            }
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"DB 저장 실패: {e}")
+    
+    print(result)
+    return {"ok": True, "data": result, "error": None}
+
+
+# [P2] 견적서 업로드 + OCR + Canonical 변환
+@router.post("/projects/{project_id}/quotes")
+async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db: Session = Depends(get_db)):
+    tmp_dir = Path(tempfile.mkdtemp())
+    try:
+        saved_paths = []
+        for f in files:
+            dest = tmp_dir / f.filename
+            with dest.open("wb") as out:
+                shutil.copyfileobj(f.file, out)
+            saved_paths.append(dest)
+
+        result = demo_routers.upload_quote_paths(project_id, saved_paths)
+        try:
+            for quote in result.get("quotes", []):
+                db.execute(
+                    text("""
+                        INSERT IGNORE INTO quotes (
+                            quote_id, project_id, vendor_name, vendor_id,
+                            total_supply_price, total_with_vat,
+                            delivery_weeks, delivery_basis_raw,
+                            warranty_months, created_at
+                        ) VALUES (
+                            :quote_id, :project_id, :vendor_name, :vendor_id,
+                            :total_supply_price, :total_with_vat,
+                            :delivery_weeks, :delivery_basis_raw,
+                            :warranty_months, :created_at
+                        )
+                    """),
+                    {
+                        "quote_id": quote["quote_id"],
+                        "project_id": project_id,
+                        "vendor_name": quote["vendor_name"],
+                        "vendor_id": quote.get("vendor_snapshot", {}).get("vendor_id"),
+                        "total_supply_price": quote["total_supply_price"],
+                        "total_with_vat": quote.get("total_with_vat"),
+                        "delivery_weeks": quote.get("delivery_weeks"),
+                        "delivery_basis_raw": quote.get("delivery_basis_raw"),
+                        "warranty_months": quote.get("warranty_months"),
+                        "created_at": datetime.now(),
+                    }
+                )
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"DB 저장 실패 (P2): {e}")
+        return {"ok": True, "data": result, "error": None}
+
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# [P3] 매칭 실행
+@router.post("/projects/{project_id}/matches")
+async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db)):
+    try:
+        result = demo_routers.run_match(
+            project_id,
+            MatchRunRequest(
+                quote_top_n=body.get("quote_top_n", 3),
+                run_explanation=body.get("run_explanation", False),
+                explanation_provider=body.get("explanation_provider", None),
+            ),
+        )
+        try:
+            match_id = result["match_id"]
+            db.execute(
+                text("INSERT IGNORE INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
+                {"match_id": match_id, "project_id": project_id, "created_at": datetime.now()}
+            )
+            for item in result.get("recommendation", {}).get("items", []):
+                db.execute(
+                    text("""
+                        INSERT IGNORE INTO match_result_items (
+                            match_id, quote_id, rank, final_score,
+                            spec_score, price_score, delivery_score,
+                            warranty_score, installation_score,
+                            matched_rules, filter_reasons, check_required, rule_warnings
+                        ) VALUES (
+                            :match_id, :quote_id, :rank, :final_score,
+                            :spec_score, :price_score, :delivery_score,
+                            :warranty_score, :installation_score,
+                            :matched_rules, :filter_reasons, :check_required, :rule_warnings
+                        )
+                    """),
+                    {
+                        "match_id": match_id,
+                        "quote_id": item["quote_id"],
+                        "rank": item["rank"],
+                        "final_score": item["final_score"],
+                        "spec_score": item["spec_score"],
+                        "price_score": item["price_score"],
+                        "delivery_score": item["delivery_score"],
+                        "warranty_score": item["warranty_score"],
+                        "installation_score": item["installation_score"],
+                        "matched_rules": str(item.get("matched_rules", [])),
+                        "filter_reasons": str(item.get("filter_reasons", [])),
+                        "check_required": str(item.get("check_required", [])),
+                        "rule_warnings": str(item.get("rule_warnings", [])),
+                    }
+                )
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"DB 저장 실패 (P3): {e}")
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+# [P4] 매칭 결과 조회 (대시보드용)
+@router.get("/projects/{project_id}/matches")
+async def get_matches(project_id: str, match_id: Optional[str] = None):
+    try:
+        result = demo_routers.get_matches(project_id)
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# [P5] LLM 근거 생성 결과
+@router.get("/projects/{project_id}/matches/{match_id}/explanation")
+async def get_explanation(project_id: str, match_id: str):
+    try:
+        result = demo_routers.get_explanation(project_id, match_id)
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+# [P6] 견적 비교표 생성 (FR-2)
+# delivery_basis_raw == '별도협의' 시 프론트에서 "출장비 별도" 배지 처리
+# check_required null 항목은 프론트에서 "확인 필요" 배지 처리
+# rows 배열은 rank 순 고정
+@router.post("/projects/{project_id}/compare")
+async def compare_quotes(project_id: str, body: dict):
+    try:
+        result = demo_routers.compare_quotes(
+            project_id,
+            CompareRequest(
+                quote_ids=body.get("quote_ids", None),
+                top_n=body.get("top_n", None),
+            ),
+        )
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
