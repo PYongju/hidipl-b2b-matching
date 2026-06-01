@@ -1,0 +1,19 @@
+[
+  {
+    "case_id": "quote_001",
+    "file_path": "sample.pdf",
+    "expected": {
+      "vendor_name": "(주) 다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이",
+      "total_supply_price": 12800000,
+      "total_with_vat": 14080000,
+      "delivery_weeks": null,
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "categories": ["DISPLAY", "PLAYER", "CABLE", "INSTALL"],
+      "spec_parsed_contains": {
+        "DISPLAY": ["pitch_mm"]
+      }
+    }
+  }
+]
