@@ -5,7 +5,7 @@ import { formatNumberInput } from '../utils/formatters';
 
 export default function ProjectCreatePage({ projectData, onProjectDataChange, onBack, onAnalyze }) {
   const [step, setStep] = useState(1);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const uploadedFiles = projectData.quoteFiles ?? [];
   const steps = [
     ["기본 정보", "회사명, 위치, 일정"],
     ["요구사항", "스펙, 예산, 우선순위"],
@@ -14,7 +14,7 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
 
   const handleFiles = (event) => {
     const files = Array.from(event.target.files || []);
-    setUploadedFiles(files.map((file) => file.name));
+    updateProject("quoteFiles", files);
   };
 
   const updateProject = (field, value) => {
@@ -187,7 +187,7 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
               <p>공급사별 견적서를 첨부합니다. 선택한 파일명은 아래 목록에 표시됩니다.</p>
               <label className="drop-zone upload-drop-zone">
                 <input
-                  accept=".pdf,.xlsx,.xls,.doc,.docx"
+                  accept=".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp"
                   multiple
                   onChange={handleFiles}
                   type="file"
@@ -200,8 +200,8 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
                   <div className="empty-file-row">아직 업로드된 견적서가 없습니다.</div>
                 ) : (
                   uploadedFiles.map((file) => (
-                    <div className="file-row" key={file}>
-                      <span>{file}</span>
+                    <div className="file-row" key={`${file.name}-${file.lastModified}`}>
+                      <span>{file.name}</span>
                       <Badge tone="green">선택 완료</Badge>
                     </div>
                   ))

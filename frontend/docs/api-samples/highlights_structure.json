@@ -1,0 +1,42 @@
+{
+  "source": "api_demo_compare_response.json",
+  "highlight_keys_observed": [
+    "is_fastest_delivery",
+    "is_highest_score",
+    "is_longest_warranty",
+    "is_lowest_total_price"
+  ],
+  "examples": [
+    {
+      "vendor_name": "효성ITX",
+      "quote_id": "효성ITX_20251210_000000_eb487781",
+      "highlights": {
+        "is_lowest_total_price": false,
+        "is_fastest_delivery": false,
+        "is_longest_warranty": true,
+        "is_highest_score": false
+      }
+    },
+    {
+      "vendor_name": "다올씨앤씨",
+      "quote_id": "다올씨앤씨_20251210_000000_88fc704c",
+      "highlights": {
+        "is_lowest_total_price": true,
+        "is_fastest_delivery": false,
+        "is_longest_warranty": true,
+        "is_highest_score": false
+      }
+    },
+    {
+      "vendor_name": "딥사이닝",
+      "quote_id": "딥사이닝_20251210_000000_ee066fd8",
+      "highlights": {
+        "is_lowest_total_price": false,
+        "is_fastest_delivery": true,
+        "is_longest_warranty": true,
+        "is_highest_score": true
+      }
+    }
+  ],
+  "note": "highlights? status enum? ??? ?? ?? ??? boolean flag???."
+}
