@@ -188,8 +188,8 @@ async def get_explanation(project_id: str, match_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 # [P6] 견적 비교표 생성 (FR-2)
-# delivery_basis_raw == '별도협의' 시 프론트에서 "출장비 별도" 배지 처리
-# check_required null 항목은 프론트에서 "확인 필요" 배지 처리
+# status는 백엔드가 CellStatus enum으로 계산해 내려준다.
+# 프론트는 status -> 라벨 매핑만 담당한다.
 # rows 배열은 rank 순 고정
 @router.post("/projects/{project_id}/compare")
 async def compare_quotes(project_id: str, body: dict):
