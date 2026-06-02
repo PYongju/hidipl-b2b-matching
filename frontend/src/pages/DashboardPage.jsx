@@ -1,19 +1,35 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Badge from '../components/Badge';
 import ReviewDrawer from '../components/ReviewDrawer';
-import { comparisonSections, suppliers, totalRows } from '../data/mockProjects';
+import useCompareResult from '../hooks/useCompareResult';
+import useExplanationResult from '../hooks/useExplanationResult';
+import { getStatusUi } from '../utils/statusMap';
 
 export default function DashboardPage({ projectData, onGoProjects }) {
   const [selectedVendor, setSelectedVendor] = useState("A Display");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId = projectData.projectId || "PV-2025-0421";
-  const [openSections, setOpenSections] = useState(() =>
-    comparisonSections.reduce((sections, section) => ({
+  const {
+    compareErrorMessage,
+    compareState,
+    comparisonSections,
+    suppliers,
+    totalRows,
+  } = useCompareResult(projectData);
+  const {
+    isFallback: explanationIsFallback,
+    overallSummary,
+    supplierExplanations,
+  } = useExplanationResult(projectData, suppliers);
+  const defaultOpenSections = useMemo(
+    () => comparisonSections.reduce((sections, section) => ({
       ...sections,
       [section.id]: isFailureScenario ? true : section.defaultOpen,
-    }), { total: true })
+    }), { total: true }),
+    [comparisonSections, isFailureScenario]
   );
+  const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectionFinalized, setSelectionFinalized] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
@@ -23,28 +39,23 @@ export default function DashboardPage({ projectData, onGoProjects }) {
   const toggleSection = (sectionId) => {
     setOpenSections((current) => ({
       ...current,
-      [sectionId]: !current[sectionId],
+      [sectionId]: !(current[sectionId] ?? defaultOpenSections[sectionId] ?? false),
     }));
   };
 
   const getStatusBadge = (status) => {
-    if (status === "bestPrice" || status === "bestValue") {
-      return <Badge tone="green">{status === "bestPrice" ? "최저가" : "우위"}</Badge>;
-    }
-    if (status === "needsReview") return <Badge tone="gray">검토 필요</Badge>;
-    if (status === "parseFail") return <Badge tone="red">수정 필요</Badge>;
-    if (status === "warning") return <Badge tone="orange">확인 필요</Badge>;
-    if (status === "included") return <Badge tone="green">포함</Badge>;
-    if (status === "separate") return <Badge tone="gray">별도</Badge>;
-    return null;
+    const statusUi = getStatusUi(status);
+    if (!statusUi) return null;
+    return <Badge tone={statusUi.tone}>{statusUi.badge}</Badge>;
   };
 
   const getSupplierCostBadge = (supplier, key, label) => {
     const row = comparisonSections
       .flatMap((section) => section.rows)
-      .find((item) => item.key === key);
-    const status = row?.statusBySupplier?.[supplier.id];
-    const value = supplier.comparison[key] || "";
+      .find((item) => item.label === key);
+    const cell = row?.cells?.[supplier.id];
+    const status = cell?.status;
+    const value = cell?.value || "";
 
     if (status === "included" || value.includes("포함")) {
       return <Badge tone="green" key={key}>{label} 포함</Badge>;
@@ -53,22 +64,30 @@ export default function DashboardPage({ projectData, onGoProjects }) {
       return <Badge tone="gray" key={key}>{label} 별도</Badge>;
     }
     if (status === "parseFail") {
-      return <Badge tone="red" key={key}>{label} 수정 필요</Badge>;
+      return <Badge tone="red" key={key}>{label} OCR 분석 실패</Badge>;
     }
-    if (status === "warning" || value.includes("확인")) {
-      return <Badge tone="orange" key={key}>{label} 확인 필요</Badge>;
+    if (status === "toBeDiscussed" || value.includes("검토") || value.includes("확인")) {
+      return <Badge tone="orange" key={key}>{label} 검토 필요</Badge>;
     }
     return null;
   };
 
   const renderCompareCell = (supplier, row) => {
-    const status = row.statusBySupplier?.[supplier.id];
-    const value = status === "parseFail" ? "OCR 분석 실패" : supplier.comparison[row.key] || "—";
+    const cell = row.cells?.[supplier.id] ?? { value: "—" };
+    const status = cell.status;
+    const highlight = cell.highlight;
+    const value = cell.value || "—";
+    const cellClasses = [
+      "compare-cell",
+      status ? `cell-${status}` : "",
+      highlight ? `cell-${highlight}` : "",
+    ].filter(Boolean).join(" ");
 
     return (
-      <div className={`compare-cell ${status ? `cell-${status}` : ""}`}>
-        <span className={status === "bestPrice" ? "price-best" : ""}>{value}</span>
+      <div className={cellClasses}>
+        <span className={highlight === "bestPrice" ? "price-best" : ""}>{value}</span>
         {getStatusBadge(status)}
+        {getStatusBadge(highlight)}
       </div>
     );
   };
@@ -169,7 +188,17 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           </div>
         </section>
 
-        {isFailureScenario && (
+        {compareState === "loading" && <CompareLoadingState />}
+
+        {compareState === "error" && (
+          <CompareErrorState
+            message={compareErrorMessage}
+            onGoProjects={onGoProjects}
+            onRetry={() => window.location.reload()}
+          />
+        )}
+
+        {compareState === "ready" && isFailureScenario && (
           <section className="failure-scenario-panel">
             <div>
               <b>실패 상태 UI 점검용 mock 데이터</b>
@@ -185,6 +214,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           </section>
         )}
 
+        {compareState === "ready" && (
         <div className="content-grid">
           <div className="main-column">
             <section className="panel supplier-panel">
@@ -211,8 +241,8 @@ export default function DashboardPage({ projectData, onGoProjects }) {
                     <div className="supplier-cost-badges">
                       <small>비용 조건</small>
                       <div className="badge-row">
-                        {getSupplierCostBadge(supplier, "installWork", "설치 공사비")}
-                        {getSupplierCostBadge(supplier, "travelCost", "출장비")}
+                        {getSupplierCostBadge(supplier, "설치 공사비", "설치 공사비")}
+                        {getSupplierCostBadge(supplier, "출장비", "출장비")}
                       </div>
                     </div>
                     <p>{supplier.summary}</p>
@@ -281,10 +311,10 @@ export default function DashboardPage({ projectData, onGoProjects }) {
                       type="button"
                     >
                       <span>{section.title}</span>
-                      <b>{openSections[section.id] ? "⌃" : "›"}</b>
+                      <b>{(openSections[section.id] ?? defaultOpenSections[section.id]) ? "⌃" : "›"}</b>
                     </button>
 
-                    {openSections[section.id] && (
+                    {(openSections[section.id] ?? defaultOpenSections[section.id]) && (
                       <table className="compare-table compare-section-table">
                         <tbody>
                           {section.rows.map((row) => (
@@ -310,10 +340,10 @@ export default function DashboardPage({ projectData, onGoProjects }) {
                     type="button"
                   >
                     <span>합계 행</span>
-                    <b>{openSections.total ? "⌃" : "›"}</b>
+                    <b>{(openSections.total ?? defaultOpenSections.total) ? "⌃" : "›"}</b>
                   </button>
 
-                  {openSections.total && (
+                  {(openSections.total ?? defaultOpenSections.total) && (
                     <table className="compare-table compare-section-table compare-total-table">
                       <tbody>
                         {totalRows.map((row) => (
@@ -342,31 +372,27 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           <aside className="side-column">
             <section className="panel ai-panel">
               <h2>✦ AI 근거 요약</h2>
-              {isFailureScenario && (
+              {explanationIsFallback && (
                 <div className="fallback-notice">
                   AI 설명 생성이 일시적으로 실패해 기본 규칙 기반 요약을 표시합니다.
                 </div>
               )}
-              <p>
-                {isFailureScenario
-                  ? "A Display는 필수 항목 대부분이 정상 추출되었습니다. BrightSign Korea는 일부 금액 항목의 파싱 신뢰도가 낮고, VisionTech는 OCR 일부 실패와 총액 미확정 상태라 최저가 비교에서 제외해야 합니다."
-                  : "A Display는 가격, 납기, 스펙 일치율에서 가장 우수합니다. BrightSign Korea는 전문성은 높으나 가격과 납기가 열위입니다. VisionTech는 스펙 일부 불일치와 미기재 항목이 있어 신중한 확인이 필요합니다."}
-              </p>
+              <p>{overallSummary}</p>
               <button className="side-title side-title-button" onClick={() => setProsOpen((open) => !open)} type="button">
                 <span>공급사 장단점</span>
                 <b>{prosOpen ? "⌃" : "›"}</b>
               </button>
               {prosOpen && (
                 <div className="pros-list">
-                  {suppliers.map((supplier) => (
-                    <div className="pros-item" key={supplier.name}>
+                  {supplierExplanations.map((supplier) => (
+                    <div className="pros-item" key={supplier.quoteId ?? supplier.vendorName}>
                       <div className="pros-brand">
                         <span className={`supplier-logo ${supplier.logoClass}`}>{supplier.logo}</span>
-                        <b>{supplier.name}</b>
+                        <b>{supplier.vendorName}</b>
                       </div>
                       <div>
                         <div>장점: {supplier.strengths}</div>
-                        <div>단점: {supplier.weakness}</div>
+                        <div>단점: {supplier.weaknesses}</div>
                       </div>
                       <span>›</span>
                     </div>
@@ -431,8 +457,10 @@ export default function DashboardPage({ projectData, onGoProjects }) {
             </section>
           </aside>
         </div>
+        )}
       </main>
 
+      {compareState === "ready" && (
       <footer className="bottom-actions">
         <button className="button action-secondary" type="button">▣ 임시 저장</button>
         <button className="button action-secondary" type="button">□ 고객 보고서로 내보내기</button>
@@ -445,6 +473,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           {selectionFinalized ? "선정 완료" : "◎ 최종 선정 확정"}
         </button>
       </footer>
+      )}
       {confirmOpen && (
         <div className="confirm-layer" role="presentation">
           <div className="confirm-dialog" role="dialog" aria-modal="true" aria-label="최종 선정 확인">
@@ -486,5 +515,67 @@ export default function DashboardPage({ projectData, onGoProjects }) {
       )}
       <ReviewDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
+  );
+}
+
+function CompareLoadingState() {
+  return (
+    <section className="compare-state-panel" aria-busy="true">
+      <div className="state-card state-card-loading">
+        <div className="state-icon loading-icon" />
+        <div>
+          <h2>견적 비교 데이터를 불러오는 중입니다</h2>
+          <p>공급사 정보, 견적 항목, AI 근거 요약을 준비하고 있습니다.</p>
+        </div>
+      </div>
+      <div className="loading-layout">
+        <div className="loading-main">
+          <div className="skeleton-row skeleton-title" />
+          <div className="skeleton-grid">
+            <div className="skeleton-card" />
+            <div className="skeleton-card" />
+            <div className="skeleton-card" />
+          </div>
+          <div className="skeleton-table">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="loading-side">
+          <div className="skeleton-card tall" />
+          <div className="skeleton-card" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompareErrorState({ message, onGoProjects, onRetry }) {
+  return (
+    <section className="compare-state-panel">
+      <div className="state-card state-card-error">
+        <div className="state-icon error-icon">!</div>
+        <div>
+          <h2>견적 비교 데이터를 불러오지 못했습니다</h2>
+          <p>{message}</p>
+          <div className="state-actions">
+            <button className="button action-primary" onClick={onRetry} type="button">
+              다시 시도
+            </button>
+            <button className="button action-secondary" onClick={onGoProjects} type="button">
+              프로젝트 목록으로 이동
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="error-guide">
+        <b>확인할 항목</b>
+        <span>API 응답 형식, 프로젝트 ID, 업로드된 견적서 상태, 네트워크 연결을 확인해주세요.</span>
+      </div>
+    </section>
   );
 }

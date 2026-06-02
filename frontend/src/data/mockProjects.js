@@ -225,21 +225,21 @@ const comparisonRows = [
     key: "freeMaintenance",
     category: "ETC",
     emphasize: true,
-    statusBySupplier: { c: "warning" },
+    statusBySupplier: { c: "toBeDiscussed" },
   },
   {
     sectionId: "quoteItems",
     label: "디스플레이 H/W",
     key: "displayHw",
     category: "DISPLAY",
-    statusBySupplier: { b: "bestPrice" },
+    highlightBySupplier: { b: "bestPrice" },
   },
   {
     sectionId: "quoteItems",
     label: "시스템 장비",
     key: "systemEquipment",
     category: "PLAYER",
-    statusBySupplier: { b: "bestPrice" },
+    highlightBySupplier: { b: "bestPrice" },
   },
   {
     sectionId: "quoteItems",
@@ -268,7 +268,7 @@ const comparisonRows = [
     label: "소프트웨어",
     key: "software",
     category: "SOFTWARE",
-    statusBySupplier: { b: "warning" },
+    statusBySupplier: { b: "toBeDiscussed" },
   },
   {
     sectionId: "quoteItems",
@@ -277,11 +277,23 @@ const comparisonRows = [
     category: "ETC",
     statusBySupplier: { c: "needsReview" },
   },
-  { sectionId: "conditions", label: "납기", key: "leadTime", statusBySupplier: { a: "bestValue", c: "needsReview" } },
-  { sectionId: "conditions", label: "제품 보증 기간", key: "warrantyPeriod", statusBySupplier: { a: "bestValue", c: "parseFail" } },
+  {
+    sectionId: "conditions",
+    label: "납기",
+    key: "leadTime",
+    statusBySupplier: { c: "needsReview" },
+    highlightBySupplier: { a: "bestValue" },
+  },
+  {
+    sectionId: "conditions",
+    label: "제품 보증 기간",
+    key: "warrantyPeriod",
+    statusBySupplier: { c: "parseFail" },
+    highlightBySupplier: { a: "bestValue" },
+  },
   { sectionId: "conditions", label: "A/S 방식", key: "asMethod", statusBySupplier: { c: "needsReview" } },
   { sectionId: "conditions", label: "설치 위치", key: "installLocation" },
-  { sectionId: "conditions", label: "특이사항", key: "notes", statusBySupplier: { c: "warning" } },
+  { sectionId: "conditions", label: "특이사항", key: "notes", statusBySupplier: { c: "toBeDiscussed" } },
 ];
 
 const comparisonSections = compareSectionMeta.map((section) => ({
@@ -290,7 +302,12 @@ const comparisonSections = compareSectionMeta.map((section) => ({
 }));
 
 const totalRows = [
-  { label: "견적 총액", key: "totalQuote", statusBySupplier: { b: "bestPrice", c: "needsReview" } },
+  {
+    label: "견적 총액",
+    key: "totalQuote",
+    statusBySupplier: { c: "needsReview" },
+    highlightBySupplier: { b: "bestPrice" },
+  },
 ];
 
 const initialProjectData = {
@@ -305,11 +322,16 @@ const initialProjectData = {
   budgetAmount: "",
   operationTime: "24/7",
   reviewPreset: "균형 추천",
+  quoteFiles: [],
 };
 
 
 function makeProjectFromData(data, id) {
   const projectId = id ?? `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+  const quoteFileNames = (data.quoteFiles ?? []).map((file) => file.name);
+  const serializableData = Object.fromEntries(
+    Object.entries(data).filter(([key]) => key !== "quoteFiles")
+  );
   return {
     id: projectId,
     name: data.projectName || "이름 없는 프로젝트",
@@ -321,7 +343,7 @@ function makeProjectFromData(data, id) {
       data.budgetAmount ? `${data.budgetAmount}원 이하` : "예산 미정",
       "공급사 3개",
     ],
-    data: { ...data },
+    data: { ...serializableData, quoteFileNames },
   };
 }
 

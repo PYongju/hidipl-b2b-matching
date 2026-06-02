@@ -1,0 +1,70 @@
+{
+  "source": "api_demo_compare_response.json",
+  "source_items_keys_observed": ["amount", "category", "name"],
+  "examples": [
+    {
+      "vendor_name": "효성ITX",
+      "quote_id": "효성ITX_20251210_000000_eb487781",
+      "bucket": "display_hw",
+      "status": "included",
+      "source_items": [
+        {
+          "name": "46\" 비디오월 3 x 3",
+          "category": "DISPLAY",
+          "amount": 13500000
+        }
+      ]
+    },
+    {
+      "vendor_name": "효성ITX",
+      "quote_id": "효성ITX_20251210_000000_eb487781",
+      "bucket": "installation",
+      "status": "separate",
+      "source_items": [
+        {
+          "name": "설치비",
+          "category": "INSTALL",
+          "amount": 7725000
+        },
+        {
+          "name": "설치비",
+          "category": "INSTALL",
+          "amount": 4500000
+        }
+      ]
+    },
+    {
+      "vendor_name": "효성ITX",
+      "quote_id": "효성ITX_20251210_000000_eb487781",
+      "bucket": "materials",
+      "status": "included",
+      "source_items": [
+        {
+          "name": "브라켓",
+          "category": "MOUNT",
+          "amount": 2700000
+        }
+      ]
+    },
+    {
+      "vendor_name": "효성ITX",
+      "quote_id": "효성ITX_20251210_000000_eb487781",
+      "bucket": "system_equipment",
+      "status": "missing",
+      "source_items": []
+    }
+  ],
+  "empty_source_items_example": {
+    "vendor_name": "효성ITX",
+    "quote_id": "효성ITX_20251210_000000_eb487781",
+    "bucket": "system_equipment",
+    "status": "missing",
+    "source_items": []
+  },
+  "observed_status_values": [
+    "included",
+    "missing",
+    "separate",
+    "to_be_discussed"
+  ]
+}

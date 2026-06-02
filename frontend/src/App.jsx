@@ -4,6 +4,8 @@ import ProjectListPage from './pages/ProjectListPage';
 import ProjectCreatePage from './pages/ProjectCreatePage';
 import AnalysisPage from './pages/AnalysisPage';
 import DashboardPage from './pages/DashboardPage';
+import { createProject, runProjectMatch, uploadProjectQuotes } from './api/apiClient';
+import { shouldUseMockApi } from './api/apiMode';
 import { initialProjectData, sampleProjects, makeProjectFromData } from './data/mockProjects';
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
   const [projects, setProjects] = useState(sampleProjects);
   const [editingProjectId, setEditingProjectId] = useState('');
   const [activeProjectId, setActiveProjectId] = useState(sampleProjects[0]?.id ?? '');
+  const [analysisState, setAnalysisState] = useState('idle');
+  const [analysisErrorMessage, setAnalysisErrorMessage] = useState('');
 
   const startNewProject = () => {
     setEditingProjectId('');
@@ -55,6 +59,64 @@ export default function App() {
     setScreen('dashboard');
   };
 
+  const buildProjectRequest = (data) => ({
+    company_name: data.companyName,
+    location: data.location,
+    project_name: data.projectName,
+    current_stage: data.currentStage,
+    project_date: data.projectDate,
+    use_case: data.usage,
+    display_size: data.displaySize,
+    quantity: Number(data.quantity || 0),
+    budget_amount: Number(String(data.budgetAmount || '').replace(/,/g, '')) || null,
+    operation_time: data.operationTime,
+    review_preset: data.reviewPreset,
+  });
+
+  const startAnalysisFlow = async () => {
+    setScreen('analysis');
+    setAnalysisState('loading');
+    setAnalysisErrorMessage('');
+
+    try {
+      if (shouldUseMockApi) {
+        const mockProjectApiId = projectData.projectApiId || projectData.projectId || `mock-${Date.now()}`;
+        const mockMatchId = projectData.matchId || `match-${Date.now()}`;
+        const mockQuoteIds = (projectData.quoteFiles ?? []).map((file, index) => (
+          `mock-quote-${index + 1}-${file.name}`
+        ));
+
+        setProjectData((current) => ({
+          ...current,
+          projectApiId: mockProjectApiId,
+          quoteIds: mockQuoteIds,
+          matchId: mockMatchId,
+        }));
+        setAnalysisState('ready');
+        return;
+      }
+
+      const createdProject = await createProject(buildProjectRequest(projectData));
+      const projectApiId = createdProject.project_id ?? createdProject.id;
+      const uploadResult = await uploadProjectQuotes(projectApiId, projectData.quoteFiles ?? []);
+      const quoteIds = uploadResult.quote_ids ?? uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ?? [];
+      const matchResult = await runProjectMatch(projectApiId);
+      const matchId = matchResult.match_id ?? matchResult.id;
+
+      setProjectData((current) => ({
+        ...current,
+        projectApiId,
+        quoteIds,
+        matchId,
+        quoteUploadResult: uploadResult,
+      }));
+      setAnalysisState('ready');
+    } catch (error) {
+      setAnalysisErrorMessage(error.message || 'AI 분석 실행 중 오류가 발생했습니다.');
+      setAnalysisState('error');
+    }
+  };
+
   if (screen === 'login') {
     return <LoginPage onLogin={() => setScreen('projects')} />;
   }
@@ -76,14 +138,22 @@ export default function App() {
       <ProjectCreatePage
         projectData={projectData}
         onProjectDataChange={setProjectData}
-        onAnalyze={() => setScreen('analysis')}
+        onAnalyze={startAnalysisFlow}
         onBack={() => setScreen('projects')}
       />
     );
   }
 
   if (screen === 'analysis') {
-    return <AnalysisPage onDashboard={completeAnalysis} />;
+    return (
+      <AnalysisPage
+        errorMessage={analysisErrorMessage}
+        onBack={() => setScreen('wizard')}
+        onDashboard={completeAnalysis}
+        onRetry={startAnalysisFlow}
+        state={analysisState}
+      />
+    );
   }
 
   return <DashboardPage projectData={projectData} onGoProjects={() => setScreen('projects')} />;
