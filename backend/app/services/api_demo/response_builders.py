@@ -4,6 +4,7 @@ from enum import Enum
 import re
 from typing import Any
 
+from services.api_demo.enums import CellStatus
 from services.parser.schemas import LineItemCategory
 
 
@@ -312,7 +313,9 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
         "system_equipment": _empty_cost_bucket(),
         "installation": _empty_cost_bucket(),
         "materials": _empty_cost_bucket(),
-        "travel_expense": _empty_cost_bucket(status="확인 필요"),
+        "travel_expense": _empty_cost_bucket(
+            status=CellStatus.TO_BE_DISCUSSED.value
+        ),
         "etc": _empty_cost_bucket(amount=0),
         "software": _empty_cost_bucket(amount=0),
         "content": _empty_cost_bucket(amount=0),
@@ -335,17 +338,20 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
     context = " ".join([quote.notes_raw, " ".join(check_required), " ".join(rule_warnings)])
     for name, bucket in breakdown.items():
         if bucket["amount"] and bucket["amount"] > 0:
-            bucket["status"] = "포함"
+            bucket["status"] = CellStatus.INCLUDED.value
         elif bucket["source_items"]:
-            bucket["status"] = "포함"
+            bucket["status"] = CellStatus.INCLUDED.value
         elif name in {"etc", "software", "content"}:
-            bucket["status"] = "미기재"
+            bucket["status"] = CellStatus.MISSING.value
         if _bucket_marked_separate(name, context):
-            bucket["status"] = "별도 청구"
+            bucket["status"] = CellStatus.SEPARATE.value
     return breakdown
 
 
-def _empty_cost_bucket(amount=None, status="미기재") -> dict[str, Any]:
+def _empty_cost_bucket(
+    amount=None,
+    status: str = CellStatus.MISSING.value,
+) -> dict[str, Any]:
     return {"amount": amount, "status": status, "source_items": []}
 
 
