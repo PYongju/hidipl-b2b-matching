@@ -3,7 +3,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
-      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(options.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...options.headers,
     },
     ...options,
@@ -12,7 +14,9 @@ async function request(endpoint, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(payload?.error?.message ?? payload?.message ?? "API request failed");
+    throw new Error(
+      payload?.error?.message ?? payload?.message ?? "API request failed",
+    );
   }
 
   if (payload && typeof payload === "object" && "ok" in payload) {
@@ -63,16 +67,23 @@ function runProjectMatch(projectId, topN = 3) {
 }
 
 function fetchCompare(compareRequest) {
-  return request("/api/v1/compare", {
+  const projectId = compareRequest.project_id;
+  return request(`/api/v1/projects/${projectId}/compare`, {
     method: "POST",
-    body: JSON.stringify(compareRequest),
+    body: JSON.stringify({
+      quote_ids: compareRequest.quote_ids,
+      top_n: compareRequest.top_n ?? null,
+    }),
   });
 }
 
 function fetchExplanation(projectId, matchId) {
-  return request(`/api/v1/projects/${projectId}/matches/${matchId}/explanation`, {
-    method: "GET",
-  });
+  return request(
+    `/api/v1/projects/${projectId}/matches/${matchId}/explanation`,
+    {
+      method: "GET",
+    },
+  );
 }
 
 export {

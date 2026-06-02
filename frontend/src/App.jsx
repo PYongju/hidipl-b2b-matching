@@ -1,32 +1,42 @@
-import { useState } from 'react';
-import LoginPage from './pages/LoginPage';
-import ProjectListPage from './pages/ProjectListPage';
-import ProjectCreatePage from './pages/ProjectCreatePage';
-import AnalysisPage from './pages/AnalysisPage';
-import DashboardPage from './pages/DashboardPage';
-import { createProject, runProjectMatch, uploadProjectQuotes } from './api/apiClient';
-import { shouldUseMockApi } from './api/apiMode';
-import { initialProjectData, sampleProjects, makeProjectFromData } from './data/mockProjects';
+import { useState } from "react";
+import LoginPage from "./pages/LoginPage";
+import ProjectListPage from "./pages/ProjectListPage";
+import ProjectCreatePage from "./pages/ProjectCreatePage";
+import AnalysisPage from "./pages/AnalysisPage";
+import DashboardPage from "./pages/DashboardPage";
+import {
+  createProject,
+  runProjectMatch,
+  uploadProjectQuotes,
+} from "./api/apiClient";
+import { shouldUseMockApi } from "./api/apiMode";
+import {
+  initialProjectData,
+  sampleProjects,
+  makeProjectFromData,
+} from "./data/mockProjects";
 
 export default function App() {
-  const [screen, setScreen] = useState('login');
+  const [screen, setScreen] = useState("login");
   const [projectData, setProjectData] = useState(initialProjectData);
   const [projects, setProjects] = useState(sampleProjects);
-  const [editingProjectId, setEditingProjectId] = useState('');
-  const [activeProjectId, setActiveProjectId] = useState(sampleProjects[0]?.id ?? '');
-  const [analysisState, setAnalysisState] = useState('idle');
-  const [analysisErrorMessage, setAnalysisErrorMessage] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState("");
+  const [activeProjectId, setActiveProjectId] = useState(
+    sampleProjects[0]?.id ?? "",
+  );
+  const [analysisState, setAnalysisState] = useState("idle");
+  const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
 
   const startNewProject = () => {
-    setEditingProjectId('');
+    setEditingProjectId("");
     setProjectData({ ...initialProjectData });
-    setScreen('wizard');
+    setScreen("wizard");
   };
 
   const editProject = (project) => {
     setEditingProjectId(project.id);
     setProjectData({ ...initialProjectData, ...project.data });
-    setScreen('wizard');
+    setScreen("wizard");
   };
 
   const openDashboard = (projectId) => {
@@ -35,13 +45,15 @@ export default function App() {
       setProjectData({ ...initialProjectData, ...project.data });
       setActiveProjectId(project.id);
     }
-    setScreen('dashboard');
+    setScreen("dashboard");
   };
 
   const deleteProjects = (projectIds) => {
-    setProjects((current) => current.filter((project) => !projectIds.includes(project.id)));
+    setProjects((current) =>
+      current.filter((project) => !projectIds.includes(project.id)),
+    );
     if (projectIds.includes(activeProjectId)) {
-      setActiveProjectId('');
+      setActiveProjectId("");
     }
   };
 
@@ -51,40 +63,47 @@ export default function App() {
     setProjects((current) => {
       const exists = current.some((project) => project.id === nextProject.id);
       return exists
-        ? current.map((project) => (project.id === nextProject.id ? nextProject : project))
+        ? current.map((project) =>
+            project.id === nextProject.id ? nextProject : project,
+          )
         : [nextProject, ...current];
     });
     setActiveProjectId(nextProject.id);
     setEditingProjectId(nextProject.id);
-    setScreen('dashboard');
+    setScreen("dashboard");
   };
 
   const buildProjectRequest = (data) => ({
     company_name: data.companyName,
     location: data.location,
-    project_name: data.projectName,
-    current_stage: data.currentStage,
-    project_date: data.projectDate,
-    use_case: data.usage,
-    display_size: data.displaySize,
-    quantity: Number(data.quantity || 0),
-    budget_amount: Number(String(data.budgetAmount || '').replace(/,/g, '')) || null,
-    operation_time: data.operationTime,
-    review_preset: data.reviewPreset,
+    deadline: data.projectDate,
+    request_text: `프로젝트명: ${data.projectName}, 용도: ${data.usage}, 디스플레이 크기: ${data.displaySize}, 수량: ${data.quantity}, 예산: ${data.budgetAmount}원, 운영시간: ${data.operationTime}, 현재단계: ${data.currentStage}`,
+    //project_name: data.projectName,
+    //current_stage: data.currentStage,
+    //project_date: data.projectDate,
+    //use_case: data.usage,
+    //display_size: data.displaySize,
+    //quantity: Number(data.quantity || 0),
+    //budget_amount: Number(String(data.budgetAmount || '').replace(/,/g, '')) || null,
+    //operation_time: data.operationTime,
+    //review_preset: data.reviewPreset,
   });
 
   const startAnalysisFlow = async () => {
-    setScreen('analysis');
-    setAnalysisState('loading');
-    setAnalysisErrorMessage('');
+    setScreen("analysis");
+    setAnalysisState("loading");
+    setAnalysisErrorMessage("");
 
     try {
       if (shouldUseMockApi) {
-        const mockProjectApiId = projectData.projectApiId || projectData.projectId || `mock-${Date.now()}`;
+        const mockProjectApiId =
+          projectData.projectApiId ||
+          projectData.projectId ||
+          `mock-${Date.now()}`;
         const mockMatchId = projectData.matchId || `match-${Date.now()}`;
-        const mockQuoteIds = (projectData.quoteFiles ?? []).map((file, index) => (
-          `mock-quote-${index + 1}-${file.name}`
-        ));
+        const mockQuoteIds = (projectData.quoteFiles ?? []).map(
+          (file, index) => `mock-quote-${index + 1}-${file.name}`,
+        );
 
         setProjectData((current) => ({
           ...current,
@@ -92,14 +111,22 @@ export default function App() {
           quoteIds: mockQuoteIds,
           matchId: mockMatchId,
         }));
-        setAnalysisState('ready');
+        setAnalysisState("ready");
         return;
       }
 
-      const createdProject = await createProject(buildProjectRequest(projectData));
+      const createdProject = await createProject(
+        buildProjectRequest(projectData),
+      );
       const projectApiId = createdProject.project_id ?? createdProject.id;
-      const uploadResult = await uploadProjectQuotes(projectApiId, projectData.quoteFiles ?? []);
-      const quoteIds = uploadResult.quote_ids ?? uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ?? [];
+      const uploadResult = await uploadProjectQuotes(
+        projectApiId,
+        projectData.quoteFiles ?? [],
+      );
+      const quoteIds =
+        uploadResult.quote_ids ??
+        uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
+        [];
       const matchResult = await runProjectMatch(projectApiId);
       const matchId = matchResult.match_id ?? matchResult.id;
 
@@ -110,18 +137,20 @@ export default function App() {
         matchId,
         quoteUploadResult: uploadResult,
       }));
-      setAnalysisState('ready');
+      setAnalysisState("ready");
     } catch (error) {
-      setAnalysisErrorMessage(error.message || 'AI 분석 실행 중 오류가 발생했습니다.');
-      setAnalysisState('error');
+      setAnalysisErrorMessage(
+        error.message || "AI 분석 실행 중 오류가 발생했습니다.",
+      );
+      setAnalysisState("error");
     }
   };
 
-  if (screen === 'login') {
-    return <LoginPage onLogin={() => setScreen('projects')} />;
+  if (screen === "login") {
+    return <LoginPage onLogin={() => setScreen("projects")} />;
   }
 
-  if (screen === 'projects') {
+  if (screen === "projects") {
     return (
       <ProjectListPage
         projects={projects}
@@ -133,22 +162,22 @@ export default function App() {
     );
   }
 
-  if (screen === 'wizard') {
+  if (screen === "wizard") {
     return (
       <ProjectCreatePage
         projectData={projectData}
         onProjectDataChange={setProjectData}
         onAnalyze={startAnalysisFlow}
-        onBack={() => setScreen('projects')}
+        onBack={() => setScreen("projects")}
       />
     );
   }
 
-  if (screen === 'analysis') {
+  if (screen === "analysis") {
     return (
       <AnalysisPage
         errorMessage={analysisErrorMessage}
-        onBack={() => setScreen('wizard')}
+        onBack={() => setScreen("wizard")}
         onDashboard={completeAnalysis}
         onRetry={startAnalysisFlow}
         state={analysisState}
@@ -156,5 +185,10 @@ export default function App() {
     );
   }
 
-  return <DashboardPage projectData={projectData} onGoProjects={() => setScreen('projects')} />;
+  return (
+    <DashboardPage
+      projectData={projectData}
+      onGoProjects={() => setScreen("projects")}
+    />
+  );
 }
