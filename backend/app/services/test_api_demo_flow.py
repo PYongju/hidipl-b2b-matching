@@ -3,6 +3,7 @@ from pathlib import Path
 from pprint import pprint
 
 from config.paths import DATA_DIR, OUTPUT_DIR
+from services.api_demo.enums import CellStatus
 from services.api_demo.response_builders import strip_heavy_fields
 from services.api_demo.routers import (
     compare_quotes,
@@ -13,6 +14,16 @@ from services.api_demo.routers import (
     upload_quote_paths,
 )
 from services.api_demo.schemas import CompareRequest, MatchRunRequest, ProjectCreateRequest
+
+
+ALLOWED_STATUSES = {status.value for status in CellStatus}
+KOREAN_STATUS_VALUES = {
+    "포함",
+    "미기재",
+    "별도 청구",
+    "확인 필요",
+    "파싱 실패",
+}
 
 
 def get_demo_request_text() -> str:
@@ -165,8 +176,9 @@ def main() -> None:
             row["total"]["display_text"],
             "highlights:",
             row["highlights"],
-        )
+    )
     assert compare_response["rows"]
+    validate_compare_statuses(compare_response)
     full_result["compare"] = compare_response
 
     compare_output_path = OUTPUT_DIR / "api_demo_compare_response.json"
@@ -184,6 +196,38 @@ def main() -> None:
         encoding="utf-8",
     )
     print("\nFull API response JSON saved:", output_path)
+
+
+def collect_status_values(obj) -> list[str]:
+    values = []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == "status":
+                values.append(value)
+            else:
+                values.extend(collect_status_values(value))
+    elif isinstance(obj, list):
+        for item in obj:
+            values.extend(collect_status_values(item))
+    return values
+
+
+def validate_compare_statuses(compare_response) -> None:
+    statuses = collect_status_values(compare_response)
+    print("compare status values:", sorted(set(statuses)))
+    assert statuses
+    assert all(status in ALLOWED_STATUSES for status in statuses)
+    assert not any(status in KOREAN_STATUS_VALUES for status in statuses)
+
+    for row in compare_response["rows"]:
+        highlights = row.get("highlights") or {}
+        assert set(highlights) == {
+            "is_lowest_total_price",
+            "is_fastest_delivery",
+            "is_longest_warranty",
+            "is_highest_score",
+        }
+        assert all(isinstance(value, bool) for value in highlights.values())
 
 
 if __name__ == "__main__":
