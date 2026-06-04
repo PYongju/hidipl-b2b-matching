@@ -1,8 +1,6 @@
 # Python
 __pycache__/
-<<<<<<< HEAD
 venv/
-=======
 *.pyc
 .venv/
 venv/
@@ -37,4 +35,3 @@ data/*.jpeg
 # OS
 .DS_Store
 Thumbs.db
->>>>>>> a637cfebf63776817bbfed5bbd57e57b02f20323
