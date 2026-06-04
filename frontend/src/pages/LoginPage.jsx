@@ -10,7 +10,7 @@ export default function LoginPage({ onLogin }) {
             <span />
           </div>
           <div>
-            <b>견적 검토 코파일럿</b>
+            <b>견적 검토 쿼파일럿</b>
             <span>구매 검토팀을 위한 AI 견적 비교 워크스페이스</span>
           </div>
         </div>
