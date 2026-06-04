@@ -156,15 +156,18 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
               <div className="form-grid">
                 <label>
                   <span>디스플레이 크기</span>
-                  <select
-                    onChange={(event) => updateProject("displaySize", event.target.value)}
-                    value={projectData.displaySize}
-                  >
-                    <option>55인치</option>
-                    <option>65인치</option>
-                    <option>75인치</option>
-                    <option>85인치</option>
-                  </select>
+                  <div className="budget-field">
+                    <input
+                      inputMode="decimal"
+                      onChange={(event) => {
+                        const value = event.target.value.replace(/인치/g, "").trim();
+                        updateProject("displaySize", value ? `${value}인치` : "");
+                      }}
+                      placeholder="55"
+                      value={(projectData.displaySize ?? "").replace(/인치$/, "")}
+                    />
+                    <span>인치</span>
+                  </div>
                 </label>
                 <label>
                   <span>수량</span>

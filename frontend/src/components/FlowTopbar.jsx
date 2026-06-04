@@ -10,7 +10,7 @@ export default function FlowTopbar({ trail, action }) {
           <span />
           <span />
         </div>
-        <div className="brand-title">견적 검토 코파일럿</div>
+        <div className="brand-title">견적 검토 쿼파일럿</div>
         <Badge tone="gray">v1.3.2</Badge>
         {trail && (
           <>
