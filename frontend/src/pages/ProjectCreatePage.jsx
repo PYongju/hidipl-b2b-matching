@@ -12,9 +12,41 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
     ["견적서 업로드", "공급사별 파일 첨부"],
   ];
 
+  const isSameFile = (left, right) =>
+    left.name === right.name &&
+    left.lastModified === right.lastModified &&
+    left.size === right.size;
+
   const handleFiles = (event) => {
-    const files = Array.from(event.target.files || []);
-    updateProject("quoteFiles", files);
+    const newFiles = Array.from(event.target.files || []);
+    if (newFiles.length === 0) {
+      return;
+    }
+
+    onProjectDataChange((current) => {
+      const existingFiles = current.quoteFiles ?? [];
+      const mergedFiles = [...existingFiles];
+
+      for (const file of newFiles) {
+        if (!mergedFiles.some((existingFile) => isSameFile(existingFile, file))) {
+          mergedFiles.push(file);
+        }
+      }
+
+      return {
+        ...current,
+        quoteFiles: mergedFiles,
+      };
+    });
+
+    event.target.value = "";
+  };
+
+  const removeFile = (fileToRemove) => {
+    onProjectDataChange((current) => ({
+      ...current,
+      quoteFiles: (current.quoteFiles ?? []).filter((file) => !isSameFile(file, fileToRemove)),
+    }));
   };
 
   const updateProject = (field, value) => {
@@ -184,7 +216,7 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
           {step === 3 && (
             <div className="wizard-content">
               <h2>견적서 업로드</h2>
-              <p>공급사별 견적서를 첨부합니다. 선택한 파일명은 아래 목록에 표시됩니다.</p>
+              <p>공급사별 견적서를 한 번에 또는 하나씩 첨부할 수 있습니다. 선택한 파일은 아래 목록에 쌓입니다.</p>
               <label className="drop-zone upload-drop-zone">
                 <input
                   accept=".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp"
@@ -193,16 +225,26 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
                   type="file"
                 />
                 <b>파일을 드래그하거나 클릭하여 업로드</b>
-                <span>PDF, Excel, Word 파일 지원 · 여러 개 선택 가능</span>
+                <span>PDF, Excel, Word 파일 지원 · 여러 개 또는 하나씩 선택 가능</span>
               </label>
               <div className="uploaded-list">
                 {uploadedFiles.length === 0 ? (
                   <div className="empty-file-row">아직 업로드된 견적서가 없습니다.</div>
                 ) : (
                   uploadedFiles.map((file) => (
-                    <div className="file-row" key={`${file.name}-${file.lastModified}`}>
-                      <span>{file.name}</span>
-                      <Badge tone="green">선택 완료</Badge>
+                    <div className="file-row" key={`${file.name}-${file.lastModified}-${file.size}`}>
+                      <span className="file-row-name">{file.name}</span>
+                      <div className="file-row-actions">
+                        <Badge tone="green">선택 완료</Badge>
+                        <button
+                          aria-label={`${file.name} 삭제`}
+                          className="icon-button file-remove-button"
+                          onClick={() => removeFile(file)}
+                          type="button"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
