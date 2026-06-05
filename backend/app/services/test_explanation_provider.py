@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from config.paths import DATA_DIR
 from services.explanation.factory import create_explanation_provider
+from services.explanation.azure_openai_explanation_provider import AzureOpenAIExplanationProvider
 from services.recommendation.schemas import RecommendationItem, RecommendationPipelineResult
 
 
@@ -37,6 +38,7 @@ def build_recommendation_fixture() -> RecommendationPipelineResult:
             total_supply_price=49800000,
             total_with_vat=54780000,
             delivery_weeks=4,
+            delivery_basis_raw="4주",
             warranty_months=12,
             line_item_count=51,
             check_required=[],
@@ -75,6 +77,7 @@ def build_recommendation_fixture() -> RecommendationPipelineResult:
             total_supply_price=12800000,
             total_with_vat=14080000,
             delivery_weeks=None,
+            delivery_basis_raw="",
             warranty_months=12,
             line_item_count=4,
             check_required=["요구 납기 정규화 필요"],
@@ -113,6 +116,7 @@ def build_recommendation_fixture() -> RecommendationPipelineResult:
             total_supply_price=78000000,
             total_with_vat=85800000,
             delivery_weeks=None,
+            delivery_basis_raw="",
             warranty_months=None,
             line_item_count=2,
             check_required=["견적 납기 미기재", "보증기간 미기재", "설치 범위 확인 필요"],
@@ -233,8 +237,184 @@ def _run_fallback_probe(provider, recommendation_result: RecommendationPipelineR
         provider.client = original_client
 
 
+class FakeMessage:
+    def __init__(self, content: str) -> None:
+        self.content = content
+
+
+class FakeChoice:
+    def __init__(self, content: str, finish_reason: str = "stop") -> None:
+        self.message = FakeMessage(content)
+        self.finish_reason = finish_reason
+
+
+class FakeResponse:
+    def __init__(self, content: str, finish_reason: str = "stop") -> None:
+        self.choices = [FakeChoice(content, finish_reason)]
+
+
+class FakeCompletions:
+    def __init__(self, content: str, finish_reason: str = "stop") -> None:
+        self.content = content
+        self.finish_reason = finish_reason
+        self.last_kwargs = None
+
+    def create(self, **kwargs):
+        self.last_kwargs = kwargs
+        return FakeResponse(self.content, self.finish_reason)
+
+
+class FakeChat:
+    def __init__(self, content: str, finish_reason: str = "stop") -> None:
+        self.completions = FakeCompletions(content, finish_reason)
+
+
+class FakeClient:
+    def __init__(self, content: str, finish_reason: str = "stop") -> None:
+        self.chat = FakeChat(content, finish_reason)
+
+
+def make_provider_with_response(
+    content: str,
+    *,
+    finish_reason: str = "stop",
+    max_tokens: int | None = None,
+) -> AzureOpenAIExplanationProvider:
+    return AzureOpenAIExplanationProvider(
+        endpoint="https://example.openai.azure.com",
+        api_key="test-key",
+        deployment="test-deployment",
+        api_version="2025-01-01-preview",
+        client=FakeClient(content, finish_reason),
+        max_tokens=max_tokens,
+    )
+
+
+def llm_payload(suppliers, overall_summary: str = "Top 3 공급사를 비교한 요약입니다.") -> str:
+    import json
+
+    return json.dumps(
+        {
+            "overall_summary": overall_summary,
+            "supplier_explanations": suppliers,
+        },
+        ensure_ascii=False,
+    )
+
+
+def assert_quote_order(result, expected):
+    actual = [item.quote_id for item in result.supplier_explanations]
+    assert actual == expected, actual
+
+
+def run_azure_unit_tests() -> None:
+    print("\n========== Explanation Azure Unit Tests ==========")
+    recommendation_result = build_recommendation_fixture()
+    expected = ["quote_guide", "quote_daol", "quote_general"]
+
+    duplicate_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_guide", "card_summary": "A1", "strengths": ["s1"], "weaknesses": []},
+                {"quote_id": "quote_guide", "card_summary": "A2", "strengths": ["s2"], "weaknesses": []},
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": ["s3"], "weaknesses": []},
+            ]
+        )
+    ).generate(recommendation_result)
+    assert_quote_order(duplicate_result, expected)
+    assert duplicate_result.metadata["duplicate_quote_ids"] == ["quote_guide"]
+    assert duplicate_result.supplier_explanations[2].metadata["fallback_used"] is True
+
+    shuffled_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_guide", "card_summary": "A", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_general", "card_summary": "C", "strengths": [], "weaknesses": []},
+            ]
+        )
+    ).generate(recommendation_result)
+    assert_quote_order(shuffled_result, expected)
+    assert [item.rank for item in shuffled_result.supplier_explanations] == [1, 2, 3]
+
+    missing_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_guide", "card_summary": "A", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": [], "weaknesses": []},
+            ]
+        )
+    ).generate(recommendation_result)
+    assert_quote_order(missing_result, expected)
+    assert missing_result.metadata["missing_quote_ids"] == ["quote_general"]
+    assert missing_result.supplier_explanations[2].metadata["fallback_reason"] == "missing_llm_supplier_explanation"
+
+    unknown_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_guide", "card_summary": "A", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_unknown", "card_summary": "X", "strengths": [], "weaknesses": []},
+            ]
+        )
+    ).generate(recommendation_result)
+    assert_quote_order(unknown_result, expected)
+    assert unknown_result.metadata["unknown_quote_ids"] == ["quote_unknown"]
+    assert unknown_result.supplier_explanations[2].metadata["fallback_used"] is True
+
+    weaknesses_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_guide", "card_summary": "A", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_general", "card_summary": "C", "strengths": [], "weaknesses": []},
+            ]
+        )
+    ).generate(recommendation_result)
+    daol = weaknesses_result.supplier_explanations[1]
+    assert recommendation_result.items[1].check_required[0] in daol.weaknesses
+    assert daol.check_required == recommendation_result.items[1].check_required
+
+    metadata_result = weaknesses_result.supplier_explanations[0].metadata
+    for key in [
+        "final_score",
+        "spec_score",
+        "price_score",
+        "delivery_score",
+        "warranty_score",
+        "installation_score",
+        "business_rule_passed",
+        "filter_reasons",
+    ]:
+        assert key in metadata_result
+
+    provider = make_provider_with_response(
+        llm_payload([]),
+        max_tokens=2222,
+    )
+    max_token_result = provider.generate(recommendation_result)
+    assert provider.client.chat.completions.last_kwargs["max_tokens"] == 2222
+    assert max_token_result.metadata["max_tokens"] == 2222
+
+    empty_summary_result = make_provider_with_response(
+        llm_payload(
+            [
+                {"quote_id": "quote_guide", "card_summary": "A", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_daol", "card_summary": "B", "strengths": [], "weaknesses": []},
+                {"quote_id": "quote_general", "card_summary": "C", "strengths": [], "weaknesses": []},
+            ],
+            overall_summary="",
+        )
+    ).generate(recommendation_result)
+    assert empty_summary_result.overall_summary
+    assert any("template summary used" in warning for warning in empty_summary_result.warnings)
+
+    print("Azure unit tests passed")
+
+
 def main() -> None:
     run_template_test()
+    run_azure_unit_tests()
     run_azure_integration_test()
 
 
