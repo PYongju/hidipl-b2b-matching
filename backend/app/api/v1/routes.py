@@ -121,9 +121,9 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
         result = demo_routers.run_match(
             project_id,
             MatchRunRequest(
-                quote_top_n=body.get("quote_top_n", 3),
-                run_explanation=body.get("run_explanation", False),
-                explanation_provider=body.get("explanation_provider", None),
+                quote_top_n=body.quote_top_n or 3,
+                run_explanation=body.run_explanation or False,
+                explanation_provider=body.explanation_provider or None,
             ),
         )
         try:
@@ -203,8 +203,8 @@ async def compare_quotes(project_id: str, body: CompareRequest):
         result = demo_routers.compare_quotes(
             project_id,
             CompareRequest(
-                quote_ids=body.get("quote_ids", None),
-                top_n=body.get("top_n", None),
+                quote_ids=body.quote_ids,
+                top_n=body.top_n,
             ),
         )
         return {"ok": True, "data": result, "error": None}
