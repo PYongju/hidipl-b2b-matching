@@ -110,7 +110,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
             <span />
             <span />
           </div>
-          <div className="brand-title">견적 검토 코파일럿</div>
+          <div className="brand-title">견적 검토 쿼파일럿</div>
           <Badge tone="gray">v1.3.2</Badge>
           <div className="top-divider" />
           <span className="breadcrumb-muted">프로젝트 목록</span>
@@ -152,7 +152,9 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           </div>
         </section>
 
-        <section className="meta-strip">
+        <section className="panel meta-panel">
+          <div className="panel-title">프로젝트 정보</div>
+          <div className="meta-grid">
           <div className="meta-item">
             <span>회사명</span>
             <strong>{projectData.companyName}</strong>
@@ -185,6 +187,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
               {projectData.budgetAmount ? `${projectData.budgetAmount}원` : "예산 미정"} ·{" "}
               {projectData.reviewPreset}
             </strong>
+          </div>
           </div>
         </section>
 
