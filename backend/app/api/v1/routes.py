@@ -58,8 +58,14 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
     tmp_dir = Path(tempfile.mkdtemp())
     try:
         saved_paths = []
+        MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
         for f in files:
-            dest = tmp_dir / f.filename
+            content = await f.read()
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail=f"File {f.filename}: 파일 크기 초과 (최대 100MB)")
+            await f.seek(0)  # 파일 포인터를 처음으로 되돌림
+
+            dest = tmp_dir / Path(f.filename).name
             with dest.open("wb") as out:
                 shutil.copyfileobj(f.file, out)
             saved_paths.append(dest)
@@ -101,16 +107,16 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
         return {"ok": True, "data": result, "error": None}
 
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail="잘못된 요청입니다.")
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 # [P3] 매칭 실행
 @router.post("/projects/{project_id}/matches")
-async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db)):
+async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Depends(get_db)):
     try:
         result = demo_routers.run_match(
             project_id,
@@ -192,7 +198,7 @@ async def get_explanation(project_id: str, match_id: str):
 # 프론트는 status -> 라벨 매핑만 담당한다.
 # rows 배열은 rank 순 고정
 @router.post("/projects/{project_id}/compare")
-async def compare_quotes(project_id: str, body: dict):
+async def compare_quotes(project_id: str, body: CompareRequest):
     try:
         result = demo_routers.compare_quotes(
             project_id,
