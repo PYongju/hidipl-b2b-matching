@@ -912,6 +912,12 @@ button {
   gap: 8px;
 }
 
+.vat-note {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .compare-section-table td:first-child {
   padding-left: 18px;
 }
