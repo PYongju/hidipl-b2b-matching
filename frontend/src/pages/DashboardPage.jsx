@@ -120,8 +120,6 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           </span>
         </div>
         <div className="user-zone">
-          <div className="bell">♧<span>3</span></div>
-          <div className="help">?</div>
           <div className="avatar" />
           <div className="user-name">
             <b>김담당자</b>
@@ -263,7 +261,9 @@ export default function DashboardPage({ projectData, onGoProjects }) {
                         <div className="badge-row">
                           {isFailureScenario && supplier.id === "b" && <Badge tone="orange">파싱 신뢰도 낮음</Badge>}
                           {isFailureScenario && supplier.id === "c" && <Badge tone="gray">총액 미확정</Badge>}
-                          {supplier.badges.map((badge, index) => (
+                          {supplier.badges
+                            .filter((badge) => badge !== "프리미엄 파트너")
+                            .map((badge, index) => (
                             <Badge tone={index === 0 ? "orange" : "green"} key={badge}>
                               {badge}
                             </Badge>
@@ -354,7 +354,9 @@ export default function DashboardPage({ projectData, onGoProjects }) {
                             <td>
                               <div className="required-label">
                                 <span>{row.label}</span>
-                                <Badge tone="blue">핵심 비교</Badge>
+                                {row.label === "견적 총액" && (
+                                  <span className="vat-note">VAT 별도</span>
+                                )}
                               </div>
                             </td>
                             {suppliers.map((supplier) => (
