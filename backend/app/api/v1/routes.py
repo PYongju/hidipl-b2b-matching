@@ -15,6 +15,7 @@ from fastapi import Depends
 from datetime import datetime
 from core.database import get_db
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/api/v1")
 
@@ -44,9 +45,11 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
             }
         )
         db.commit()
+    except IntegrityError:
+        db.rollback()
     except Exception as e:
         db.rollback()
-        print(f"DB 저장 실패: {e}")
+        raise  # 또는 로깅 후 HTTP 500 반환
     
     print(result)
     return {"ok": True, "data": result, "error": None}
@@ -75,7 +78,7 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
             for quote in result.get("quotes", []):
                 db.execute(
                     text("""
-                        INSERT IGNORE INTO quotes (
+                        INSERT INTO quotes (
                             quote_id, project_id, vendor_name, vendor_id,
                             total_supply_price, total_with_vat,
                             delivery_weeks, delivery_basis_raw,
@@ -101,9 +104,11 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
                     }
                 )
             db.commit()
+        except IntegrityError:
+            db.rollback()
         except Exception as e:
             db.rollback()
-            print(f"DB 저장 실패 (P2): {e}")
+            raise  # 또는 로깅 후 HTTP 500 반환
         return {"ok": True, "data": result, "error": None}
 
     except KeyError as e:
@@ -129,13 +134,13 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
         try:
             match_id = result["match_id"]
             db.execute(
-                text("INSERT IGNORE INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
+                text("INSERT INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
                 {"match_id": match_id, "project_id": project_id, "created_at": datetime.now()}
             )
             for item in result.get("recommendation", {}).get("items", []):
                 db.execute(
                     text("""
-                        INSERT IGNORE INTO match_result_items (
+                        INSERT INTO match_result_items (
                             match_id, quote_id, rank, final_score,
                             spec_score, price_score, delivery_score,
                             warranty_score, installation_score,
@@ -164,9 +169,11 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
                     }
                 )
             db.commit()
+        except IntegrityError:
+            db.rollback()
         except Exception as e:
             db.rollback()
-            print(f"DB 저장 실패 (P3): {e}")
+            raise  # 또는 로깅 후 HTTP 500 반환
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
