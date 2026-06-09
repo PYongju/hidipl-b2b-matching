@@ -208,7 +208,7 @@ function summarizeSupplier(row, hasParseIssue) {
   if (row.highlights?.is_lowest_total_price) {
     return "총액 기준 가격 경쟁력이 있으나 일부 조건 확인이 필요합니다.";
   }
-  return row.check_required?.[0] ?? "제출 견적 기준으로 비교 검토가 가능합니다.";
+  return "제출 견적 기준으로 비교 검토가 가능합니다.";
 }
 
 function getStrengths(row) {

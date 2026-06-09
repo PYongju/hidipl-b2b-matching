@@ -1,12 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Badge from '../components/Badge';
+import ProjectStepTabs from '../components/ProjectStepTabs';
 import ReviewDrawer from '../components/ReviewDrawer';
 import useCompareResult from '../hooks/useCompareResult';
 import useExplanationResult from '../hooks/useExplanationResult';
 import { getStatusUi } from '../utils/statusMap';
 
-export default function DashboardPage({ projectData, onGoProjects, onGoReport }) {
-  const [selectedVendor, setSelectedVendor] = useState("A Display");
+export default function DashboardPage({
+  projectData,
+  onGoProjects,
+  onGoQuoteWaiting,
+  onGoReport,
+}) {
+  const [selectedVendor, setSelectedVendor] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId = projectData.projectId || "PV-2025-0421";
@@ -22,6 +28,30 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
     overallSummary,
     supplierExplanations,
   } = useExplanationResult(projectData, suppliers);
+  const mergedSuppliers = useMemo(() => {
+    if (!supplierExplanations.length) return suppliers;
+    return [...suppliers]
+      .map((supplier) => {
+        const exp = supplierExplanations.find((e) => e.vendorName === supplier.name);
+        return {
+          ...supplier,
+          rank: exp?.rank ?? supplier.rank,
+          cardSummary: exp?.cardSummary ?? "",
+        };
+      })
+      .sort((a, b) => a.rank - b.rank);
+  }, [suppliers, supplierExplanations]);
+
+  useEffect(() => {
+    if (selectedVendor) return;
+    const rank1 = supplierExplanations.find((e) => e.rank === 1);
+    if (rank1) {
+      setSelectedVendor(rank1.vendorName);
+    } else if (suppliers.length > 0) {
+      setSelectedVendor(suppliers[0].name);
+    }
+  }, [supplierExplanations, suppliers]);
+
   const defaultOpenSections = useMemo(
     () => comparisonSections.reduce((sections, section) => ({
       ...sections,
@@ -152,6 +182,8 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
           </div>
         </section>
 
+        <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onGoQuoteWaiting} />
+
         <section className="panel meta-panel">
           <div className="panel-title">프로젝트 정보</div>
           <div className="meta-grid">
@@ -225,7 +257,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
                 공급사 매칭 현황 (3/3) <span>ⓘ</span>
               </div>
               <div className="supplier-grid">
-                {suppliers.map((supplier) => (
+                {mergedSuppliers.map((supplier) => (
                   <article
                     className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
                     key={supplier.name}
@@ -248,7 +280,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
                         {getSupplierCostBadge(supplier, "출장비", "출장비")}
                       </div>
                     </div>
-                    <p>{supplier.summary}</p>
+                    <p>{supplier.cardSummary || supplier.summary}</p>
                     <div className="supplier-foot">
                       <div>
                         <small>제출 상태</small>
@@ -296,7 +328,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
                   <thead>
                     <tr>
                       <th>항목(요구사항)</th>
-                      {suppliers.map((supplier) => (
+                      {mergedSuppliers.map((supplier) => (
                         <th className={supplier.recommended ? "ai-col" : ""} key={supplier.name}>
                           {supplier.name}
                           {supplier.recommended && <Badge>AI 추천</Badge>}
@@ -323,7 +355,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
                           {section.rows.map((row) => (
                             <tr key={row.label}>
                               <td>{row.label}</td>
-                              {suppliers.map((supplier) => (
+                              {mergedSuppliers.map((supplier) => (
                                 <td key={supplier.name + row.label}>
                                   {renderCompareCell(supplier, row)}
                                 </td>
@@ -357,7 +389,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
                                 <Badge tone="blue">핵심 비교</Badge>
                               </div>
                             </td>
-                            {suppliers.map((supplier) => (
+                            {mergedSuppliers.map((supplier) => (
                               <td key={supplier.name + row.label}>
                                 {renderCompareCell(supplier, row)}
                               </td>
@@ -422,7 +454,7 @@ export default function DashboardPage({ projectData, onGoProjects, onGoReport })
             <section className="panel final-panel">
               <h3>최종 선정 <small>(담당자 선택)</small></h3>
               <div className="choice-grid">
-                {suppliers.map((supplier) => (
+                {mergedSuppliers.map((supplier) => (
                   <label
                     className={`choice-card ${selectedVendor === supplier.name ? "selected" : ""}`}
                     key={supplier.name}

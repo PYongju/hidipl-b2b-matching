@@ -59,10 +59,14 @@ function uploadProjectQuotes(projectId, files) {
   });
 }
 
-function runProjectMatch(projectId, topN = 3) {
+function runProjectMatch(projectId, topN = 3, runExplanation = true, explanationProvider = null) {
   return request(`/api/v1/projects/${projectId}/matches`, {
     method: "POST",
-    body: JSON.stringify({ top_n: topN }),
+    body: JSON.stringify({
+      quote_top_n: topN,
+      run_explanation: runExplanation,
+      explanation_provider: explanationProvider,
+    }),
   });
 }
 

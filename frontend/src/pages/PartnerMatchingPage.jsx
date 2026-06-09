@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectStepTabs from "../components/ProjectStepTabs";
 
 const candidatePartners = [
   {
@@ -220,16 +221,11 @@ export default function PartnerMatchingPage({
           </div>
         </section>
 
-        <nav className="partner-stepper" aria-label="프로젝트 단계">
-          <button onClick={onBack} type="button">1 요구사항</button>
-          <button className="active" type="button">
-            2 파트너 매칭/견적 요청
-          </button>
-          <button onClick={onGoDashboard} type="button">
-            3 견적 검토
-          </button>
-          <button type="button">4 보고서/이력</button>
-        </nav>
+        <ProjectStepTabs
+          activeStep={2}
+          onGoRequirements={onBack}
+          onGoQuoteWaiting={onGoDashboard}
+        />
 
         <section className="partner-project-summary six">
           <SummaryItem label="회사명" value={projectData.companyName || "미입력"} />

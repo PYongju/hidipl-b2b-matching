@@ -6,7 +6,9 @@ import ProjectRequirementsPage from "./pages/ProjectRequirementsPage";
 import AnalysisPage from "./pages/AnalysisPage";
 import DashboardPage from "./pages/DashboardPage";
 import PartnerMatchingPage from "./pages/PartnerMatchingPage";
+import PartnerMatchingLoadingPage from "./pages/PartnerMatchingLoadingPage";
 import QuoteWaitingPage from "./pages/QuoteWaitingPage";
+import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import ReportHistoryPage from "./pages/ReportHistoryPage";
 import {
   createProject,
@@ -208,7 +210,7 @@ export default function App() {
       <ProjectRequirementsPage
         projectData={projectData}
         onBack={() => setScreen("projects")}
-        onNext={() => setScreen("partnerMatching")}
+        onNext={() => setScreen("partnerMatchingLoading")}
         onProjectDataChange={setProjectData}
       />
     );
@@ -237,6 +239,16 @@ export default function App() {
     );
   }
 
+  if (screen === "partnerMatchingLoading") {
+    return (
+      <PartnerMatchingLoadingPage
+        projectData={projectData}
+        onBack={() => setScreen("requirements")}
+        onComplete={() => setScreen("partnerMatching")}
+      />
+    );
+  }
+
   if (screen === "partnerMatching") {
     return (
       <PartnerMatchingPage
@@ -252,7 +264,18 @@ export default function App() {
       <QuoteWaitingPage
         projectData={projectData}
         onBack={() => setScreen("partnerMatching")}
-        onGoDashboard={openDashboard}
+        onGoDashboard={() => setScreen("quoteReviewLoading")}
+        onProjectDataChange={setProjectData}
+      />
+    );
+  }
+
+  if (screen === "quoteReviewLoading") {
+    return (
+      <QuoteReviewLoadingPage
+        projectData={projectData}
+        onBack={() => setScreen("quoteWaiting")}
+        onComplete={openDashboard}
       />
     );
   }
@@ -271,6 +294,7 @@ export default function App() {
     <DashboardPage
       projectData={projectData}
       onGoProjects={() => setScreen("projects")}
+      onGoQuoteWaiting={() => setScreen("quoteWaiting")}
       onGoReport={() => setScreen("reportHistory")}
     />
   );

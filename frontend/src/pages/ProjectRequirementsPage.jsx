@@ -1,5 +1,6 @@
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectStepTabs from "../components/ProjectStepTabs";
 
 const priorityOptions = ["최저가 우선", "납기 우선", "보증/A/S 우선", "스펙 우선", "균형 추천"];
 
@@ -55,16 +56,7 @@ export default function ProjectRequirementsPage({
           </div>
         </section>
 
-        <nav className="requirements-tabs" aria-label="프로젝트 상세 단계">
-          <button className="active" type="button">
-            1 요구사항
-          </button>
-          <button onClick={onNext} type="button">
-            2 파트너 매칭/견적 요청
-          </button>
-          <button type="button">3 견적 검토</button>
-          <button type="button">4 보고서/이력</button>
-        </nav>
+        <ProjectStepTabs activeStep={1} onGoPartnerMatching={onNext} />
 
         <section className="requirements-layout">
           <form className="requirements-form">

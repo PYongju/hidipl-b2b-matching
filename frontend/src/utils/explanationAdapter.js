@@ -4,7 +4,7 @@ function createExplanationViewModel(response, suppliers = []) {
     const supplier = supplierByName.get(item.vendor_name) ?? suppliers[index] ?? {};
 
     return {
-      cardSummary: item.card_summary ?? supplier.summary ?? "",
+      cardSummary: item.card_summary ?? "",
       checkRequired: item.check_required ?? [],
       logo: supplier.logo ?? getLogo(item.vendor_name, index),
       logoClass: supplier.logoClass ?? getLogoClass(index),
@@ -17,7 +17,7 @@ function createExplanationViewModel(response, suppliers = []) {
   });
 
   return {
-    isFallback: Boolean(response?.warnings?.length),
+    isFallback: response?.provider === "template",
     overallSummary: response?.overall_summary ?? "AI 근거 요약을 준비 중입니다.",
     provider: response?.provider ?? response?.metadata?.provider ?? "unknown",
     supplierExplanations,
