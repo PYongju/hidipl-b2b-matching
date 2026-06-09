@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import Badge from '../components/Badge';
-import ProjectStepTabs from '../components/ProjectStepTabs';
 import ReviewDrawer from '../components/ReviewDrawer';
 import useCompareResult from '../hooks/useCompareResult';
 import useExplanationResult from '../hooks/useExplanationResult';
@@ -51,7 +50,6 @@ function SupplierPager({
 export default function DashboardPage({
   projectData,
   onGoProjects,
-  onGoQuoteWaiting,
   onGoReport,
 }) {
   const [selectedVendor, setSelectedVendor] = useState("A Display");
@@ -265,8 +263,6 @@ export default function DashboardPage({
             <button className="button button-green" type="button">정시 진행</button>
           </div>
         </section>
-
-        <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onGoQuoteWaiting} />
 
         <section className="panel meta-panel">
           <div className="panel-title">프로젝트 정보</div>

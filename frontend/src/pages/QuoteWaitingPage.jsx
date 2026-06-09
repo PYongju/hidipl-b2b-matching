@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -6,13 +6,6 @@ import { uploadProjectQuotes } from "../api/apiClient";
 import { shouldUseMockApi } from "../api/apiMode";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp";
-
-const timelineSteps = [
-  { label: "요청 대상 확정", detail: "5개 업체 선택", done: true },
-  { label: "요청 발송", detail: "04.28 11:12", done: true },
-  { label: "견적 수신", detail: "파일 업로드 대기", done: false, active: true },
-  { label: "견적 업로드", detail: "일괄 업로드 후 분석", done: false },
-];
 
 export default function QuoteWaitingPage({
   projectData,
@@ -23,10 +16,6 @@ export default function QuoteWaitingPage({
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [uploadState, setUploadState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const selectedFileSize = useMemo(
-    () => selectedFiles.reduce((total, file) => total + file.size, 0),
-    [selectedFiles],
-  );
   const canCompare = selectedFiles.length > 0 && uploadState !== "uploading";
   const viewedCount = 0;
   const receivedCount = selectedFiles.length;
@@ -159,22 +148,6 @@ export default function QuoteWaitingPage({
           </article>
         </section>
 
-        <section className="quote-timeline-panel">
-          <div className="quote-panel-title">
-            <h2>요청 타임라인</h2>
-            <p>현재는 업체별 추적 대신 프로젝트 단위 견적서 업로드를 기준으로 진행합니다.</p>
-          </div>
-          <div className="quote-timeline">
-            {timelineSteps.map((step, index) => (
-              <article className={step.active ? "active" : step.done ? "done" : ""} key={step.label}>
-                <span>{step.done ? "✓" : index + 1}</span>
-                <b>{step.label}</b>
-                <small>{step.detail}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className="quote-waiting-layout">
           <div className="quote-board-panel">
             <div className="quote-panel-title with-progress">
@@ -198,21 +171,6 @@ export default function QuoteWaitingPage({
               <b>파일을 드래그하거나 클릭하여 업로드</b>
               <span>PDF, Excel, Word, 이미지 파일 지원 · 여러 개 선택 가능</span>
             </label>
-
-            <div className="quote-upload-summary">
-              <article>
-                <span>선택 파일</span>
-                <strong>{selectedFiles.length}개</strong>
-              </article>
-              <article>
-                <span>총 용량</span>
-                <strong>{formatFileSize(selectedFileSize)}</strong>
-              </article>
-              <article>
-                <span>API 연결</span>
-                <strong>/quotes 업로드</strong>
-              </article>
-            </div>
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
