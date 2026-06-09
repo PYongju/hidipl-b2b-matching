@@ -6,13 +6,55 @@ import useCompareResult from '../hooks/useCompareResult';
 import useExplanationResult from '../hooks/useExplanationResult';
 import { getStatusUi } from '../utils/statusMap';
 
+const VISIBLE_SUPPLIER_COUNT = 3;
+
+function SupplierPager({
+  canNavigate,
+  canGoPrev,
+  canGoNext,
+  onPrev,
+  onNext,
+  startIndex,
+  total,
+}) {
+  if (!canNavigate) return null;
+
+  const visibleEnd = Math.min(startIndex + VISIBLE_SUPPLIER_COUNT, total);
+
+  return (
+    <div className="supplier-pager">
+      <button
+        aria-label="이전 견적서 보기"
+        className="supplier-pager-btn"
+        disabled={!canGoPrev}
+        onClick={onPrev}
+        type="button"
+      >
+        ‹
+      </button>
+      <span className="supplier-pager-count">
+        {startIndex + 1}–{visibleEnd} / {total}
+      </span>
+      <button
+        aria-label="다음 견적서 보기"
+        className="supplier-pager-btn"
+        disabled={!canGoNext}
+        onClick={onNext}
+        type="button"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
+
 export default function DashboardPage({
   projectData,
   onGoProjects,
   onGoQuoteWaiting,
   onGoReport,
 }) {
-  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState("A Display");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId = projectData.projectId || "PV-2025-0421";
@@ -24,34 +66,15 @@ export default function DashboardPage({
     totalRows,
   } = useCompareResult(projectData);
   const {
+    explanationState,
     isFallback: explanationIsFallback,
     overallSummary,
     supplierExplanations,
   } = useExplanationResult(projectData, suppliers);
-  const mergedSuppliers = useMemo(() => {
-    if (!supplierExplanations.length) return suppliers;
-    return [...suppliers]
-      .map((supplier) => {
-        const exp = supplierExplanations.find((e) => e.vendorName === supplier.name);
-        return {
-          ...supplier,
-          rank: exp?.rank ?? supplier.rank,
-          cardSummary: exp?.cardSummary ?? "",
-        };
-      })
-      .sort((a, b) => a.rank - b.rank);
-  }, [suppliers, supplierExplanations]);
-
-  useEffect(() => {
-    if (selectedVendor) return;
-    const rank1 = supplierExplanations.find((e) => e.rank === 1);
-    if (rank1) {
-      setSelectedVendor(rank1.vendorName);
-    } else if (suppliers.length > 0) {
-      setSelectedVendor(suppliers[0].name);
-    }
-  }, [supplierExplanations, suppliers]);
-
+  const explanationByVendor = useMemo(
+    () => new Map(supplierExplanations.map((item) => [item.vendorName, item])),
+    [supplierExplanations]
+  );
   const defaultOpenSections = useMemo(
     () => comparisonSections.reduce((sections, section) => ({
       ...sections,
@@ -65,6 +88,57 @@ export default function DashboardPage({
   const [toastVisible, setToastVisible] = useState(false);
   const [followupVisible, setFollowupVisible] = useState(false);
   const [prosOpen, setProsOpen] = useState(true);
+  const maxMemoLength = 1000;
+  const [reviewMemo, setReviewMemo] = useState(projectData.reviewMemo ?? "");
+  const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
+  const [isMemoEditing, setIsMemoEditing] = useState(false);
+  const [supplierStartIndex, setSupplierStartIndex] = useState(0);
+  const supplierCount = suppliers.length;
+  const canNavigateSuppliers = supplierCount > VISIBLE_SUPPLIER_COUNT;
+  const maxSupplierStartIndex = Math.max(0, supplierCount - VISIBLE_SUPPLIER_COUNT);
+  const visibleSuppliers = useMemo(
+    () => suppliers.slice(supplierStartIndex, supplierStartIndex + VISIBLE_SUPPLIER_COUNT),
+    [suppliers, supplierStartIndex]
+  );
+  const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
+  const canGoNextSuppliers = canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
+
+  useEffect(() => {
+    setSupplierStartIndex(0);
+  }, [supplierCount]);
+
+  useEffect(() => {
+    const memo = projectData.reviewMemo ?? "";
+    setReviewMemo(memo);
+    setDraftMemo(memo);
+    setIsMemoEditing(false);
+  }, [projectId, projectData.reviewMemo]);
+
+  const goPrevSuppliers = () => {
+    setSupplierStartIndex((current) => Math.max(0, current - 1));
+  };
+
+  const goNextSuppliers = () => {
+    setSupplierStartIndex((current) => Math.min(maxSupplierStartIndex, current + 1));
+  };
+
+  const supplierPagerProps = {
+    canGoNext: canGoNextSuppliers,
+    canGoPrev: canGoPrevSuppliers,
+    canNavigate: canNavigateSuppliers,
+    onNext: goNextSuppliers,
+    onPrev: goPrevSuppliers,
+    startIndex: supplierStartIndex,
+    total: supplierCount,
+  };
+
+  const getSupplierCardSummary = (supplier) => {
+    if (explanationState === "loading") {
+      return "AI 근거 요약을 불러오는 중입니다.";
+    }
+
+    return explanationByVendor.get(supplier.name)?.cardSummary ?? "";
+  };
 
   const toggleSection = (sectionId) => {
     setOpenSections((current) => ({
@@ -122,6 +196,18 @@ export default function DashboardPage({
     );
   };
 
+  const startMemoEdit = () => {
+    setDraftMemo(reviewMemo);
+    setIsMemoEditing(true);
+  };
+
+  const saveMemo = () => {
+    setReviewMemo(draftMemo);
+    setIsMemoEditing(false);
+  };
+
+  const memoValue = isMemoEditing ? draftMemo : reviewMemo;
+
   const confirmSelection = () => {
     setConfirmOpen(false);
     setSelectionFinalized(true);
@@ -150,8 +236,6 @@ export default function DashboardPage({
           </span>
         </div>
         <div className="user-zone">
-          <div className="bell">♧<span>3</span></div>
-          <div className="help">?</div>
           <div className="avatar" />
           <div className="user-name">
             <b>김담당자</b>
@@ -253,11 +337,17 @@ export default function DashboardPage({
         <div className="content-grid">
           <div className="main-column">
             <section className="panel supplier-panel">
-              <div className="panel-title">
-                공급사 매칭 현황 (3/3) <span>ⓘ</span>
+              <div className="panel-title-row">
+                <div className="panel-title">
+                  공급사 매칭 현황 ({supplierCount}/{supplierCount}) <span>ⓘ</span>
+                </div>
+                <SupplierPager {...supplierPagerProps} />
               </div>
               <div className="supplier-grid">
-                {mergedSuppliers.map((supplier) => (
+                {visibleSuppliers.map((supplier) => {
+                  const cardSummary = getSupplierCardSummary(supplier);
+
+                  return (
                   <article
                     className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
                     key={supplier.name}
@@ -280,7 +370,7 @@ export default function DashboardPage({
                         {getSupplierCostBadge(supplier, "출장비", "출장비")}
                       </div>
                     </div>
-                    <p>{supplier.cardSummary || supplier.summary}</p>
+                    <p className="supplier-card-summary">{cardSummary}</p>
                     <div className="supplier-foot">
                       <div>
                         <small>제출 상태</small>
@@ -295,7 +385,9 @@ export default function DashboardPage({
                         <div className="badge-row">
                           {isFailureScenario && supplier.id === "b" && <Badge tone="orange">파싱 신뢰도 낮음</Badge>}
                           {isFailureScenario && supplier.id === "c" && <Badge tone="gray">총액 미확정</Badge>}
-                          {supplier.badges.map((badge, index) => (
+                          {supplier.badges
+                            .filter((badge) => badge !== "프리미엄 파트너")
+                            .map((badge, index) => (
                             <Badge tone={index === 0 ? "orange" : "green"} key={badge}>
                               {badge}
                             </Badge>
@@ -304,7 +396,8 @@ export default function DashboardPage({
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
@@ -314,7 +407,10 @@ export default function DashboardPage({
                   <b>견적 비교</b>
                   <span>(추출 기준일: 2025-04-22)</span>
                 </div>
-                <button className="button button-small" type="button">⊙ 행 근거 보기</button>
+                <div className="compare-header-actions">
+                  <SupplierPager {...supplierPagerProps} />
+                  <button className="button button-small" type="button">⊙ 행 근거 보기</button>
+                </div>
               </div>
               <div className="legend">
                 <Badge>AI 추천</Badge>
@@ -328,7 +424,7 @@ export default function DashboardPage({
                   <thead>
                     <tr>
                       <th>항목(요구사항)</th>
-                      {mergedSuppliers.map((supplier) => (
+                      {visibleSuppliers.map((supplier) => (
                         <th className={supplier.recommended ? "ai-col" : ""} key={supplier.name}>
                           {supplier.name}
                           {supplier.recommended && <Badge>AI 추천</Badge>}
@@ -355,7 +451,7 @@ export default function DashboardPage({
                           {section.rows.map((row) => (
                             <tr key={row.label}>
                               <td>{row.label}</td>
-                              {mergedSuppliers.map((supplier) => (
+                              {visibleSuppliers.map((supplier) => (
                                 <td key={supplier.name + row.label}>
                                   {renderCompareCell(supplier, row)}
                                 </td>
@@ -386,10 +482,12 @@ export default function DashboardPage({
                             <td>
                               <div className="required-label">
                                 <span>{row.label}</span>
-                                <Badge tone="blue">핵심 비교</Badge>
+                                {row.label === "견적 총액" && (
+                                  <span className="vat-note">VAT 별도</span>
+                                )}
                               </div>
                             </td>
-                            {mergedSuppliers.map((supplier) => (
+                            {visibleSuppliers.map((supplier) => (
                               <td key={supplier.name + row.label}>
                                 {renderCompareCell(supplier, row)}
                               </td>
@@ -439,22 +537,49 @@ export default function DashboardPage({
             <div className="side-split">
               <section className="panel compact-panel">
                 <h3>근거 출처 <small>(비교 행 연결)</small></h3>
-                <p>3. 단가(공급가) <a>A-03, B-03, C-03</a></p>
-                <p>7. 납기 <a>A-07, B-07, C-07</a></p>
-                <p>8. 품질 보증 <a>A-08, B-08, C-08</a></p>
+                <div className="compact-panel-body">
+                  <p>3. 단가(공급가) <a>A-03, B-03, C-03</a></p>
+                  <p>7. 납기 <a>A-07, B-07, C-07</a></p>
+                  <p>8. 품질 보증 <a>A-08, B-08, C-08</a></p>
+                </div>
                 <button className="button full" type="button">전체 근거 보기</button>
               </section>
               <section className="panel compact-panel">
                 <h3>검토 메모 <small>(내부용)</small></h3>
-                <textarea placeholder="검토 메모를 입력하세요...&#10;(내부 공유용입니다.)" />
-                <div className="counter">0 / 1,000</div>
+                <div className="compact-panel-body">
+                  <textarea
+                    className={isMemoEditing ? "" : "memo-readonly"}
+                    onChange={(event) =>
+                      setDraftMemo(event.target.value.slice(0, maxMemoLength))
+                    }
+                    placeholder="검토 메모를 입력하세요...&#10;(내부 공유용입니다.)"
+                    readOnly={!isMemoEditing}
+                    value={memoValue}
+                  />
+                  <div className="counter">
+                    {memoValue.length} / {maxMemoLength.toLocaleString()}
+                  </div>
+                </div>
+                <div className="memo-actions">
+                  <button className="button" onClick={startMemoEdit} type="button">
+                    수정하기
+                  </button>
+                  <button
+                    className="button action-primary"
+                    disabled={!isMemoEditing}
+                    onClick={saveMemo}
+                    type="button"
+                  >
+                    저장하기
+                  </button>
+                </div>
               </section>
             </div>
 
             <section className="panel final-panel">
               <h3>최종 선정 <small>(담당자 선택)</small></h3>
               <div className="choice-grid">
-                {mergedSuppliers.map((supplier) => (
+                {suppliers.map((supplier) => (
                   <label
                     className={`choice-card ${selectedVendor === supplier.name ? "selected" : ""}`}
                     key={supplier.name}

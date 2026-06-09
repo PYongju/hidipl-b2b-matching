@@ -9,7 +9,7 @@ const sectionDefs = [
     defaultOpen: true,
     rows: [
       { label: "업력", path: ["company_info", "company_age_years"], format: (value) => withUnit(value, "년") },
-      { label: "매출액 (3년 평균)", path: ["company_info", "avg_revenue_3y_million"], format: formatMillionRevenue },
+      { label: "매출액 (3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
       { label: "프로젝트 수 (3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
       { label: "회사 위치", path: ["company_info", "company_location"] },
     ],
@@ -58,8 +58,24 @@ const sectionDefs = [
   },
 ];
 
+function getFinalScore(row) {
+  const score = row.scores?.final_score ?? row.final_score;
+  return typeof score === "number" ? score : Number.NEGATIVE_INFINITY;
+}
+
+function sortRowsByRanking(rows) {
+  return [...rows]
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const scoreDiff = getFinalScore(right.row) - getFinalScore(left.row);
+      if (scoreDiff !== 0) return scoreDiff;
+      return left.index - right.index;
+    })
+    .map(({ row }) => row);
+}
+
 function createCompareViewModel(response) {
-  const rows = response?.rows ?? [];
+  const rows = sortRowsByRanking(response?.rows ?? []);
   const suppliers = rows.map((row, index) => toSupplier(row, index));
   const sections = sectionDefs.map((section) => ({
     ...section,
@@ -85,7 +101,8 @@ function createCompareViewModel(response) {
 
 function toSupplier(row, index) {
   const id = getSupplierId(row);
-  const score = row.scores?.final_score ?? row.final_score;
+  const score = getFinalScore(row);
+  const hasScore = score !== Number.NEGATIVE_INFINITY;
   const hasParseIssue = row.rule_warnings?.some((warning) => warning.includes("OCR") || warning.includes("Parser"));
   const isRecommended = Boolean(row.highlights?.is_highest_score);
 
@@ -95,10 +112,9 @@ function toSupplier(row, index) {
     name: row.vendor_name || "업체명 확인 필요",
     logo: getLogo(row.vendor_name, index),
     logoClass: ["logo-blue", "logo-purple", "logo-teal", "logo-orange", "logo-gray"][index] ?? "logo-gray",
-    fit: typeof score === "number" ? Math.round(score) : "-",
-    fitClass: typeof score === "number" && score >= 80 ? "fit-good" : "fit-warn",
+    fit: hasScore ? Math.round(score) : "-",
+    fitClass: hasScore && score >= 80 ? "fit-good" : "fit-warn",
     recommended: isRecommended,
-    summary: summarizeSupplier(row, hasParseIssue),
     submitted: hasParseIssue ? "OCR 일부 실패 · 수정 필요" : "제출 완료",
     badges: getSupplierBadges(row),
     strengths: getStrengths(row),
@@ -155,12 +171,6 @@ function formatWon(value) {
   return `₩ ${moneyFormatter.format(value)}`;
 }
 
-function formatMillionRevenue(value) {
-  if (typeof value !== "number") return "—";
-  if (value >= 10000) return `${moneyFormatter.format(Math.round(value / 10000))}억 원`;
-  return `${moneyFormatter.format(value)}백만 원`;
-}
-
 function formatNotes(value) {
   if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
   return formatEmpty(value);
@@ -196,19 +206,6 @@ function getSupplierBadges(row) {
   if (row.vendor_snapshot?.is_premium_partner) badges.push("프리미엄 파트너");
   if (row.total?.is_confirmed === false) badges.push("총액 미확정");
   return badges.length > 0 ? badges : ["검토 대상"];
-}
-
-function summarizeSupplier(row, hasParseIssue) {
-  if (hasParseIssue) {
-    return "일부 항목을 시스템이 안정적으로 읽지 못해 원본 확인과 수정이 필요합니다.";
-  }
-  if (row.highlights?.is_highest_score) {
-    return "종합 적합도가 높고 납기·보증 조건이 안정적입니다.";
-  }
-  if (row.highlights?.is_lowest_total_price) {
-    return "총액 기준 가격 경쟁력이 있으나 일부 조건 확인이 필요합니다.";
-  }
-  return "제출 견적 기준으로 비교 검토가 가능합니다.";
 }
 
 function getStrengths(row) {
