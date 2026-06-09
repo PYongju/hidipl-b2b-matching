@@ -54,6 +54,7 @@ class VendorSnapshotEnricher:
                 "avg_revenue_3yr",
                 "years_in_business",
                 "representative",
+                "company_location",
             ],
         }
 

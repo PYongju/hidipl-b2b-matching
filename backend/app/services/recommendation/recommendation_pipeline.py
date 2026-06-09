@@ -25,6 +25,7 @@ class RecommendationPipeline:
         quote_results: list[QuoteIngestionResult],
         *,
         selected_partner_names: list[str] | None = None,
+        filter_by_selected_partners: bool = False,
         top_n: int = 3,
     ) -> RecommendationPipelineResult:
         if not quote_results:
@@ -40,7 +41,7 @@ class RecommendationPipeline:
             if name
         }
         filtered_quote_results = quote_results
-        if selected_normalized:
+        if selected_normalized and filter_by_selected_partners:
             matched_quote_results = [
                 quote_result
                 for quote_result in quote_results
@@ -108,8 +109,10 @@ class RecommendationPipeline:
                 "selected_partner_names": selected_partner_names or [],
                 "selected_partner_filter_applied": (
                     bool(selected_normalized)
+                    and filter_by_selected_partners
                     and len(filtered_quote_results) < len(quote_results)
                 ),
+                "filter_by_selected_partners": filter_by_selected_partners,
             },
         )
 
@@ -174,6 +177,12 @@ class RecommendationPipeline:
             line_item_count=len(quote.line_items),
             check_required=result.check_required,
             score_breakdown=result.score_breakdown,
+            comparison_risks=list(result.comparison_risks),
+            special_notes=[
+                note
+                for note in (quote.notes_raw or "").splitlines()
+                if note.strip()
+            ],
             rule_warnings=list(result.metadata.get("rule_warnings", [])),
             matched_rules=list(result.metadata.get("matched_rules", [])),
             vendor_snapshot_source=result.metadata.get("vendor_snapshot_source"),

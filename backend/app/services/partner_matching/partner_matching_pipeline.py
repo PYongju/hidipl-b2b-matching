@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from config.paths import PARTNER_EMBEDDINGS_PATH
 from services.partner_matching.partner_embedding_store import (
     get_or_create_partner_embeddings,
 )
@@ -54,6 +55,7 @@ class PartnerMatchingPipeline:
                 "provider": provider.__class__.__name__,
                 "embedding_provider": self.embedding_provider.__class__.__name__,
                 "similarity_provider": self.similarity_provider.__class__.__name__,
+                "embedding_cache_used": PARTNER_EMBEDDINGS_PATH.exists(),
             }
         )
         return result

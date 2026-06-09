@@ -35,13 +35,31 @@ class MatchRecord:
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
+@dataclass
+class CandidateVendorRecord:
+    candidate_vendor_id: str
+    project_id: str
+    requirement_result: Any
+    candidate_vendor_result: Any
+    selected_vendor_names: list[str]
+    selected_vendor_count: int
+    requested_vendor_names: list[str]
+    requested_vendor_count: int
+    top_n: int
+    similarity_threshold: float
+    executed_at: str
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
 class ApiDemoStore:
     def __init__(self) -> None:
         self.projects: dict[str, ProjectRecord] = {}
         self.quote_pools: dict[str, QuotePoolRecord] = {}
         self.matches: dict[str, MatchRecord] = {}
+        self.candidate_vendors: dict[str, CandidateVendorRecord] = {}
         self.project_quote_pool_index: dict[str, str] = {}
         self.project_match_index: dict[str, list[str]] = {}
+        self.project_candidate_vendor_index: dict[str, str] = {}
 
     def create_project(
         self,
@@ -106,6 +124,40 @@ class ApiDemoStore:
         self.project_match_index.setdefault(project_id, []).append(match_id)
         return record
 
+    def save_candidate_vendors(
+        self,
+        *,
+        project_id: str,
+        requirement_result,
+        candidate_vendor_result,
+        top_n: int,
+        similarity_threshold: float,
+        requested_vendor_names: list[str] | None = None,
+    ) -> CandidateVendorRecord:
+        candidate_vendor_id = f"candidate_vendors_{uuid4().hex[:8]}"
+        selected_vendor_names = [
+            candidate.partner_name
+            for candidate in candidate_vendor_result.candidates
+            if getattr(candidate, "partner_name", None)
+        ]
+        requested_names = list(requested_vendor_names or selected_vendor_names)
+        record = CandidateVendorRecord(
+            candidate_vendor_id=candidate_vendor_id,
+            project_id=project_id,
+            requirement_result=requirement_result,
+            candidate_vendor_result=candidate_vendor_result,
+            selected_vendor_names=selected_vendor_names,
+            selected_vendor_count=len(selected_vendor_names),
+            requested_vendor_names=requested_names,
+            requested_vendor_count=len(requested_names),
+            top_n=top_n,
+            similarity_threshold=similarity_threshold,
+            executed_at=datetime.now().isoformat(),
+        )
+        self.candidate_vendors[candidate_vendor_id] = record
+        self.project_candidate_vendor_index[project_id] = candidate_vendor_id
+        return record
+
     def get_project(self, project_id: str) -> ProjectRecord | None:
         return self.projects.get(project_id)
 
@@ -124,6 +176,10 @@ class ApiDemoStore:
         if match is None or match.project_id != project_id:
             return None
         return match
+
+    def get_candidate_vendors(self, project_id: str) -> CandidateVendorRecord | None:
+        candidate_vendor_id = self.project_candidate_vendor_index.get(project_id)
+        return self.candidate_vendors.get(candidate_vendor_id or "")
 
 
 store = ApiDemoStore()

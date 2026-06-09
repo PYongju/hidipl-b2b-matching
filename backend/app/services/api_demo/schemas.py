@@ -31,6 +31,17 @@ class QuoteUploadResponse(BaseModel):
     quotes: list[Any]
 
 
+class CandidateVendorsRequest(BaseModel):
+    request_text: str | None = None
+    customer_name: str | None = None
+    region: str | None = None
+    install_schedule_text: str | None = None
+    products: list[dict[str, Any]] | None = None
+    requested_vendor_names: list[str] | None = None
+    top_n: int = 10
+    similarity_threshold: float = 60.0
+
+
 class MatchRunRequest(BaseModel):
     quote_top_n: int = 3
     explanation_provider: str | None = None
