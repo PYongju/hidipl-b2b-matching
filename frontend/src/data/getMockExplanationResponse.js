@@ -1,10 +1,13 @@
 import {
+  extendedExplanationResponse,
   failureExplanationResponse,
   normalExplanationResponse,
 } from "./mockExplanationResponse";
 
 function getMockExplanationResponse(projectData) {
-  return projectData?.failureScenario ? failureExplanationResponse : normalExplanationResponse;
+  if (projectData?.failureScenario) return failureExplanationResponse;
+  if (projectData?.manyQuotesScenario) return extendedExplanationResponse;
+  return normalExplanationResponse;
 }
 
 export default getMockExplanationResponse;

@@ -531,12 +531,160 @@ const parseFailedVendorRow = {
   },
 };
 
+const neoDisplayRow = {
+  ...brightSignRow,
+  quote_id: "quote_neodisplay_001",
+  vendor_name: "NeoDisplay",
+  total_supply_price: 17500000,
+  total_with_vat: 19250000,
+  delivery_basis_raw: "2025-05-28 (36일)",
+  delivery_weeks: 5,
+  final_score: 81,
+  spec_score: 85,
+  price_score: 80,
+  delivery_score: 78,
+  warranty_score: 84,
+  installation_score: 82,
+  past_success_rate: "양호",
+  response_speed_score: 78,
+  matched_rules: [],
+  vendor_snapshot: {
+    ...brightSignRow.vendor_snapshot,
+    vendor_id: "vendor_neodisplay",
+    vendor_name: "NeoDisplay",
+    company_location: "부산 해운대구",
+    representative: "이대표",
+    specialty_tags: ["실내 LED", "박물관 전시"],
+    industry_breakdown: "문화/전시",
+    solution_breakdown: "실내 사이니지",
+    scale_breakdown: "중형",
+  },
+  company_info: {
+    ...brightSignRow.company_info,
+    company_location: "부산 해운대구",
+    representative: "이대표",
+    industry_breakdown: "문화/전시",
+    solution_breakdown: "실내 사이니지",
+    scale_breakdown: "중형",
+  },
+  conditions: {
+    ...brightSignRow.conditions,
+    delivery: "2025-05-28 (36일)",
+    delivery_weeks: 5,
+    install_location: "부산 해운대구",
+    special_notes: ["전시장 맞춤 프레임 별도"],
+  },
+  total: {
+    total_supply_price: 17500000,
+    total_with_vat: 19250000,
+    is_confirmed: true,
+    display_text: "₩ 19,250,000",
+  },
+  scores: {
+    cosine_similarity: 0.81,
+    final_score: 81,
+    spec_score: 85,
+    price_score: 80,
+    delivery_score: 78,
+    warranty_score: 84,
+    installation_score: 82,
+  },
+  highlights: {
+    is_highest_score: false,
+    is_lowest_total_price: false,
+    is_fastest_delivery: false,
+    is_longest_warranty: false,
+  },
+};
+
+const pixelWaveRow = {
+  ...brightSignRow,
+  quote_id: "quote_pixelwave_001",
+  vendor_name: "PixelWave",
+  total_supply_price: 17800000,
+  total_with_vat: 19580000,
+  delivery_basis_raw: "2025-06-05 (43일)",
+  delivery_weeks: 6,
+  final_score: 79,
+  spec_score: 83,
+  price_score: 76,
+  delivery_score: 72,
+  warranty_score: 80,
+  installation_score: 78,
+  past_success_rate: "보통",
+  response_speed_score: 74,
+  matched_rules: [],
+  vendor_snapshot: {
+    ...brightSignRow.vendor_snapshot,
+    vendor_id: "vendor_pixelwave",
+    vendor_name: "PixelWave",
+    company_location: "대전 유성구",
+    representative: "정대표",
+    specialty_tags: ["고해상도 LED", "야외 전광판"],
+    industry_breakdown: "광고/미디어",
+    solution_breakdown: "고해상도 디스플레이",
+    scale_breakdown: "중대형",
+  },
+  company_info: {
+    ...brightSignRow.company_info,
+    company_location: "대전 유성구",
+    representative: "정대표",
+    industry_breakdown: "광고/미디어",
+    solution_breakdown: "고해상도 디스플레이",
+    scale_breakdown: "중대형",
+  },
+  conditions: {
+    ...brightSignRow.conditions,
+    delivery: "2025-06-05 (43일)",
+    delivery_weeks: 6,
+    install_location: "대전 유성구",
+    special_notes: ["야외 설치 시 방수 옵션 별도"],
+  },
+  total: {
+    total_supply_price: 17800000,
+    total_with_vat: 19580000,
+    is_confirmed: true,
+    display_text: "₩ 19,580,000",
+  },
+  scores: {
+    cosine_similarity: 0.79,
+    final_score: 79,
+    spec_score: 83,
+    price_score: 76,
+    delivery_score: 72,
+    warranty_score: 80,
+    installation_score: 78,
+  },
+  highlights: {
+    is_highest_score: false,
+    is_lowest_total_price: false,
+    is_fastest_delivery: false,
+    is_longest_warranty: false,
+  },
+};
+
 const normalCompareResponse = {
   project_id: "PV-2025-0421",
   rows: [aDisplayRow, brightSignRow, visionTechRow],
   metadata: {
     source: "frontend_mock_from_api_samples",
     row_count: 3,
+    observed_status_values: ["normal", "included", "separate", "missing", "to_be_discussed"],
+    highlight_keys_observed: [
+      "is_fastest_delivery",
+      "is_highest_score",
+      "is_longest_warranty",
+      "is_lowest_total_price",
+    ],
+  },
+};
+
+const extendedCompareResponse = {
+  project_id: "PV-2026-0602",
+  rows: [aDisplayRow, brightSignRow, visionTechRow, neoDisplayRow, pixelWaveRow],
+  metadata: {
+    source: "frontend_mock_many_quotes_scenario",
+    row_count: 5,
     observed_status_values: ["normal", "included", "separate", "missing", "to_be_discussed"],
     highlight_keys_observed: [
       "is_fastest_delivery",
@@ -571,4 +719,4 @@ const failureCompareResponse = {
   },
 };
 
-export { failureCompareResponse, normalCompareResponse };
+export { extendedCompareResponse, failureCompareResponse, normalCompareResponse };

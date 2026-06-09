@@ -1,7 +1,13 @@
-import { failureCompareResponse, normalCompareResponse } from "./mockCompareResponse";
+import {
+  extendedCompareResponse,
+  failureCompareResponse,
+  normalCompareResponse,
+} from "./mockCompareResponse";
 
 function getMockCompareResponse(projectData) {
-  return projectData?.failureScenario ? failureCompareResponse : normalCompareResponse;
+  if (projectData?.failureScenario) return failureCompareResponse;
+  if (projectData?.manyQuotesScenario) return extendedCompareResponse;
+  return normalCompareResponse;
 }
 
 export default getMockCompareResponse;
