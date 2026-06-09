@@ -1,10 +1,34 @@
+const MAX_EXPLANATION_SUPPLIERS = 3;
+
+function isExplicitFallbackWarning(warning) {
+  const text = String(warning);
+  return (
+    /llm 설명 생성 실패/i.test(text) ||
+    /규칙 기반.*(요약|대체)/i.test(text) ||
+    /template fallback used/i.test(text) ||
+    /azure openai explanation generation failed/i.test(text)
+  );
+}
+
+function isExplanationFallback(response) {
+  const provider = response?.provider ?? "";
+
+  if (provider === "template" || provider.endsWith("_fallback_template")) {
+    return true;
+  }
+
+  return (response?.warnings ?? []).some(isExplicitFallbackWarning);
+}
+
 function createExplanationViewModel(response, suppliers = []) {
   const supplierByName = new Map(suppliers.map((supplier) => [supplier.name, supplier]));
-  const supplierExplanations = (response?.supplier_explanations ?? []).map((item, index) => {
+  const supplierExplanations = (response?.supplier_explanations ?? [])
+    .slice(0, MAX_EXPLANATION_SUPPLIERS)
+    .map((item, index) => {
     const supplier = supplierByName.get(item.vendor_name) ?? suppliers[index] ?? {};
 
     return {
-      cardSummary: item.card_summary ?? supplier.summary ?? "",
+      cardSummary: item.card_summary ?? "",
       checkRequired: item.check_required ?? [],
       logo: supplier.logo ?? getLogo(item.vendor_name, index),
       logoClass: supplier.logoClass ?? getLogoClass(index),
@@ -17,7 +41,7 @@ function createExplanationViewModel(response, suppliers = []) {
   });
 
   return {
-    isFallback: Boolean(response?.warnings?.length),
+    isFallback: isExplanationFallback(response),
     overallSummary: response?.overall_summary ?? "AI 근거 요약을 준비 중입니다.",
     provider: response?.provider ?? response?.metadata?.provider ?? "unknown",
     supplierExplanations,
@@ -39,4 +63,4 @@ function getLogoClass(index) {
   return ["logo-blue", "logo-purple", "logo-teal", "logo-orange", "logo-gray"][index] ?? "logo-gray";
 }
 
-export { createExplanationViewModel };
+export { createExplanationViewModel, isExplanationFallback };

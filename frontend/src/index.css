@@ -558,10 +558,63 @@ button {
   padding: 12px;
 }
 
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
 .panel-title {
   margin-bottom: 9px;
   font-size: 14px;
   font-weight: 800;
+}
+
+.panel-title-row .panel-title {
+  margin-bottom: 0;
+}
+
+.supplier-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.supplier-pager-count {
+  min-width: 72px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.supplier-pager-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.supplier-pager-btn:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.supplier-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .panel-title span {
@@ -576,7 +629,10 @@ button {
 }
 
 .supplier-card {
-  min-height: 166px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 220px;
   padding: 12px;
   border: 1px solid #d7dde8;
   border-radius: 7px;
@@ -634,6 +690,14 @@ button {
   color: #0d9488;
 }
 
+.logo-orange {
+  color: #ea580c;
+}
+
+.logo-gray {
+  color: #64748b;
+}
+
 .supplier-name b {
   white-space: nowrap;
   font-size: 14px;
@@ -654,7 +718,9 @@ button {
   color: #ea580c;
 }
 
-.supplier-card p {
+.supplier-card-summary {
+  flex: 1 1 auto;
+  min-height: 3.9em;
   margin: 9px 0 12px;
   color: #334155;
   font-size: 13px;
@@ -675,6 +741,7 @@ button {
 .supplier-foot {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  margin-top: auto;
   border-top: 1px solid #e2e8f0;
   padding-top: 9px;
   gap: 10px;
@@ -760,6 +827,12 @@ button {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+
+.compare-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .compare-header b {
@@ -1091,6 +1164,20 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+  align-items: stretch;
+}
+
+.side-split .compact-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.compact-panel-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 132px;
 }
 
 .compact-panel,
@@ -1135,6 +1222,23 @@ textarea {
   color: #64748b;
   font-size: 11px;
   text-align: right;
+}
+
+.memo-readonly {
+  background: #f8fafc;
+  color: #475569;
+  cursor: default;
+}
+
+.side-split .compact-panel > .button.full {
+  margin-top: 10px;
+}
+
+.memo-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .choice-grid {

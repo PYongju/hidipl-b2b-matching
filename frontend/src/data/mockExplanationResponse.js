@@ -56,4 +56,17 @@ const failureExplanationResponse = {
   },
 };
 
-export { failureExplanationResponse, normalExplanationResponse };
+const extendedExplanationResponse = {
+  ...normalExplanationResponse,
+  project_id: "PV-2026-0602",
+  metadata: {
+    source: "local_mock",
+    example_type: "frontend_explanation_many_quotes_mock",
+  },
+};
+
+export {
+  extendedExplanationResponse,
+  failureExplanationResponse,
+  normalExplanationResponse,
+};

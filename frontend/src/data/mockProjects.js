@@ -349,6 +349,30 @@ function makeProjectFromData(data, id) {
 
 const sampleProjects = [
   {
+    id: "PV-2026-0602",
+    name: "견적서 5개 넘김 UI 테스트",
+    status: "검토 중",
+    statusTone: "blue",
+    desc: "공급사 카드·비교표 좌우 넘김 버튼 동작 확인용 mock",
+    meta: ["공급사 5개", "넘김 UI 테스트"],
+    data: {
+      ...initialProjectData,
+      projectId: "PV-2026-0602",
+      companyName: "하이디플 테스트 고객사",
+      location: "서울 강남구 테스트룸",
+      projectName: "견적서 5개 넘김 UI 테스트",
+      currentStage: "비교 검토 중",
+      projectDate: "2026-06-02",
+      usage: "견적서 3개 초과 시 좌우 넘김 UI 검증",
+      displaySize: "W12,160mm x H3,040mm",
+      quantity: "1",
+      budgetAmount: "120,000,000",
+      operationTime: "24/7",
+      reviewPreset: "균형 추천",
+      manyQuotesScenario: true,
+    },
+  },
+  {
     id: "PV-2026-0601",
     name: "실패 상태 UI 점검용 견적 비교",
     status: "진행 중",
