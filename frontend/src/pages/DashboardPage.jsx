@@ -47,7 +47,11 @@ function SupplierPager({
   );
 }
 
-export default function DashboardPage({ projectData, onGoProjects }) {
+export default function DashboardPage({
+  projectData,
+  onGoProjects,
+  onGoReport,
+}) {
   const [selectedVendor, setSelectedVendor] = useState("A Display");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isFailureScenario = Boolean(projectData.failureScenario);
@@ -604,7 +608,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
               <h3>보고서/내보내기</h3>
               <div>
                 <button className="button full" type="button">비교표 다운로드 (Excel)</button>
-                <button className="button full" type="button">고객 보고서 미리보기</button>
+                <button className="button full" onClick={onGoReport} type="button">고객 보고서 미리보기</button>
               </div>
             </section>
           </aside>
@@ -615,7 +619,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
       {compareState === "ready" && (
       <footer className="bottom-actions">
         <button className="button action-secondary" type="button">▣ 임시 저장</button>
-        <button className="button action-secondary" type="button">□ 고객 보고서로 내보내기</button>
+        <button className="button action-secondary" onClick={onGoReport} type="button">□ 고객 보고서로 내보내기</button>
         <button
           className={selectionFinalized ? "button selection-complete-button" : "button action-primary"}
           disabled={selectionFinalized}
@@ -661,7 +665,7 @@ export default function DashboardPage({ projectData, onGoProjects }) {
           <span>프로젝트 상태가 검토 완료로 변경되었습니다.</span>
           <div>
             <button className="button" onClick={onGoProjects} type="button">프로젝트 목록으로 이동</button>
-            <button className="button action-primary" type="button">고객 보고서 미리보기</button>
+            <button className="button action-primary" onClick={onGoReport} type="button">고객 보고서 미리보기</button>
           </div>
         </div>
       )}
