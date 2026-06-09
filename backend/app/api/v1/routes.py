@@ -3,11 +3,11 @@ import shutil
 from pathlib import Path
 from services.api_demo import routers as demo_routers
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel
 from services.api_demo.schemas import (
     ProjectCreateRequest as DemoProjectCreateRequest,
-    MatchRunRequest,
+    MatchRunRequest, CandidateVendorRequest, InternalNoteRequest,
 )
 from services.api_demo.schemas import CompareRequest
 from sqlalchemy.orm import Session
@@ -51,7 +51,6 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
         db.rollback()
         raise  # 또는 로깅 후 HTTP 500 반환
     
-    print(result)
     return {"ok": True, "data": result, "error": None}
 
 
@@ -118,6 +117,15 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+#[P2-1] 파트너 후보 추천
+@router.post("/projects/{project_id}/candidate-vendors")
+async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
+    try:
+        result = demo_routers.run_candidate_vendors(project_id, body.quote_top_n)
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
+
 
 # [P3] 매칭 실행
 @router.post("/projects/{project_id}/matches")
@@ -156,12 +164,12 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
                         "match_id": match_id,
                         "quote_id": item["quote_id"],
                         "rank": item["rank"],
-                        "final_score": item["final_score"],
-                        "spec_score": item["spec_score"],
-                        "price_score": item["price_score"],
-                        "delivery_score": item["delivery_score"],
-                        "warranty_score": item["warranty_score"],
-                        "installation_score": item["installation_score"],
+                        "final_score": item.get("final_score", 0.0),
+                        "spec_score": item.get("spec_score", 0.0),
+                        "price_score": item.get("price_score", 0.0),
+                        "delivery_score": item.get("delivery_score", 0.0),
+                        "warranty_score": item.get("warranty_score", 0.0),
+                        "installation_score": item.get("installation_score", 0.0),
                         "matched_rules": str(item.get("matched_rules", [])),
                         "filter_reasons": str(item.get("filter_reasons", [])),
                         "check_required": str(item.get("check_required", [])),
@@ -183,7 +191,7 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
 
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
-async def get_matches(project_id: str, match_id: Optional[str] = None):
+async def get_matches(project_id: str):
     try:
         result = demo_routers.get_matches(project_id)
         return {"ok": True, "data": result, "error": None}
@@ -219,3 +227,34 @@ async def compare_quotes(project_id: str, body: CompareRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    
+# [P7] 내부 메모 저장
+@router.patch("/projects/{project_id}/internal-notes")
+async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Session = Depends(get_db)):
+    try:
+        if body.notes:
+            notes = body.notes
+        elif body.screen:
+            notes = {body.screen: body.note}
+        else:
+            raise HTTPException(status_code=400, detail="잘못된 요청입니다.")
+        db.execute(
+            text("UPDATE projects SET internal_notes = :notes WHERE project_id = :project_id"),
+            {
+                "notes": str(notes),
+                "project_id": project_id,
+            }
+        )
+        db.commit()
+        return {
+            "ok": True,
+            "data": {
+                "project_id": project_id,
+                "notes": notes,
+                "updated_at": datetime.now().isoformat(),
+            },
+            "error": None,
+        }
+    except Exception as e:
+        db.rollback()
+        raise

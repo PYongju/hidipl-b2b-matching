@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- ------------------------------------
 CREATE TABLE IF NOT EXISTS projects (
     project_id   VARCHAR(64)  NOT NULL,
-    created_by   VARCHAR(64)  DEFAULT NULL,                        -- users.user_id (Entra ID 연동 전 NULL 허용)
+    created_by   VARCHAR(64)  DEFAULT NULL,
+    internal_notes  JSON         DEFAULT NULL,                        -- users.user_id (Entra ID 연동 전 NULL 허용)
     created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (project_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id)
