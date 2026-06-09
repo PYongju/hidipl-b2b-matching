@@ -54,3 +54,11 @@ class CompareResponse(BaseModel):
     project_id: str
     rows: list[dict[str, Any]]
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+class CandidateVendorRequest(BaseModel):
+    quote_top_n: int = 10
+
+class InternalNoteRequest(BaseModel):
+    screen: str | None = None
+    note: str | None = None
+    notes: dict[str, str] | None = None

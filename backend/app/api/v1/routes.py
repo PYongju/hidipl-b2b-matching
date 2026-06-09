@@ -3,11 +3,11 @@ import shutil
 from pathlib import Path
 from services.api_demo import routers as demo_routers
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel
 from services.api_demo.schemas import (
     ProjectCreateRequest as DemoProjectCreateRequest,
-    MatchRunRequest,
+    MatchRunRequest, CandidateVendorRequest, InternalNoteRequest,
 )
 from services.api_demo.schemas import CompareRequest
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from fastapi import Depends
 from datetime import datetime
 from core.database import get_db
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(prefix="/api/v1")
 
@@ -44,11 +45,12 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
             }
         )
         db.commit()
+    except IntegrityError:
+        db.rollback()
     except Exception as e:
         db.rollback()
-        print(f"DB 저장 실패: {e}")
+        raise  # 또는 로깅 후 HTTP 500 반환
     
-    print(result)
     return {"ok": True, "data": result, "error": None}
 
 
@@ -58,8 +60,14 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
     tmp_dir = Path(tempfile.mkdtemp())
     try:
         saved_paths = []
+        MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
         for f in files:
-            dest = tmp_dir / f.filename
+            content = await f.read()
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail=f"File {f.filename}: 파일 크기 초과 (최대 100MB)")
+            await f.seek(0)  # 파일 포인터를 처음으로 되돌림
+
+            dest = tmp_dir / Path(f.filename).name
             with dest.open("wb") as out:
                 shutil.copyfileobj(f.file, out)
             saved_paths.append(dest)
@@ -69,7 +77,7 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
             for quote in result.get("quotes", []):
                 db.execute(
                     text("""
-                        INSERT IGNORE INTO quotes (
+                        INSERT INTO quotes (
                             quote_id, project_id, vendor_name, vendor_id,
                             total_supply_price, total_with_vat,
                             delivery_weeks, delivery_basis_raw,
@@ -95,41 +103,52 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
                     }
                 )
             db.commit()
+        except IntegrityError:
+            db.rollback()
         except Exception as e:
             db.rollback()
-            print(f"DB 저장 실패 (P2): {e}")
+            raise  # 또는 로깅 후 HTTP 500 반환
         return {"ok": True, "data": result, "error": None}
 
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail="잘못된 요청입니다.")
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+#[P2-1] 파트너 후보 추천
+@router.post("/projects/{project_id}/candidate-vendors")
+async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
+    try:
+        result = demo_routers.run_candidate_vendors(project_id, body.quote_top_n)
+        return {"ok": True, "data": result, "error": None}
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
 
 
 # [P3] 매칭 실행
 @router.post("/projects/{project_id}/matches")
-async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db)):
+async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Depends(get_db)):
     try:
         result = demo_routers.run_match(
             project_id,
             MatchRunRequest(
-                quote_top_n=body.get("quote_top_n", 3),
-                run_explanation=body.get("run_explanation", False),
-                explanation_provider=body.get("explanation_provider", None),
+                quote_top_n=body.quote_top_n or 3,
+                run_explanation=body.run_explanation or False,
+                explanation_provider=body.explanation_provider or None,
             ),
         )
         try:
             match_id = result["match_id"]
             db.execute(
-                text("INSERT IGNORE INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
+                text("INSERT INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
                 {"match_id": match_id, "project_id": project_id, "created_at": datetime.now()}
             )
             for item in result.get("recommendation", {}).get("items", []):
                 db.execute(
                     text("""
-                        INSERT IGNORE INTO match_result_items (
+                        INSERT INTO match_result_items (
                             match_id, quote_id, rank, final_score,
                             spec_score, price_score, delivery_score,
                             warranty_score, installation_score,
@@ -145,12 +164,12 @@ async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db
                         "match_id": match_id,
                         "quote_id": item["quote_id"],
                         "rank": item["rank"],
-                        "final_score": item["final_score"],
-                        "spec_score": item["spec_score"],
-                        "price_score": item["price_score"],
-                        "delivery_score": item["delivery_score"],
-                        "warranty_score": item["warranty_score"],
-                        "installation_score": item["installation_score"],
+                        "final_score": item.get("final_score", 0.0),
+                        "spec_score": item.get("spec_score", 0.0),
+                        "price_score": item.get("price_score", 0.0),
+                        "delivery_score": item.get("delivery_score", 0.0),
+                        "warranty_score": item.get("warranty_score", 0.0),
+                        "installation_score": item.get("installation_score", 0.0),
                         "matched_rules": str(item.get("matched_rules", [])),
                         "filter_reasons": str(item.get("filter_reasons", [])),
                         "check_required": str(item.get("check_required", [])),
@@ -158,9 +177,11 @@ async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db
                     }
                 )
             db.commit()
+        except IntegrityError:
+            db.rollback()
         except Exception as e:
             db.rollback()
-            print(f"DB 저장 실패 (P3): {e}")
+            raise  # 또는 로깅 후 HTTP 500 반환
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -170,7 +191,7 @@ async def run_matching(project_id: str, body: dict, db: Session = Depends(get_db
 
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
-async def get_matches(project_id: str, match_id: Optional[str] = None):
+async def get_matches(project_id: str):
     try:
         result = demo_routers.get_matches(project_id)
         return {"ok": True, "data": result, "error": None}
@@ -192,13 +213,13 @@ async def get_explanation(project_id: str, match_id: str):
 # 프론트는 status -> 라벨 매핑만 담당한다.
 # rows 배열은 rank 순 고정
 @router.post("/projects/{project_id}/compare")
-async def compare_quotes(project_id: str, body: dict):
+async def compare_quotes(project_id: str, body: CompareRequest):
     try:
         result = demo_routers.compare_quotes(
             project_id,
             CompareRequest(
-                quote_ids=body.get("quote_ids", None),
-                top_n=body.get("top_n", None),
+                quote_ids=body.quote_ids,
+                top_n=body.top_n,
             ),
         )
         return {"ok": True, "data": result, "error": None}
@@ -206,3 +227,34 @@ async def compare_quotes(project_id: str, body: dict):
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    
+# [P7] 내부 메모 저장
+@router.patch("/projects/{project_id}/internal-notes")
+async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Session = Depends(get_db)):
+    try:
+        if body.notes:
+            notes = body.notes
+        elif body.screen:
+            notes = {body.screen: body.note}
+        else:
+            raise HTTPException(status_code=400, detail="잘못된 요청입니다.")
+        db.execute(
+            text("UPDATE projects SET internal_notes = :notes WHERE project_id = :project_id"),
+            {
+                "notes": str(notes),
+                "project_id": project_id,
+            }
+        )
+        db.commit()
+        return {
+            "ok": True,
+            "data": {
+                "project_id": project_id,
+                "notes": notes,
+                "updated_at": datetime.now().isoformat(),
+            },
+            "error": None,
+        }
+    except Exception as e:
+        db.rollback()
+        raise
