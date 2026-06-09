@@ -63,7 +63,7 @@ export default function ProjectRequirementsPage({
             <div className="requirements-section-title">
               <div>
                 <h2>요구사항 작성</h2>
-                <p>공급사 비교에 필요한 스펙, 예산, 우선순위를 한 번에 정리합니다.</p>
+                <p>발주사 기본 정보와 디스플레이 요구사항을 기준에 맞춰 정리합니다.</p>
               </div>
             </div>
 
@@ -71,25 +71,77 @@ export default function ProjectRequirementsPage({
               <div className="requirement-block-title">
                 <span>1</span>
                 <div>
+                  <b>발주사 및 기본 정보</b>
+                  <small>회사명, 설치 위치, 프로젝트명과 활용 목적을 입력합니다.</small>
+                </div>
+              </div>
+              <div className="requirements-form-grid">
+                <label>
+                  <span>회사명 *</span>
+                  <input
+                    onChange={(event) => updateField("companyName", event.target.value)}
+                    placeholder="예: 삼성전자"
+                    value={projectData.companyName || ""}
+                  />
+                </label>
+                <label>
+                  <span>설치 위치 *</span>
+                  <input
+                    onChange={(event) => updateField("location", event.target.value)}
+                    placeholder="예: 수원사업장 본관 로비"
+                    value={projectData.location || ""}
+                  />
+                </label>
+                <label>
+                  <span>프로젝트명</span>
+                  <input
+                    onChange={(event) => updateField("projectName", event.target.value)}
+                    placeholder="예: 본사 로비 사이니지 구축"
+                    value={projectData.projectName || ""}
+                  />
+                </label>
+                <label>
+                  <span>프로젝트 일정</span>
+                  <input
+                    onChange={(event) => updateField("projectDate", event.target.value)}
+                    type="date"
+                    value={projectData.projectDate || ""}
+                  />
+                </label>
+              </div>
+              <label>
+                <span>활용 용도 및 디스플레이 요구사항</span>
+                <textarea
+                  onChange={(event) => updateField("usage", event.target.value)}
+                  placeholder="예: 사내 브리핑/방문객 안내용 디스플레이, 설치 환경, 화면 밝기, 운영 조건 등을 입력해주세요."
+                  value={projectData.usage || ""}
+                />
+              </label>
+            </section>
+
+            <section className="requirement-input-block">
+              <div className="requirement-block-title">
+                <span>2</span>
+                <div>
                   <b>디스플레이 스펙</b>
-                  <small>화면 크기, 수량, 운영 조건을 입력합니다.</small>
+                  <small>화면 크기, 수량, 운영 조건과 카테고리를 입력합니다.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
                 <label>
                   <span>디스플레이 크기</span>
-                  <select
-                    onChange={(event) => updateField("displaySize", event.target.value)}
-                    value={projectData.displaySize || "55인치"}
-                  >
-                    <option>43인치</option>
-                    <option>55인치</option>
-                    <option>65인치</option>
-                    <option>75인치</option>
-                    <option>85인치</option>
-                    <option>LED Wall</option>
-                    <option>직접 입력 필요</option>
-                  </select>
+                  <div className="requirements-money-field">
+                    <input
+                      inputMode="decimal"
+                      onChange={(event) => {
+                        const value = event.target.value.replace(/인치/g, "").trim();
+                        updateField("displaySize", value ? `${value}인치` : "");
+                      }}
+                      placeholder="예: 55"
+                      value={(projectData.displaySize || "").replace(/인치$/, "")}
+                    />
+                    <em>인치</em>
+                  </div>
                 </label>
                 <label>
                   <span>수량</span>
@@ -109,7 +161,7 @@ export default function ProjectRequirementsPage({
                     <option>업무 시간</option>
                     <option>12시간</option>
                     <option>24/7</option>
-                    <option>이벤트 기간 한정</option>
+                    <option>이벤트 기간 지정</option>
                   </select>
                 </label>
                 <label>
@@ -130,9 +182,9 @@ export default function ProjectRequirementsPage({
 
             <section className="requirement-input-block">
               <div className="requirement-block-title">
-                <span>2</span>
+                <span>3</span>
                 <div>
-                  <b>예산과 일정</b>
+                  <b>예산과 검토 기준</b>
                   <small>매칭 우선순위와 요청 가능 범위를 판단합니다.</small>
                 </div>
               </div>
@@ -150,14 +202,6 @@ export default function ProjectRequirementsPage({
                   </div>
                 </label>
                 <label>
-                  <span>프로젝트 일정</span>
-                  <input
-                    onChange={(event) => updateField("projectDate", event.target.value)}
-                    type="date"
-                    value={projectData.projectDate || ""}
-                  />
-                </label>
-                <label>
                   <span>현재 단계</span>
                   <select
                     onChange={(event) => updateField("currentStage", event.target.value)}
@@ -171,16 +215,6 @@ export default function ProjectRequirementsPage({
                     <option>비교 검토중</option>
                   </select>
                 </label>
-              </div>
-            </section>
-
-            <section className="requirement-input-block">
-              <div className="requirement-block-title">
-                <span>3</span>
-                <div>
-                  <b>우선 검토 기준</b>
-                  <small>AI 추천 순위에 반영할 검토 성향을 선택합니다.</small>
-                </div>
               </div>
               <div className="priority-chip-row">
                 {priorityOptions.map((option) => (
@@ -200,18 +234,10 @@ export default function ProjectRequirementsPage({
               <div className="requirement-block-title">
                 <span>4</span>
                 <div>
-                  <b>상세 요청 메모</b>
-                  <small>활용 목적, 설치 조건, 첨부 자료 메모를 자유롭게 남깁니다.</small>
+                  <b>추가 메모</b>
+                  <small>A/S, 납기, 설치 제한, 첨부 자료에 대한 메모를 남깁니다.</small>
                 </div>
               </div>
-              <label>
-                <span>활용 목적 및 설치 조건</span>
-                <textarea
-                  onChange={(event) => updateField("usage", event.target.value)}
-                  placeholder="예: 사내 브리핑/회의용 디스플레이, 방문객 안내, 운영 조건 등"
-                  value={projectData.usage || ""}
-                />
-              </label>
               <label>
                 <span>추가 요청사항</span>
                 <textarea
@@ -294,31 +320,41 @@ export default function ProjectRequirementsPage({
 function getMatchingChecks(data) {
   const stage = data.currentStage || "";
   const schedule = getScheduleState(data.projectDate);
+  const hasCompany = Boolean(data.companyName?.trim());
+  const hasLocation = Boolean(data.location?.trim());
+  const hasUsage = Boolean(data.usage?.trim());
   const hasSpec = Boolean(data.displaySize?.trim() || data.quantity?.trim());
   const hasBudget = Boolean(data.budgetAmount?.trim());
-  const hasUsage = Boolean(data.usage?.trim());
   const hasCategory = Boolean(data.category?.trim());
 
   return [
     {
       title: "필수값 충족",
-      level: hasSpec && hasBudget && hasUsage ? "ok" : "warn",
+      level: hasCompany && hasLocation && hasUsage ? "ok" : "warn",
       message:
-        hasSpec && hasBudget && hasUsage
-          ? "스펙, 예산, 활용 목적이 입력되었습니다."
-          : "스펙, 예산, 활용 목적을 입력하면 추천 정확도가 높아집니다.",
+        hasCompany && hasLocation && hasUsage
+          ? "회사명, 설치 위치, 활용 목적이 입력되었습니다."
+          : "회사명, 설치 위치, 활용 목적을 입력하면 추천 정확도가 높아집니다.",
     },
     {
       title: "정보 탐색 단계 확인 필요",
       level: stage.includes("정보 탐색") ? "warn" : "ok",
       message: stage.includes("정보 탐색")
-        ? "세부 모델과 설치 방식은 파트너 협의 과정에서 보완할 수 있습니다."
+        ? "정보 탐색 단계는 자동 매칭이 제한될 수 있습니다."
         : "현재 단계 기준으로 파트너 매칭 검토가 가능합니다.",
     },
     {
       title: "일정 6개월 이내",
       level: schedule.level,
       message: schedule.message,
+    },
+    {
+      title: "스펙/예산 보완",
+      level: hasSpec && hasBudget ? "ok" : "warn",
+      message:
+        hasSpec && hasBudget
+          ? "디스플레이 스펙과 예산 조건이 입력되었습니다."
+          : "디스플레이 크기, 수량, 예산을 입력하면 후보군을 더 정확히 좁힐 수 있습니다.",
     },
     {
       title: "카테고리 적합성",
@@ -331,8 +367,8 @@ function getMatchingChecks(data) {
 }
 
 function getReadinessScore(checks) {
-  const base = 50;
-  const score = checks.reduce((sum, check) => sum + (check.level === "ok" ? 12 : 5), base);
+  const base = 42;
+  const score = checks.reduce((sum, check) => sum + (check.level === "ok" ? 11 : 5), base);
   return Math.min(score, 96);
 }
 

@@ -2968,8 +2968,26 @@ textarea {
   color: #94a3b8;
 }
 
+.partner-table .ai-recommended-row {
+  background: #eff6ff;
+}
+
+.partner-table .ai-recommended-row td {
+  background: #eff6ff;
+  border-bottom-color: #bfdbfe;
+}
+
+.partner-table .ai-recommended-row:hover td {
+  background: #dbeafe;
+}
+
 .partner-table .caution-row {
   background: #fffbeb;
+}
+
+.partner-table .caution-row td {
+  background: #fffbeb;
+  border-bottom-color: #fde68a;
 }
 
 .partner-row-action {

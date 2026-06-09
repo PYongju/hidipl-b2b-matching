@@ -304,7 +304,15 @@ export default function PartnerMatchingPage({
                   {visiblePartners.map((partner) => {
                     const isTarget = targetIds.includes(partner.id);
                     return (
-                      <tr className={partner.caution ? "caution-row" : ""} key={partner.id}>
+                      <tr
+                        className={[
+                          partner.recommended ? "ai-recommended-row" : "",
+                          partner.caution ? "caution-row" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        key={partner.id}
+                      >
                         <td>
                           <input
                             checked={isTarget}
