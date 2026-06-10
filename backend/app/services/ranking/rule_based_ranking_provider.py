@@ -251,7 +251,10 @@ class RuleBasedRankingProvider(RankingProvider):
 
         price_gap_rate = self._price_gap_rate(candidate_price, lowest_price)
         if price_gap_rate is not None and price_gap_rate > 0.05:
-            self._append_check(result.check_required, "가격 차이 5% 초과 확인 필요")
+            self._append_check(
+                result.comparison_risks,
+                "최저가 대비 가격 차이 5% 초과",
+            )
             rule_warnings.append("가격 차이 5% 초과")
 
         response_score = self._response_speed_score(result.response_speed)

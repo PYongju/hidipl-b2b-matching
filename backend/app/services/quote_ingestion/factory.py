@@ -10,7 +10,7 @@ def create_quote_ingestion_pipeline(settings=None) -> QuoteIngestionPipeline:
         settings = get_settings()
 
     ocr_provider = create_ocr_provider(settings)
-    parser_provider = create_parser_provider("rule")
+    parser_provider = create_parser_provider(settings=settings)
 
     try:
         embedding_provider = create_embedding_provider("azure_openai")

@@ -34,6 +34,8 @@ class RecommendationItem:
     line_item_count: int
     check_required: list[str]
     score_breakdown: dict[str, float]
+    comparison_risks: list[str] = field(default_factory=list)
+    special_notes: list[str] = field(default_factory=list)
     rule_warnings: list[str] = field(default_factory=list)
     matched_rules: list[str] = field(default_factory=list)
     vendor_snapshot_source: str | None = None

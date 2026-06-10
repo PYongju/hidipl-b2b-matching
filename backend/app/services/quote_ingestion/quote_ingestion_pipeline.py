@@ -8,11 +8,13 @@ from typing import Any
 
 from services.embedding.text_builder import build_quote_embedding_text
 from services.parser.excel_quote_parser_provider import ExcelQuoteParserProvider
-from services.parser.schemas import QuoteDocument
+from services.parser.quote_parser_validator import resolve_project_name
+from services.parser.schemas import LineItemCategory, QuoteDocument
 from services.parser.vendor_name_resolver import (
     VendorNameResolver,
     is_invalid_vendor_name,
 )
+from services.quote_ingestion.multi_option_splitter import split_multi_option_result
 from services.quote_ingestion.vendor_snapshot_enricher import VendorSnapshotEnricher
 from services.quote_ingestion.schemas import (
     QuoteIngestionBatchResult,
@@ -83,6 +85,24 @@ class QuoteIngestionPipeline:
         else:
             vendor_debug = parsed_result.raw_matches.get("vendor_name_debug")
 
+        project_name_resolution = resolve_project_name(
+            quote_document,
+            source_text=ocr_result.text or parsed_result.source_text,
+            file_stem=path.stem,
+            parser_source="rule_label"
+            if self.parser_provider.__class__.__name__ in {"RuleBasedQuoteParser", "RuleBasedQuoteParserProvider"}
+            else "parser",
+        )
+        parsed_result.raw_matches["project_name_resolution"] = project_name_resolution
+        if project_name_resolution.get("check_required_message"):
+            quality_notes = parsed_result.raw_matches.get("parser_quality_notes") or []
+            if not isinstance(quality_notes, list):
+                quality_notes = [str(quality_notes)]
+            quality_notes.append(str(project_name_resolution["check_required_message"]))
+            parsed_result.raw_matches["parser_quality_notes"] = list(
+                dict.fromkeys(quality_notes)
+            )
+
         self._enrich_quote_document(
             quote_document=quote_document,
             path=path,
@@ -90,6 +110,8 @@ class QuoteIngestionPipeline:
             explicit_quote_id=quote_id,
         )
         _, vendor_snapshot_debug = self.vendor_snapshot_enricher.enrich(quote_document)
+
+        self._apply_final_category_sanity_checks(quote_document)
 
         embedding_text = build_quote_embedding_text(quote_document)
         embedding_vector = None
@@ -134,6 +156,10 @@ class QuoteIngestionPipeline:
                 "parser_check_required": self._build_parser_check_required(
                     parsed_result.raw_matches
                 ),
+                "parser_quality_notes": list(
+                    parsed_result.raw_matches.get("parser_quality_notes") or []
+                ),
+                "project_name_resolution": project_name_resolution,
                 "vendor_snapshot": vendor_snapshot_debug,
                 "embedding_provider": (
                     self.embedding_provider.__class__.__name__
@@ -146,6 +172,39 @@ class QuoteIngestionPipeline:
                 ),
             },
         )
+
+    def process_file_to_results(
+        self,
+        file_path: str | Path,
+        *,
+        quote_id: str | None = None,
+        request_id: str | None = None,
+        pages: str | None = None,
+    ) -> list[QuoteIngestionResult]:
+        result = self.process_file(
+            file_path,
+            quote_id=quote_id,
+            request_id=request_id,
+            pages=pages,
+        )
+        split_results = split_multi_option_result(result)
+        if len(split_results) == 1 and split_results[0] is result:
+            return split_results
+
+        for split_result in split_results:
+            self._apply_final_category_sanity_checks(split_result.quote)
+            self._refresh_embedding(split_result)
+        return split_results
+
+    def _apply_final_category_sanity_checks(self, quote_document: QuoteDocument) -> None:
+        for item in quote_document.line_items:
+            name = (item.name or "").lower()
+            if any(token in name for token in ["설치비", "설치 외", "제품 설치비"]):
+                item.category = LineItemCategory.INSTALL
+                item.spec_parsed = {
+                    **(item.spec_parsed or {}),
+                    "normalized_cost_type": "INSTALL",
+                }
 
     def _process_excel_file(
         self,
@@ -231,8 +290,8 @@ class QuoteIngestionPipeline:
         for file_path in file_paths:
             path = Path(file_path)
             try:
-                results.append(
-                    self.process_file(
+                results.extend(
+                    self.process_file_to_results(
                         path,
                         request_id=request_id,
                         pages=pages,
@@ -278,6 +337,12 @@ class QuoteIngestionPipeline:
         raw_matches: dict[str, Any],
     ) -> list[str]:
         checks = []
+        parser_check_required = raw_matches.get("parser_check_required") or []
+        if isinstance(parser_check_required, list):
+            checks.extend(str(item) for item in parser_check_required if item)
+        elif parser_check_required:
+            checks.append(str(parser_check_required))
+
         warranty_condition = raw_matches.get("warranty_condition_check_required")
         if warranty_condition:
             checks.append(str(warranty_condition))
@@ -285,7 +350,30 @@ class QuoteIngestionPipeline:
         if raw_matches.get("delivery_basis_raw") == "별도협의":
             checks.append("납기 별도협의")
 
-        return checks
+        return list(dict.fromkeys(checks))
+
+    def _refresh_embedding(self, result: QuoteIngestionResult) -> None:
+        result.embedding_text = build_quote_embedding_text(result.quote)
+        result.embedding_vector = None
+        result.embedding_dim = None
+
+        if self.embedding_provider is None:
+            result.ingestion_warnings.append(
+                "EmbeddingProvider가 없어 embedding_vector를 생성하지 않았습니다."
+            )
+            result.metadata["embedding_status"] = "not_available"
+            return
+
+        try:
+            result.embedding_vector = self.embedding_provider.embed_text(result.embedding_text)
+        except Exception as e:
+            result.ingestion_warnings.append(f"Embedding 처리 실패: {e}")
+            result.metadata["embedding_status"] = "failed"
+            return
+
+        result.embedding_dim = len(result.embedding_vector)
+        result.metadata["embedding_provider"] = self.embedding_provider.__class__.__name__
+        result.metadata["embedding_status"] = "completed"
 
     def to_storage_dict(self, result: QuoteIngestionResult) -> dict[str, Any]:
         return self._to_jsonable(asdict(result))

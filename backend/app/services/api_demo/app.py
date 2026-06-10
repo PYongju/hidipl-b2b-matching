@@ -10,13 +10,19 @@ from config.paths import UPLOAD_DIR
 from services.api_demo.routers import (
     compare_quotes,
     create_project,
+    get_candidate_vendors,
     get_explanation,
     get_matches,
     run_candidate_vendors,
     run_match,
     upload_quote_paths,
 )
-from services.api_demo.schemas import CompareRequest, MatchRunRequest, ProjectCreateRequest
+from services.api_demo.schemas import (
+    CandidateVendorsRequest,
+    CompareRequest,
+    MatchRunRequest,
+    ProjectCreateRequest,
+)
 
 
 if FastAPI is not None:
@@ -72,11 +78,26 @@ if FastAPI is not None:
             raise HTTPException(status_code=400, detail=str(e))
 
     @app.post("/api/v1/projects/{project_id}/candidate-vendors")
-    def post_candidate_vendors(project_id: str, top_n: int = 10):
+    def post_candidate_vendors(
+        project_id: str,
+        payload: CandidateVendorsRequest | None = None,
+    ):
         try:
-            return run_candidate_vendors(project_id, top_n=top_n)
+            return run_candidate_vendors(project_id, payload=payload)
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
+
+    @app.get("/api/v1/projects/{project_id}/candidate-vendors")
+    def get_project_candidate_vendors(project_id: str):
+        try:
+            response = get_candidate_vendors(project_id)
+            if not response.get("ok"):
+                raise HTTPException(status_code=404, detail=response.get("error"))
+            return response
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=str(e))
 else:
     app = None
 

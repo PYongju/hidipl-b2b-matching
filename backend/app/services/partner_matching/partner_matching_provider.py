@@ -122,6 +122,11 @@ class PartnerMatchingProvider:
             metadata={
                 "response_speed_score": response_score,
                 "financial_status_score": financial_score,
+                "company_location": partner.company_location,
+                "installation_count": partner.installation_count,
+                "solution_breakdown": dict(partner.solution_breakdown or {}),
+                "industry_breakdown": dict(partner.industry_breakdown or {}),
+                "scale_breakdown": dict(partner.scale_breakdown or {}),
             },
         )
 

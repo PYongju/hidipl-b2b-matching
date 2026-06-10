@@ -23,6 +23,7 @@ def run_pdf_quote_ingestion_test() -> None:
         request_id="test_request_001",
     )
 
+    location_enriched_count = 0
     for index, result in enumerate(batch_result.results, start=1):
         print(f"\n========== Quote Ingestion Result {index} ==========")
         print(f"quote_id: {result.quote_id}")
@@ -36,12 +37,18 @@ def run_pdf_quote_ingestion_test() -> None:
         pprint(result.parser_warnings)
         print("ingestion_warnings:")
         pprint(result.ingestion_warnings)
+        if result.quote.vendor_snapshot is not None:
+            snapshot_debug = (result.metadata or {}).get("vendor_snapshot") or {}
+            assert "company_location" in snapshot_debug.get("snapshot_fields", [])
+            if result.quote.vendor_snapshot.company_location is not None:
+                location_enriched_count += 1
 
     if batch_result.failed_files:
         print("\n========== Failed Files ==========")
         pprint(batch_result.failed_files)
 
     if batch_result.results:
+        assert location_enriched_count > 0
         storage_dict = pipeline.to_storage_dict(batch_result.results[0])
         print("\n========== Storage Dict Keys ==========")
         pprint(list(storage_dict.keys()))
