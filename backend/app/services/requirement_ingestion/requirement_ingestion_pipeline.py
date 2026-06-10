@@ -6,6 +6,7 @@ from typing import Any
 
 from services.embedding.text_builder import build_requirement_embedding_text
 from services.requirement.input_processor import RequirementInputProcessor
+from services.requirement.schemas import ParsedRequirementResult, RequirementInfo
 from services.requirement_ingestion.schemas import (
     RequirementIngestionBatchResult,
     RequirementIngestionResult,
@@ -47,6 +48,45 @@ class RequirementIngestionPipeline:
                 "embedding_provider": self._embedding_provider_name(),
                 "status": "completed",
             },
+        )
+
+    def process_requirement_info(
+        self,
+        requirement: RequirementInfo,
+        *,
+        request_id: str | None = None,
+    ) -> RequirementIngestionResult:
+        if requirement is None:
+            raise ValueError("RequirementInfo is required.")
+
+        metadata = dict(getattr(requirement, "metadata", {}) or {})
+        metadata.update(
+            {
+                "input_processor": None,
+                "parser_provider": None,
+                "embedding_provider": self._embedding_provider_name(),
+                "status": "completed",
+                "requirement_source": metadata.get(
+                    "requirement_source",
+                    "structured_requirement_info",
+                ),
+            }
+        )
+        return self._build_result(
+            request_id=request_id,
+            source_type="structured",
+            source_path=None,
+            parsed_result=ParsedRequirementResult(
+                requirement=requirement,
+                warnings=[],
+                raw_matches={
+                    "requirement_source": metadata["requirement_source"],
+                    "frontend_fields": metadata.get("frontend_fields", {}),
+                    "original_request_text": metadata.get("original_request_text"),
+                },
+            ),
+            raw_text_preview=requirement.raw_text[:1000],
+            metadata=metadata,
         )
 
     def process_file(

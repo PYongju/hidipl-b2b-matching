@@ -307,6 +307,10 @@ def _build_compare_row(
     )
     matched_rules = list(getattr(score_item, "matched_rules", []) or [])
     installation_included = _quote_document_installation_included(quote, score_item)
+    install_location = _resolve_install_location(
+        result,
+        project_install_location=project_install_location,
+    )
 
     row = {
         "quote_id": result.quote_id,
@@ -315,6 +319,7 @@ def _build_compare_row(
             "candidate_vendor_link"
         ),
         "company_location": getattr(snapshot, "company_location", None),
+        "install_location": install_location,
         "project_name": quote.project_name,
         "total_supply_price": quote.total_supply_price,
         "total_with_vat": quote.total_with_vat,
@@ -344,10 +349,7 @@ def _build_compare_row(
     row["cost_breakdown"] = _build_cost_breakdown(quote, check_required, rule_warnings)
     row["conditions"] = _build_conditions_section(
         quote,
-        install_location=_resolve_install_location(
-            result,
-            project_install_location=project_install_location,
-        ),
+        install_location=install_location,
         check_required=check_required,
         rule_warnings=rule_warnings,
         parser_warnings=getattr(result, "parser_warnings", []),
@@ -865,31 +867,15 @@ def _resolve_install_location(
     *,
     project_install_location: str | None = None,
 ) -> str | None:
-    project_value = _clean_location_value(project_install_location)
-    if project_value:
-        return project_value
-
-    for source in [
-        getattr(result, "metadata", {}) or {},
-        getattr(result, "parser_raw_matches", {}) or {},
-    ]:
-        for key in [
-            "install_location",
-            "installation_location",
-            "destination",
-            "delivery_destination",
-            "site_address",
-        ]:
-            value = _clean_location_value(source.get(key))
-            if value:
-                return value
-    return None
+    return _clean_location_value(project_install_location)
 
 
 def _clean_location_value(value: Any) -> str | None:
     if value is None:
         return None
     text = str(value).strip()
+    if text.lower() in {"", "미입력", "없음", "null", "undefined", "none"}:
+        return None
     return text or None
 
 
