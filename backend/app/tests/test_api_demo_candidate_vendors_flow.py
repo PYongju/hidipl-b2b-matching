@@ -135,6 +135,10 @@ def test_quote_upload_candidate_vendor_link() -> None:
 
     compare_response = compare_quotes(project["project_id"], CompareRequest())
     assert len(compare_response["rows"]) == quote_response["processed_count"]
+    for row in compare_response["rows"]:
+        assert row.get("install_location") == project["region"]
+        assert row.get("conditions", {}).get("install_location") == project["region"]
+        assert row.get("company_location") != row.get("install_location")
     assert any(
         row.get("candidate_vendor_link", {}).get("is_selected_vendor") is False
         for row in compare_response["rows"]

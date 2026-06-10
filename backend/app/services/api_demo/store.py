@@ -14,6 +14,8 @@ class ProjectRecord:
     request_text: str
     requirement_result: Any
     created_at: str
+    original_request_text: str | None = None
+    requirement_source: str | None = None
 
 
 @dataclass
@@ -69,6 +71,8 @@ class ApiDemoStore:
         deadline: str | None,
         request_text: str,
         requirement_result,
+        original_request_text: str | None = None,
+        requirement_source: str | None = None,
     ) -> ProjectRecord:
         project_id = f"project_{uuid4().hex[:8]}"
         request_id = requirement_result.request_id or f"request_{uuid4().hex[:8]}"
@@ -81,6 +85,8 @@ class ApiDemoStore:
             request_text=request_text,
             requirement_result=requirement_result,
             created_at=datetime.now().isoformat(),
+            original_request_text=original_request_text,
+            requirement_source=requirement_source,
         )
         self.projects[project_id] = record
         return record
