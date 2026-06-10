@@ -3,120 +3,44 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 
-const candidatePartners = [
-  {
-    id: "partner-a",
-    name: "A Display",
-    score: 92,
-    specialty: "상업용 사이니지 전문",
-    cases: 8,
-    premium: true,
-    priceScore: 88,
-    response: "2.1h",
-    trust: 95,
-    recommended: true,
-    caution: false,
-    reason: "유사 구축 사례와 납기 안정성이 높음",
-  },
-  {
-    id: "partner-b",
-    name: "BrightSign Korea",
-    score: 89,
-    specialty: "프리미엄 디스플레이",
-    cases: 6,
-    premium: true,
-    priceScore: 82,
-    response: "1.8h",
-    trust: 93,
-    recommended: true,
-    caution: false,
-    reason: "기술 적합도와 응답 속도가 우수함",
-  },
-  {
-    id: "partner-c",
-    name: "VisionTech",
-    score: 86,
-    specialty: "로비 구축 경험 다수",
-    cases: 7,
-    premium: false,
-    priceScore: 91,
-    response: "2.5h",
-    trust: 88,
-    recommended: true,
-    caution: false,
-    reason: "가격 경쟁력과 구축 사례가 양호함",
-  },
-  {
-    id: "partner-d",
-    name: "인포디스플레이",
-    score: 84,
-    specialty: "대형 설치 프로젝트",
-    cases: 9,
-    premium: true,
-    priceScore: 78,
-    response: "3.0h",
-    trust: 86,
-    recommended: true,
-    caution: false,
-    reason: "상업용 설치 경험이 충분함",
-  },
-  {
-    id: "partner-e",
-    name: "솔루션즈",
-    score: 81,
-    specialty: "통합 구축 및 유지보수",
-    cases: 5,
-    premium: false,
-    priceScore: 85,
-    response: "2.3h",
-    trust: 84,
-    recommended: true,
-    caution: false,
-    reason: "유지보수 조건이 프로젝트 요구와 맞음",
-  },
-  {
-    id: "partner-f",
-    name: "스마트뷰",
-    score: 78,
-    specialty: "중소형 사이니지",
-    cases: 3,
-    premium: false,
-    priceScore: 93,
-    response: "4.1h",
-    trust: 79,
-    recommended: false,
-    caution: false,
-    reason: "가격은 낮지만 대형 레퍼런스가 부족함",
-  },
-  {
-    id: "partner-g",
-    name: "오픈사이니지",
-    score: 76,
-    specialty: "콘텐츠 관리 솔루션",
-    cases: 4,
-    premium: true,
-    priceScore: 80,
-    response: "3.4h",
-    trust: 80,
-    recommended: false,
-    caution: false,
-    reason: "CMS 강점은 있으나 설치 사례 확인 필요",
-  },
-  {
-    id: "partner-h",
-    name: "넥스트디스플레이",
-    score: 74,
-    specialty: "저가형 디스플레이 공급",
-    cases: 2,
-    premium: false,
-    priceScore: 96,
-    response: "5.0h",
-    trust: 74,
-    recommended: false,
-    caution: true,
-    reason: "블랙리스트 이력이 있어 발송 전 재확인 필요",
-  },
-];
+function normalizeSimilarityScore(value) {
+  if (typeof value !== "number") return 0;
+  return value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
+function normalizePartner(raw, index) {
+  const filterReasons = raw.filter_reasons ?? [];
+  const checkRequired = raw.check_required ?? [];
+
+  return {
+    id: raw.vendor_name ?? raw.id ?? `partner-${index}`,
+    name: raw.vendor_name ?? raw.name ?? "—",
+    score: normalizeSimilarityScore(
+      raw.semantic_similarity_score ?? raw.cosine_similarity ?? raw.score,
+    ),
+    specialty: Array.isArray(raw.specialty_tags)
+      ? raw.specialty_tags.join(", ")
+      : raw.specialty ?? "—",
+    cases: raw.cases ?? 0,
+    premium: Boolean(raw.is_premium ?? raw.premium),
+    priceScore: raw.price_score ?? raw.priceScore ?? "—",
+    response: raw.response_speed ?? raw.response ?? "—",
+    trust: raw.trust ?? "—",
+    recommended: Boolean(
+      raw.recommended ??
+        raw.business_rule_passed ??
+        (typeof raw.rank === "number" ? raw.rank <= 7 : false),
+    ),
+    caution: Boolean(
+      raw.caution ?? (filterReasons.length > 0 || checkRequired.length > 0),
+    ),
+    reason:
+      raw.reason ??
+      checkRequired.join(", ") ??
+      filterReasons.join(", ") ??
+      "—",
+  };
+}
 
 export default function PartnerMatchingPage({
   projectData,
@@ -128,6 +52,11 @@ export default function PartnerMatchingPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [premiumFilter, setPremiumFilter] = useState("all");
   const [sortKey, setSortKey] = useState("ai");
+
+  const candidatePartners = useMemo(
+    () => (projectData.candidateVendors ?? []).map(normalizePartner),
+    [projectData.candidateVendors],
+  );
 
   const recommendedCount = candidatePartners.filter((partner) => partner.recommended).length;
   const cautionCount = candidatePartners.filter((partner) => partner.caution).length;
@@ -151,16 +80,22 @@ export default function PartnerMatchingPage({
         return matchesSearch && matchesPremium;
       })
       .sort((a, b) => {
-        if (sortKey === "price") return b.priceScore - a.priceScore;
-        if (sortKey === "trust") return b.trust - a.trust;
-        if (sortKey === "response") return parseFloat(a.response) - parseFloat(b.response);
+        if (sortKey === "price") {
+          return Number(b.priceScore) - Number(a.priceScore);
+        }
+        if (sortKey === "trust") {
+          return Number(b.trust) - Number(a.trust);
+        }
+        if (sortKey === "response") {
+          return parseFloat(a.response) - parseFloat(b.response);
+        }
         return b.score - a.score;
       });
-  }, [premiumFilter, searchTerm, showAllPartners, sortKey]);
+  }, [candidatePartners, premiumFilter, searchTerm, showAllPartners, sortKey]);
 
   const targetPartners = useMemo(
     () => candidatePartners.filter((partner) => targetIds.includes(partner.id)),
-    [targetIds],
+    [candidatePartners, targetIds],
   );
   const cautionPartners = candidatePartners.filter((partner) => partner.caution);
 
@@ -237,8 +172,9 @@ export default function PartnerMatchingPage({
         </section>
 
         <section className="partner-notice strong">
-          프로젝트 조건 기준으로 요청 우선 대상 {recommendedCount}개를 자동 제안했습니다.
-          체크 표시는 사용자가 요청 발송 대상으로 추가한 업체에만 표시됩니다.
+          {candidatePartners.length === 0
+            ? "파트너 추천 결과를 불러오는 중이거나 아직 추천된 업체가 없습니다."
+            : `프로젝트 조건 기준으로 요청 우선 대상 ${recommendedCount}개를 자동 제안했습니다. 체크 표시는 사용자가 요청 발송 대상으로 추가한 업체에만 표시됩니다.`}
         </section>
 
         <section className="partner-layout">
@@ -301,6 +237,13 @@ export default function PartnerMatchingPage({
                   </tr>
                 </thead>
                 <tbody>
+                  {visiblePartners.length === 0 && (
+                    <tr>
+                      <td className="partner-table-empty" colSpan={11}>
+                        표시할 파트너가 없습니다. API 연동 후 추천 결과가 여기에 표시됩니다.
+                      </td>
+                    </tr>
+                  )}
                   {visiblePartners.map((partner) => {
                     const isTarget = targetIds.includes(partner.id);
                     return (
