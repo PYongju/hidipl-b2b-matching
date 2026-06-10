@@ -5,39 +5,39 @@ const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const sectionDefs = [
   {
     id: "requiredInfo",
-    title: "섹션 0 — 회사 정보",
+    title: "섹션 0 · 회사 정보",
     defaultOpen: true,
     rows: [
       { label: "업력", path: ["company_info", "company_age_years"], format: (value) => withUnit(value, "년") },
-      { label: "매출액 (3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
-      { label: "프로젝트 수 (3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
+      { label: "매출액(3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
+      { label: "프로젝트 수(3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
       { label: "회사 위치", path: ["company_info", "company_location"] },
     ],
   },
   {
     id: "hardware",
-    title: "섹션 1 — 하드웨어 품목",
+    title: "섹션 1 · 하드웨어 항목",
     defaultOpen: true,
     rows: [
-      { label: "스크린 크기 (mm)", path: ["hardware", "screen_size_mm"] },
+      { label: "스크린 크기(mm)", path: ["hardware", "screen_size_mm"] },
       { label: "해상도", path: ["hardware", "resolution"] },
       { label: "Type", path: ["hardware", "type"] },
       { label: "Pixel Pitch", path: ["hardware", "pixel_pitch"] },
-      { label: "소비전력 (kW)", path: ["hardware", "power_consumption_kw"] },
-      { label: "밝기 (cd/m2)", path: ["hardware", "brightness_cd_m2"] },
+      { label: "소비전력(kW)", path: ["hardware", "power_consumption_kw"] },
+      { label: "밝기(cd/m2)", path: ["hardware", "brightness_cd_m2"] },
       { label: "Refresh Rate", path: ["hardware", "refresh_rate"] },
-      { label: "무상유지보수 기간", path: ["hardware", "free_maintenance_period"] },
+      { label: "무상 유지보수 기간", path: ["hardware", "free_maintenance_period"] },
     ],
   },
   {
     id: "quoteItems",
-    title: "섹션 2 — 견적 항목별 금액",
+    title: "섹션 2 · 견적 항목별 금액",
     defaultOpen: false,
     rows: [
       { label: "디스플레이 H/W", costKey: "display_hw" },
       { label: "시스템 장비", costKey: "system_equipment" },
       { label: "설치 공사비", costKey: "installation" },
-      { label: "자재비 (케이블·브라켓 등)", costKey: "materials" },
+      { label: "자재비(케이블·브라켓 등)", costKey: "materials" },
       { label: "출장비", costKey: "travel_expense" },
       { label: "기타", costKey: "etc" },
       { label: "소프트웨어", costKey: "software" },
@@ -46,7 +46,7 @@ const sectionDefs = [
   },
   {
     id: "conditions",
-    title: "섹션 3 — 기타 조건",
+    title: "섹션 3 · 기타 조건",
     defaultOpen: false,
     rows: [
       { label: "납기", path: ["conditions", "delivery"], highlight: "is_fastest_delivery" },
@@ -154,35 +154,35 @@ function getValueCell(row, rowDef) {
 }
 
 function getDerivedStatus(value) {
-  if (value === "—" || value === "미기재") return "missing";
+  if (value === "-" || value === "미기재") return "missing";
   return undefined;
 }
 
 function formatCostValue(item) {
-  if (!item) return "—";
+  if (!item) return "-";
   if (typeof item.amount === "number") {
     return formatWon(item.amount);
   }
-  return getStatusUi(item.status)?.badge ?? item.status ?? "—";
+  return getStatusUi(item.status)?.badge ?? item.status ?? "-";
 }
 
 function formatWon(value) {
-  if (typeof value !== "number") return "—";
-  return `₩ ${moneyFormatter.format(value)}`;
+  if (typeof value !== "number") return "-";
+  return `₩${moneyFormatter.format(value)}`;
 }
 
 function formatNotes(value) {
-  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "-";
   return formatEmpty(value);
 }
 
 function formatEmpty(value) {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return "-";
   return value;
 }
 
 function withUnit(value, unit) {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return "-";
   return `${value}${unit}`;
 }
 

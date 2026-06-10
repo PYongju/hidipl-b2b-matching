@@ -35,12 +35,12 @@ const STATUS_UI = {
 
 const API_STATUS_TO_UI_STATUS = {
   // spec D1~D5
-  ok: undefined,           // D1 — 정상, 배지 없음
-  to_be_discussed: "toBeDiscussed", // D2
-  parse_fail: "parseFail",          // D3
-  separate: "separate",             // D4
-  included: "included",             // D5
-  // 이전 호환 (구 enum / 한글 표기)
+  ok: undefined,
+  to_be_discussed: "toBeDiscussed",
+  parse_fail: "parseFail",
+  separate: "separate",
+  included: "included",
+  // 이전 호환
   normal: undefined,
   missing: "missing",
   parse_failed: "parseFail",
@@ -53,7 +53,7 @@ const API_STATUS_TO_UI_STATUS = {
   "OCR 분석 실패": "parseFail",
   "수정 필요": "parseFail",
   미기재: "missing",
-  미확정: "needsReview",
+  미확인: "needsReview",
 };
 
 function normalizeApiStatus(status) {

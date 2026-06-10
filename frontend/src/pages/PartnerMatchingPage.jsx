@@ -9,37 +9,35 @@ function normalizeSimilarityScore(value) {
   return value <= 1 ? Math.round(value * 100) : Math.round(value);
 }
 
-function normalizePartner(raw, index) {
+function normalizeResponseSpeed(value) {
+  if (typeof value === "number") return `${value}h`;
+  return value ?? "미확인";
+}
+
+function normalizeCandidateVendor(raw, index) {
   const filterReasons = raw.filter_reasons ?? [];
   const checkRequired = raw.check_required ?? [];
+  const vendorName = raw.vendor_name ?? raw.name ?? `업체 ${index + 1}`;
+  const caseCount = raw.case_count ?? raw.cases ?? raw.metadata?.case_count ?? 0;
 
   return {
-    id: raw.vendor_name ?? raw.id ?? `partner-${index}`,
-    name: raw.vendor_name ?? raw.name ?? "—",
+    id: raw.vendor_name ?? `partner-${index}`,
+    name: vendorName,
     score: normalizeSimilarityScore(
-      raw.semantic_similarity_score ?? raw.cosine_similarity ?? raw.score,
+      raw.semantic_similarity_score ?? raw.cosine_similarity,
     ),
     specialty: Array.isArray(raw.specialty_tags)
       ? raw.specialty_tags.join(", ")
-      : raw.specialty ?? "—",
-    cases: raw.cases ?? 0,
-    premium: Boolean(raw.is_premium ?? raw.premium),
-    priceScore: raw.price_score ?? raw.priceScore ?? "—",
-    response: raw.response_speed ?? raw.response ?? "—",
-    trust: raw.trust ?? "—",
-    recommended: Boolean(
-      raw.recommended ??
-        raw.business_rule_passed ??
-        (typeof raw.rank === "number" ? raw.rank <= 7 : false),
-    ),
-    caution: Boolean(
-      raw.caution ?? (filterReasons.length > 0 || checkRequired.length > 0),
-    ),
+      : "전문 분야 미확인",
+    cases: caseCount,
+    premium: Boolean(raw.is_premium),
+    response: normalizeResponseSpeed(raw.response_speed),
+    recommended: raw.business_rule_passed === true,
+    caution: filterReasons.length > 0 || checkRequired.length > 0,
     reason:
-      raw.reason ??
-      checkRequired.join(", ") ??
-      filterReasons.join(", ") ??
-      "—",
+      checkRequired.join(", ") ||
+      filterReasons.join(", ") ||
+      "요구사항 기준 추천 가능 업체",
   };
 }
 
@@ -70,8 +68,13 @@ export default function PartnerMatchingPage({
     fetchCandidateVendors(projectId, 10)
       .then((response) => {
         if (!isMounted) return;
-        const candidates = response?.candidates ?? response?.data?.candidates ?? [];
-        const nextPartners = candidates.map(normalizePartner);
+        const candidates =
+          response?.candidate_vendors ??
+          response?.candidates ??
+          response?.data?.candidate_vendors ??
+          response?.data?.candidates ??
+          [];
+        const nextPartners = candidates.map(normalizeCandidateVendor);
         setPartners(nextPartners);
         setCandidateStatus(nextPartners.length > 0 ? "ready" : "empty");
       })
@@ -108,12 +111,6 @@ export default function PartnerMatchingPage({
         return matchesSearch && matchesPremium;
       })
       .sort((a, b) => {
-        if (sortKey === "price") {
-          return Number(b.priceScore) - Number(a.priceScore);
-        }
-        if (sortKey === "trust") {
-          return Number(b.trust) - Number(a.trust);
-        }
         if (sortKey === "response") {
           return parseFloat(a.response) - parseFloat(b.response);
         }
@@ -223,9 +220,7 @@ export default function PartnerMatchingPage({
                 <option value="standard">일반만</option>
               </select>
               <select onChange={(event) => setSortKey(event.target.value)} value={sortKey}>
-                <option value="ai">AI 적합도순</option>
-                <option value="price">가격 점수순</option>
-                <option value="trust">신뢰도순</option>
+                <option value="ai">AI 추천 점수순</option>
                 <option value="response">응답 빠른순</option>
               </select>
             </div>
@@ -254,12 +249,10 @@ export default function PartnerMatchingPage({
                   <tr>
                     <th>선택</th>
                     <th>업체명</th>
-                    <th>전문성</th>
+                    <th>AI 추천 점수</th>
                     <th>프리미엄</th>
-                    <th>가격</th>
                     <th>사례5+</th>
                     <th>응답</th>
-                    <th>신뢰도</th>
                     <th>구분</th>
                     <th>사유</th>
                     <th>요청</th>
@@ -268,7 +261,7 @@ export default function PartnerMatchingPage({
                 <tbody>
                   {visiblePartners.length === 0 ? (
                     <tr>
-                      <td className="partner-empty-cell" colSpan={11}>
+                      <td className="partner-empty-cell" colSpan={9}>
                         <b>{candidateEmptyMessage.title}</b>
                         <span>{candidateEmptyMessage.description}</span>
                       </td>
@@ -303,10 +296,8 @@ export default function PartnerMatchingPage({
                             {partner.premium ? "가능" : "일반"}
                           </Badge>
                         </td>
-                        <td>{partner.priceScore}</td>
                         <td>{partner.cases >= 5 ? "예" : "아니오"}</td>
                         <td>{partner.response}</td>
-                        <td>{partner.trust}</td>
                         <td>
                           <Badge tone={partner.caution ? "orange" : partner.recommended ? "blue" : "gray"}>
                             {partner.caution ? "주의" : partner.recommended ? "AI 추천" : "후보"}
@@ -361,7 +352,7 @@ export default function PartnerMatchingPage({
                     <div className="selected-partner-pill" key={partner.id}>
                       <span>
                         <b>{partner.name}</b>
-                        <small>전문성 {partner.score} · 신뢰도 {partner.trust} · 응답 {partner.response}</small>
+                        <small>AI 추천 점수 {partner.score} · 응답 {partner.response}</small>
                       </span>
                       {partner.caution && <Badge tone="orange">주의</Badge>}
                       <button onClick={() => removePartner(partner.id)} type="button" aria-label={`${partner.name} 제거`}>
@@ -434,23 +425,23 @@ function getCandidateEmptyMessage(status) {
   if (status === "empty") {
     return {
       title: "추천 후보가 없습니다.",
-      description: "현재 조건으로 조회된 파트너가 없습니다. 요구사항을 보완하거나 전체 파트너 조건을 다시 확인해주세요.",
+      description: "현재 조건으로 조회된 파트너가 없습니다. 요구사항을 보완하거나 전체 파트너 조건을 다시 확인해 주세요.",
     };
   }
   if (status === "missing-project-api-id") {
     return {
       title: "프로젝트 생성 정보가 없습니다.",
-      description: "서버에 생성된 프로젝트 ID가 없어 추천 후보를 조회하지 않았습니다.",
+      description: "서버에 생성된 프로젝트 ID가 없어 추천 후보를 조회하지 못했습니다.",
     };
   }
   if (status === "error") {
     return {
       title: "추천 후보를 불러오지 못했습니다.",
-      description: "candidate-vendors API 연결 상태를 확인해야 합니다. 실제 데이터 대신 mock으로 대체하지 않았습니다.",
+      description: "candidate-vendors API 연결 상태를 확인해야 합니다. 실제 데이터를 mock으로 대체하지 않습니다.",
     };
   }
   return {
     title: "표시할 파트너가 없습니다.",
-    description: "검색어 또는 필터 조건을 조정해주세요.",
+    description: "검색어 또는 필터 조건을 조정해 주세요.",
   };
 }

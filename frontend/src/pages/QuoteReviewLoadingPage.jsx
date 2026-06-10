@@ -11,7 +11,7 @@ const REVIEW_STEPS = [
     detail: "업로드된 견적서와 업체 정보를 비교 검토 대상으로 정리합니다.",
   },
   {
-    title: "OCR 파싱 결과 점검",
+    title: "OCR/파싱 결과 평가",
     detail: "금액, 납기, 보증, 별도 비용 항목을 추출하고 누락값을 확인합니다.",
   },
   {
@@ -69,9 +69,7 @@ export default function QuoteReviewLoadingPage({
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisState("error");
-      setErrorMessage(
-        error.message || "견적 비교 분석 중 오류가 발생했습니다.",
-      );
+      setErrorMessage(error.message || "견적 비교 분석 중 오류가 발생했습니다.");
     }
   };
 

@@ -3,6 +3,7 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes } from "../api/apiClient";
+
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp";
 
 export default function QuoteWaitingPage({

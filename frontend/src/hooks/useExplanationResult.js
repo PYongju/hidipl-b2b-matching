@@ -27,7 +27,7 @@ function useExplanationResult(projectData, suppliers) {
       !forcedState && (!projectId || !matchId)
         ? new Error("AI 근거 조회에 필요한 project_id 또는 match_id가 없습니다.")
         : null,
-    [forcedState, matchId, projectId]
+    [forcedState, matchId, projectId],
   );
   const [apiState, setApiState] = useState({
     error: null,
