@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCompare } from "../api/apiClient";
-import { shouldUseMockApi } from "../api/apiMode";
-import getMockCompareResponse from "../data/getMockCompareResponse";
 import { createCompareViewModel } from "../utils/compareAdapter";
 
 const EMPTY_COMPARE_VIEW_MODEL = {
@@ -25,10 +23,9 @@ function useCompareResult(projectData) {
     rawResponse: null,
     state: "loading",
   });
-  const mockResponse = useMemo(() => getMockCompareResponse(projectData), [projectData]);
   const apiParamError = useMemo(
     () =>
-      !shouldUseMockApi && !forcedState && !projectData.projectApiId
+      !forcedState && !projectData.projectApiId
         ? new Error("비교 검토에 필요한 projectApiId가 없습니다.")
         : null,
     [forcedState, projectData.projectApiId],
@@ -38,12 +35,6 @@ function useCompareResult(projectData) {
     let ignore = false;
 
     if (forcedState === "loading" || forcedState === "error") {
-      return () => {
-        ignore = true;
-      };
-    }
-
-    if (shouldUseMockApi) {
       return () => {
         ignore = true;
       };
@@ -73,8 +64,8 @@ function useCompareResult(projectData) {
     };
   }, [apiParamError, forcedState, projectData.projectApiId, projectData.quoteIds, projectData.matchId]);
 
-  const compareState = forcedState ?? (apiParamError ? "error" : shouldUseMockApi ? "ready" : apiState.state);
-  const rawResponse = shouldUseMockApi ? mockResponse : apiState.rawResponse;
+  const compareState = forcedState ?? (apiParamError ? "error" : apiState.state);
+  const rawResponse = apiState.rawResponse;
   const compareErrorMessage =
     projectData.compareErrorMessage ??
     apiParamError?.message ??
@@ -93,7 +84,6 @@ function useCompareResult(projectData) {
     ...viewModel,
     compareErrorMessage,
     compareState,
-    isMockCompare: shouldUseMockApi,
   };
 }
 

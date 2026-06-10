@@ -38,6 +38,11 @@ PARTNER_ALIASES = {
     "유어존": "유어존",
     "youzone": "유어존",
     "가이드삼정": "가이드삼정",
+    "oriondisplay": "오리온디스플레이",
+    "oriondisplay co.,ltd.": "오리온디스플레이",
+    "oriondisplay co.,ltd": "오리온디스플레이",
+    "oriondisplay.net": "오리온디스플레이",
+    "오리온디스플레이": "오리온디스플레이",
 }
 
 

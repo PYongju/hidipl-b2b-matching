@@ -17,12 +17,14 @@ class RequirementProduct:
     pitch_mm: float | None = None
     pitch_max_mm: float | None = None
     raw_text: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class RequirementInfo:
     raw_text: str
     customer_name: str | None = None
+    project_name: str | None = None
     commission_model: str | None = None
     commission_rate_percent: float | None = None
     request_summary: str | None = None
@@ -31,6 +33,13 @@ class RequirementInfo:
     install_schedule_text: str | None = None
     review_deadline_text: str | None = None
     project_stage: str | None = None
+    category: str | None = None
+    display_size_text: str | None = None
+    quantity_text: str | None = None
+    operation_time: str | None = None
+    review_preset: str | None = None
+    other_conditions: str | None = None
+    attachment_memo: str | None = None
     budget_min: int | None = None
     budget_max: int | None = None
     notes: list[str] = field(default_factory=list)
@@ -38,6 +47,7 @@ class RequirementInfo:
     preferred_keywords: list[str] = field(default_factory=list)
     excluded_keywords: list[str] = field(default_factory=list)
     priority: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchExplanation } from "../api/apiClient";
-import { shouldUseMockApi } from "../api/apiMode";
-import getMockExplanationResponse from "../data/getMockExplanationResponse";
 import { createExplanationViewModel } from "../utils/explanationAdapter";
 
 const EMPTY_EXPLANATION_VIEW_MODEL = {
@@ -26,7 +24,7 @@ function useExplanationResult(projectData, suppliers) {
   const matchId = getMatchId(projectData);
   const apiParamError = useMemo(
     () =>
-      !shouldUseMockApi && !forcedState && (!projectId || !matchId)
+      !forcedState && (!projectId || !matchId)
         ? new Error("AI 근거 조회에 필요한 project_id 또는 match_id가 없습니다.")
         : null,
     [forcedState, matchId, projectId]
@@ -36,18 +34,11 @@ function useExplanationResult(projectData, suppliers) {
     rawResponse: null,
     state: "loading",
   });
-  const mockResponse = useMemo(() => getMockExplanationResponse(projectData), [projectData]);
 
   useEffect(() => {
     let ignore = false;
 
     if (forcedState === "loading" || forcedState === "error") {
-      return () => {
-        ignore = true;
-      };
-    }
-
-    if (shouldUseMockApi) {
       return () => {
         ignore = true;
       };
@@ -76,8 +67,8 @@ function useExplanationResult(projectData, suppliers) {
     };
   }, [apiParamError, forcedState, matchId, projectData, projectId]);
 
-  const explanationState = forcedState ?? (apiParamError ? "error" : shouldUseMockApi ? "ready" : apiState.state);
-  const rawResponse = shouldUseMockApi ? mockResponse : apiState.rawResponse;
+  const explanationState = forcedState ?? (apiParamError ? "error" : apiState.state);
+  const rawResponse = apiState.rawResponse;
   const explanationErrorMessage =
     projectData.explanationErrorMessage ??
     apiParamError?.message ??
@@ -87,8 +78,9 @@ function useExplanationResult(projectData, suppliers) {
   const explanation = useMemo(() => {
     if (explanationState === "error") {
       return {
-        ...createExplanationViewModel(mockResponse, suppliers),
+        ...EMPTY_EXPLANATION_VIEW_MODEL,
         isFallback: true,
+        overallSummary: explanationErrorMessage,
         warnings: [explanationErrorMessage],
       };
     }
@@ -98,13 +90,12 @@ function useExplanationResult(projectData, suppliers) {
     }
 
     return createExplanationViewModel(rawResponse, suppliers);
-  }, [explanationErrorMessage, explanationState, mockResponse, rawResponse, suppliers]);
+  }, [explanationErrorMessage, explanationState, rawResponse, suppliers]);
 
   return {
     ...explanation,
     explanationErrorMessage,
     explanationState,
-    isMockExplanation: shouldUseMockApi,
   };
 }
 

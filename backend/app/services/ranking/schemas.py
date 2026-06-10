@@ -60,6 +60,7 @@ class RankingResult:
     cosine_similarity: float | None
     check_required: list[str]
     score_breakdown: dict[str, float]
+    comparison_risks: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

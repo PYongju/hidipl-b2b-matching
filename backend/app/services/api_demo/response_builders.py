@@ -6,6 +6,8 @@ from typing import Any
 
 from services.api_demo.enums import CellStatus
 from services.parser.schemas import LineItemCategory
+from services.parser.rule_note_extractor import clean_special_notes
+from services.explanation.explanation_text_policy import split_comparison_risks
 
 
 def build_project_response(project_record) -> dict[str, Any]:
@@ -40,7 +42,8 @@ def build_quote_upload_response(project_id, quote_pool_record) -> dict[str, Any]
 
 def build_quote_summary(result) -> dict[str, Any]:
     quote = result.quote
-    return {
+    metadata = getattr(result, "metadata", {}) or {}
+    summary = {
         "quote_id": result.quote_id,
         "vendor_name": quote.vendor_name,
         "project_name": quote.project_name,
@@ -54,8 +57,100 @@ def build_quote_summary(result) -> dict[str, Any]:
         "embedding_dim": result.embedding_dim,
         "parser_warnings": result.parser_warnings,
         "ingestion_warnings": result.ingestion_warnings,
-        "source_file_path": result.source_file_path,
+        "source_file_path": _safe_display_path(result.source_file_path),
         "vendor_snapshot": build_vendor_snapshot_summary(quote.vendor_snapshot),
+    }
+    if metadata.get("candidate_vendor_link") is not None:
+        summary["candidate_vendor_link"] = metadata["candidate_vendor_link"]
+    return summary
+
+
+def build_candidate_vendors_response(project_id: str, candidate_vendor_record) -> dict[str, Any]:
+    result = candidate_vendor_record.candidate_vendor_result
+    requirement = getattr(candidate_vendor_record.requirement_result, "requirement", None)
+    metadata = dict(getattr(result, "metadata", {}) or {})
+    metadata.update(
+        {
+            "candidate_count": len(result.candidates),
+            "selected_vendor_count": candidate_vendor_record.selected_vendor_count,
+            "executed_at": candidate_vendor_record.executed_at,
+        }
+    )
+    metadata.pop("embedding_vector", None)
+
+    return {
+        "ok": True,
+        "data": {
+            "project_id": project_id,
+            "request_id": result.request_id,
+            "customer_name": result.customer_name
+            or getattr(requirement, "customer_name", None),
+            "top_n": candidate_vendor_record.top_n,
+            "similarity_threshold": candidate_vendor_record.similarity_threshold,
+            "selected_vendor_names": list(candidate_vendor_record.selected_vendor_names),
+            "requested_vendor_names": list(candidate_vendor_record.requested_vendor_names),
+            "candidate_vendors": [
+                build_candidate_vendor_item(candidate, rank=index + 1)
+                for index, candidate in enumerate(result.candidates)
+            ],
+            "filtered_vendors": [
+                build_filtered_vendor_item(candidate)
+                for candidate in result.filtered_candidates[:20]
+            ],
+            "metadata": strip_heavy_fields(metadata),
+        },
+        "error": None,
+    }
+
+
+def build_candidate_vendors_not_found_response(project_id: str) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "data": {
+            "project_id": project_id,
+            "candidate_vendors": [],
+            "selected_vendor_names": [],
+            "requested_vendor_names": [],
+        },
+        "error": "candidate vendors result not found",
+    }
+
+
+def _safe_display_path(value: str | None) -> str | None:
+    if not value:
+        return None
+    return str(value).replace("\\", "/").split("/")[-1]
+
+
+def build_candidate_vendor_item(candidate, *, rank: int) -> dict[str, Any]:
+    metadata = getattr(candidate, "metadata", {}) or {}
+    return {
+        "rank": rank,
+        "vendor_name": candidate.partner_name,
+        "specialty_tags": list(candidate.specialty_tags),
+        "semantic_similarity_score": candidate.semantic_similarity_score,
+        "cosine_similarity": candidate.cosine_similarity,
+        "is_premium": candidate.is_premium,
+        "success_rate": candidate.success_rate,
+        "response_speed": candidate.response_speed,
+        "financial_status": candidate.financial_status,
+        "company_location": metadata.get("company_location"),
+        "business_rule_passed": candidate.business_rule_passed,
+        "business_stage": candidate.business_stage,
+        "filter_reasons": list(candidate.filter_reasons),
+        "check_required": list(candidate.check_required),
+    }
+
+
+def build_filtered_vendor_item(candidate) -> dict[str, Any]:
+    metadata = getattr(candidate, "metadata", {}) or {}
+    return {
+        "vendor_name": candidate.partner_name,
+        "semantic_similarity_score": candidate.semantic_similarity_score,
+        "business_rule_passed": candidate.business_rule_passed,
+        "business_stage": candidate.business_stage,
+        "filter_reasons": list(candidate.filter_reasons),
+        "company_location": metadata.get("company_location"),
     }
 
 
@@ -97,9 +192,13 @@ def build_recommendation_item(item) -> dict[str, Any]:
         "warranty_months": item.warranty_months,
         "installation_included": _quote_installation_included(item),
         "check_required": item.check_required,
+        "comparison_risks": list(getattr(item, "comparison_risks", []) or []),
         "rule_warnings": item.rule_warnings,
         "matched_rules": item.matched_rules,
         "partner_found": item.partner_found,
+        "business_rule_passed": item.business_rule_passed,
+        "business_stage": item.business_stage,
+        "filter_reasons": list(item.filter_reasons),
         "vendor_snapshot_source": item.vendor_snapshot_source,
         "vendor_snapshot": item.vendor_snapshot_summary,
         "score_breakdown": item.score_breakdown,
@@ -116,6 +215,7 @@ def build_compare_response(
     recommendation_result,
     quote_ids: list[str] | None = None,
     top_n: int | None = None,
+    project_install_location: str | None = None,
 ) -> dict[str, Any]:
     score_map = {
         item.quote_id: item
@@ -136,7 +236,13 @@ def build_compare_response(
             continue
 
         score_item = score_map.get(result.quote_id)
-        rows.append(_build_compare_row(result, score_item))
+        rows.append(
+            _build_compare_row(
+                result,
+                score_item,
+                project_install_location=project_install_location,
+            )
+        )
 
     _apply_compare_highlights(rows)
 
@@ -181,17 +287,39 @@ def build_vendor_snapshot_summary(vendor_snapshot) -> dict[str, Any] | None:
     }
 
 
-def _build_compare_row(result, score_item) -> dict[str, Any]:
+def _build_compare_row(
+    result,
+    score_item,
+    *,
+    project_install_location: str | None = None,
+) -> dict[str, Any]:
     quote = result.quote
     snapshot = quote.vendor_snapshot
     check_required = list(getattr(score_item, "check_required", []) or [])
+    parser_check_required = list(
+        (getattr(result, "metadata", {}) or {}).get("parser_check_required") or []
+    )
     rule_warnings = list(getattr(score_item, "rule_warnings", []) or [])
+    check_required, comparison_risks = split_comparison_risks(
+        [*check_required, *parser_check_required],
+        getattr(score_item, "comparison_risks", []) or [],
+        rule_warnings,
+    )
     matched_rules = list(getattr(score_item, "matched_rules", []) or [])
     installation_included = _quote_document_installation_included(quote, score_item)
+    install_location = _resolve_install_location(
+        result,
+        project_install_location=project_install_location,
+    )
 
     row = {
         "quote_id": result.quote_id,
         "vendor_name": quote.vendor_name,
+        "candidate_vendor_link": (getattr(result, "metadata", {}) or {}).get(
+            "candidate_vendor_link"
+        ),
+        "company_location": getattr(snapshot, "company_location", None),
+        "install_location": install_location,
         "project_name": quote.project_name,
         "total_supply_price": quote.total_supply_price,
         "total_with_vat": quote.total_with_vat,
@@ -207,6 +335,7 @@ def _build_compare_row(result, score_item) -> dict[str, Any]:
         "warranty_score": getattr(score_item, "warranty_score", None),
         "installation_score": getattr(score_item, "installation_score", None),
         "check_required": check_required,
+        "comparison_risks": comparison_risks,
         "rule_warnings": rule_warnings,
         "matched_rules": matched_rules,
         "is_premium_partner": getattr(snapshot, "is_premium_partner", False),
@@ -220,9 +349,11 @@ def _build_compare_row(result, score_item) -> dict[str, Any]:
     row["cost_breakdown"] = _build_cost_breakdown(quote, check_required, rule_warnings)
     row["conditions"] = _build_conditions_section(
         quote,
+        install_location=install_location,
         check_required=check_required,
         rule_warnings=rule_warnings,
         parser_warnings=getattr(result, "parser_warnings", []),
+        parser_raw_matches=getattr(result, "parser_raw_matches", {}) or {},
     )
     row["total"] = _build_total_section(quote, check_required)
     row["scores"] = _build_scores_section(score_item)
@@ -251,10 +382,13 @@ def _build_company_info(snapshot) -> dict[str, Any]:
 
 def _build_hardware_section(quote) -> dict[str, Any]:
     item = _select_representative_hardware_item(quote.line_items)
+    item_spec_raw = getattr(item, "spec_raw", "") if item else ""
+    preview_source = _find_spec_preview_source(quote, item)
     spec_raw = " ".join(
         value
         for value in [
-            getattr(item, "spec_raw", "") if item else "",
+            item_spec_raw,
+            preview_source,
             getattr(quote, "notes_raw", ""),
         ]
         if value
@@ -262,33 +396,237 @@ def _build_hardware_section(quote) -> dict[str, Any]:
     spec_parsed = getattr(item, "spec_parsed", {}) if item else {}
     item_name = getattr(item, "name", None) if item else None
 
-    return {
+    raw_hardware = {
         "screen_size_mm": (
-            spec_parsed.get("full_screen_size_mm")
-            or spec_parsed.get("panel_size_mm")
-            or _extract_screen_size(spec_raw)
+            spec_parsed.get("screen_size_mm")
+            or spec_parsed.get("full_screen_size_mm")
+            or spec_parsed.get("total_dimensions_mm")
+            or (
+                None
+                if spec_parsed.get("panel_size_mm")
+                or spec_parsed.get("cabinet_size_mm")
+                or spec_parsed.get("module_size_mm")
+                else _extract_screen_size(spec_raw)
+            )
         ),
-        "resolution": spec_parsed.get("resolution") or _extract_resolution(spec_raw),
-        "type": spec_parsed.get("type") or item_name,
+        "resolution": (
+            spec_parsed.get("resolution")
+            or spec_parsed.get("resolution_type")
+            or _extract_resolution(spec_raw)
+        ),
+        "type": _normalize_hardware_type(spec_parsed.get("type") or item_name),
         "pixel_pitch": (
-            spec_parsed.get("pitch_mm")
+            spec_parsed.get("pixel_pitch")
+            or spec_parsed.get("pixel_pitch_mm")
+            or spec_parsed.get("pitch_mm")
             or spec_parsed.get("pitch_max_mm")
             or _extract_pixel_pitch(spec_raw)
         ),
-        "power_consumption_kw": _extract_power_kw(spec_raw),
+        "power_consumption_kw": (
+            spec_parsed.get("power_consumption_kw")
+            or _power_w_to_kw(spec_parsed.get("power_consumption_w"))
+            or _extract_power_kw(spec_raw)
+        ),
         "brightness_cd_m2": (
-            spec_parsed.get("brightness_nit")
+            spec_parsed.get("brightness_cd_m2")
+            or spec_parsed.get("brightness_nit")
             or _extract_brightness(spec_raw)
         ),
-        "refresh_rate": _extract_refresh_rate(spec_raw),
+        "refresh_rate": (
+            spec_parsed.get("refresh_rate")
+            or spec_parsed.get("refresh_rate_hz")
+            or _extract_refresh_rate(spec_raw)
+        ),
         "free_maintenance_period": (
             f"{quote.warranty_months}개월" if quote.warranty_months else None
         ),
-        "source_spec_raw_preview": spec_raw[:200] if spec_raw else None,
+        "source_spec_raw_preview": _clean_spec_preview(preview_source),
     }
+    return _sanitize_hardware_section(raw_hardware, spec_parsed, spec_raw)
+
+
+def _sanitize_hardware_section(
+    hardware: dict[str, Any],
+    spec_parsed: dict[str, Any],
+    spec_raw: str,
+) -> dict[str, Any]:
+    evidence = spec_parsed.get("_evidence") or {}
+    screen = _dimension_pair(hardware.get("screen_size_mm"))
+    if screen and (screen[0] < 1000 or screen[1] < 500):
+        hardware["screen_size_mm"] = None
+    if not evidence.get("screen_size_mm") and not evidence.get("full_screen_size_mm"):
+        if any(spec_parsed.get(key) == hardware.get("screen_size_mm") for key in ["panel_size_mm", "cabinet_size_mm", "module_size_mm"]):
+            hardware["screen_size_mm"] = None
+
+    resolution = _dimension_pair(hardware.get("resolution"))
+    if resolution and (
+        resolution in {(600.0, 400.0), (300.0, 168.0)}
+        or resolution[0] < 640
+        or resolution[1] < 480
+    ):
+        hardware["resolution"] = None
+    if any(spec_parsed.get(key) == hardware.get("resolution") for key in ["cabinet_resolution", "module_resolution", "panel_size_mm"]):
+        hardware["resolution"] = None
+
+    pitch = _as_float(hardware.get("pixel_pitch"))
+    hardware["pixel_pitch"] = pitch if pitch is not None and 0.5 <= pitch <= 20 else None
+    brightness = _as_float(hardware.get("brightness_cd_m2"))
+    hardware["brightness_cd_m2"] = int(brightness) if brightness is not None and 100 <= brightness <= 5000 else None
+    refresh = _as_float(str(hardware.get("refresh_rate") or "").replace("Hz", ""))
+    hardware["refresh_rate"] = int(refresh) if refresh is not None and 30 <= refresh <= 10000 else None
+    power = _as_float(hardware.get("power_consumption_kw"))
+    hardware["power_consumption_kw"] = power if power is not None and 0 < power <= 1000 else None
+    return hardware
+
+
+def _clean_spec_preview(value: str | None) -> str | None:
+    if not value:
+        return None
+    lines = []
+    for raw_line in str(value).splitlines():
+        line = re.sub(r":?unselected:?", " ", raw_line, flags=re.IGNORECASE)
+        line = re.sub(r"(?:\|\s*){2,}", " | ", line)
+        line = re.sub(r"\s+", " ", line).strip(" |")
+        line = _trim_preview_at_inline_row_marker(line)
+        if "|" in line:
+            segments = [
+                segment.strip()
+                for segment in line.split("|")
+                if segment.strip()
+            ]
+            kept = []
+            for segment in segments:
+                if re.search(r"(?:₩|￦|\\)\s*\d|(?:\d{1,3},){1,3}\d{3}", segment):
+                    break
+                if _has_spec_keyword(segment) or _looks_like_model_preview(segment):
+                    kept.append(segment)
+            if kept:
+                line = " | ".join(kept)
+        if not line:
+            continue
+        has_money = bool(re.search(r"(?:₩|￦|\\)\s*\d|(?:\d{1,3},){1,3}\d{3}", line))
+        has_summary = bool(re.search(r"(?:합계|소계|공급가|부가세|부가가치세|총금액|전체\s*합계|VAT)", line, re.IGNORECASE))
+        if has_money and has_summary:
+            continue
+        has_spec_hint = _has_spec_keyword(line) or _looks_like_model_preview(line)
+        if has_money and not has_spec_hint:
+            continue
+        if not has_spec_hint:
+            continue
+        lines.append(line)
+    preview = " ".join(lines)
+    preview = re.sub(r"\s*\|\s*(?:\|\s*)+", " | ", preview)
+    preview = re.sub(r"\s+", " ", preview).strip(" |")
+    return preview[:300] if preview else None
+
+
+def _find_spec_preview_source(quote, representative_item) -> str | None:
+    candidates = []
+    if representative_item is not None:
+        candidates.append(getattr(representative_item, "spec_raw", "") or "")
+    for item in getattr(quote, "line_items", []) or []:
+        spec_raw = getattr(item, "spec_raw", "") or ""
+        if not spec_raw:
+            continue
+        if item is representative_item:
+            continue
+        spec = getattr(item, "spec_parsed", {}) or {}
+        category = getattr(item, "category", None)
+        normalized = str(spec.get("normalized_cost_type") or "").upper()
+        if category == LineItemCategory.DISPLAY or normalized == "DISPLAY" or _has_spec_keyword(spec_raw):
+            candidates.append(spec_raw)
+    notes_raw = getattr(quote, "notes_raw", "") or ""
+    if notes_raw and _has_spec_keyword(notes_raw):
+        candidates.append(notes_raw)
+    for value in candidates:
+        if _clean_spec_preview(value):
+            return value
+    return None
+
+
+def _trim_preview_at_inline_row_marker(line: str) -> str:
+    parts = re.split(
+        r"\s+\d{1,2}\s+(?=(?:All-in-one|브라켓|설치비|제품\s*설치비|예비품|SMPS|수신카드|충북|[A-Z]{2,}[-_]))",
+        line,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    return parts[0].strip()
+
+
+def _looks_like_model_preview(value: str | None) -> bool:
+    if not value:
+        return False
+    text = str(value)
+    if len(text) > 120:
+        return False
+    if re.search(r"\b[A-Z]{1,5}[-_]?\d{2,}[A-Z0-9._-]*\b", text):
+        return True
+    if re.search(r"\b\d{2}\s*(?:inch|인치|\"|”)", text, re.IGNORECASE):
+        return True
+    return False
+
+
+def _has_spec_keyword(value: str | None) -> bool:
+    if not value:
+        return False
+    text = str(value).lower()
+    keywords = [
+        "해상도",
+        "제안해상도",
+        "화면사이즈",
+        "스크린",
+        "screen",
+        "display size",
+        "전체 크기",
+        "전체화면",
+        "pixel pitch",
+        "led pitch",
+        "pitch",
+        "밝기",
+        "nit",
+        "cd",
+        "bezel",
+        "베젤",
+        "refresh",
+        "hz",
+        "전기용량",
+        "최대전력",
+        "최대소비전력",
+        "소비전력",
+        "kw",
+        "cabinet",
+        "module",
+        "fhd",
+        "uhd",
+        "4k",
+    ]
+    return any(keyword in text for keyword in keywords)
+
+
+def _dimension_pair(value: Any) -> tuple[float, float] | None:
+    if not value:
+        return None
+    match = re.search(r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)", str(value).replace(",", ""))
+    if not match:
+        return None
+    return float(match.group(1)), float(match.group(2))
+
+
+def _as_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _select_representative_hardware_item(line_items):
+    if not line_items:
+        return None
+    line_items = [
+        item for item in line_items
+        if not (getattr(item, "spec_parsed", {}) or {}).get("reconciliation_residual")
+    ]
     if not line_items:
         return None
     display_items = [
@@ -296,15 +634,60 @@ def _select_representative_hardware_item(line_items):
         if item.category == LineItemCategory.DISPLAY
     ]
     if display_items:
-        return max(display_items, key=lambda item: len(item.spec_raw or ""))
-    hardware_keywords = ["led", "비디오월", "lcd", "display", "did", "모니터"]
+        filtered = [item for item in display_items if not _is_bad_hardware_candidate(item)]
+        if filtered:
+            return max(filtered, key=_hardware_candidate_score)
+        return None
+    hardware_keywords = ["led", "비디오월", "lcd", "display", "did", "모니터", "패널", "전광판"]
     hardware_items = [
         item for item in line_items
         if any(keyword in (item.name or "").lower() for keyword in hardware_keywords)
     ]
     if hardware_items:
-        return max(hardware_items, key=lambda item: len(item.spec_raw or ""))
-    return max(line_items, key=lambda item: len(item.spec_raw or ""))
+        filtered = [item for item in hardware_items if not _is_bad_hardware_candidate(item)]
+        if filtered:
+            return max(filtered, key=_hardware_candidate_score)
+    return None
+
+
+def _is_bad_hardware_candidate(item) -> bool:
+    text = (getattr(item, "name", "") or "").lower()
+    return any(
+        token in text
+        for token in [
+            "예비품",
+            "유지보수",
+            "세팅",
+            "설치",
+            "pc",
+            "controller",
+            "컨트롤러",
+            "프로세서",
+            "브라켓",
+            "잡자재",
+            "잔액",
+            "미파싱",
+        ]
+    )
+
+
+def _hardware_candidate_score(item) -> tuple[int, int, int]:
+    spec = getattr(item, "spec_parsed", {}) or {}
+    spec_score = sum(
+        1
+        for key in ["screen_size_mm", "full_screen_size_mm", "resolution", "pixel_pitch_mm", "brightness_cd_m2", "brightness_nit"]
+        if spec.get(key)
+    )
+    amount = getattr(item, "total_price", None) or 0
+    return (spec_score, int(amount), len(getattr(item, "spec_raw", "") or ""))
+
+
+def _normalize_hardware_type(value: str | None) -> str | None:
+    if not value:
+        return None
+    if value.upper().startswith("DLED-C"):
+        return "DLED-C"
+    return value
 
 
 def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any]:
@@ -357,8 +740,27 @@ def _empty_cost_bucket(
 
 def _cost_bucket_name(item) -> str:
     text = f"{item.name} {item.spec_raw}".lower()
-    if item.category == LineItemCategory.DISPLAY:
+    name_text = (item.name or "").lower()
+    normalized_cost_type = str((item.spec_parsed or {}).get("normalized_cost_type") or "").upper()
+    functional_bucket = _functional_cost_bucket_from_item_name(name_text)
+    if functional_bucket:
+        return functional_bucket
+    if normalized_cost_type == "DISPLAY" or item.category == LineItemCategory.DISPLAY:
         return "display_hw"
+    if normalized_cost_type == "TRAVEL":
+        return "travel_expense"
+    if normalized_cost_type == "SOFTWARE":
+        return "software"
+    if normalized_cost_type == "SYSTEM_EQUIPMENT":
+        return "system_equipment"
+    if normalized_cost_type == "MATERIALS":
+        return "materials"
+    if any(keyword in text for keyword in ["예비품", "smps", "수신카드", "spare"]):
+        return "materials"
+    if normalized_cost_type == "INSTALL":
+        return "installation"
+    if any(keyword in text for keyword in ["출장", "운임", "화물운임", "배송비", "체류", "체류비", "교통", "숙박"]):
+        return "travel_expense"
     if item.category == LineItemCategory.PLAYER or any(
         keyword in text
         for keyword in ["processor", "controller", "scaler", "player", "송출", "제어기", "프로세서"]
@@ -372,8 +774,6 @@ def _cost_bucket_name(item) -> str:
         keyword in text for keyword in ["케이블", "브라켓", "잡자재", "마운트", "거치대", "스틸", "보강대"]
     ):
         return "materials"
-    if any(keyword in text for keyword in ["출장", "운임", "체류", "교통", "숙박"]):
-        return "travel_expense"
     if item.category == LineItemCategory.SOFTWARE or any(
         keyword in text for keyword in ["software", "소프트웨어", "license", "라이선스", "cms"]
     ):
@@ -381,6 +781,21 @@ def _cost_bucket_name(item) -> str:
     if any(keyword in text for keyword in ["콘텐츠", "content", "디자인", "영상제작"]):
         return "content"
     return "etc"
+
+
+def _functional_cost_bucket_from_item_name(name_text: str) -> str | None:
+    compact = re.sub(r"\s+", "", name_text)
+    if any(token in compact for token in ["설치", "시공", "장비설치", "비디오월설치", "전광판장비설치", "system설치", "시운전", "인수인계"]):
+        return "installation"
+    if any(token in compact for token in ["배송비", "화물운임", "운송", "출장", "체류비"]):
+        return "travel_expense"
+    if any(token in compact for token in ["cms", "소프트웨어", "세팅", "콘텐츠제어", "스케줄", "해상도맞춤"]):
+        return "software"
+    if any(token in compact for token in ["controller", "컨트롤러", "프로세서", "novastar", "colorlight", "vx400pro", "운영pc", "제어pc", "플레이어pc"]):
+        return "system_equipment"
+    if any(token in compact for token in ["브라켓", "bracket", "구조물", "wall_basement", "베이스", "잡자재", "케이블", "배관", "배선"]):
+        return "materials"
+    return None
 
 
 def _line_item_amount(item) -> int | None:
@@ -396,7 +811,7 @@ def _bucket_marked_separate(bucket_name: str, context: str) -> bool:
         return False
     keyword_map = {
         "installation": ["설치", "시공"],
-        "travel_expense": ["출장", "운임", "교통", "숙박"],
+        "travel_expense": ["출장", "운임", "화물운임", "배송비", "체류", "체류비", "교통", "숙박"],
         "software": ["소프트웨어", "라이선스", "cms"],
         "content": ["콘텐츠", "디자인", "영상"],
     }
@@ -406,9 +821,11 @@ def _bucket_marked_separate(bucket_name: str, context: str) -> bool:
 def _build_conditions_section(
     quote,
     *,
+    install_location: str | None,
     check_required: list[str],
     rule_warnings: list[str],
     parser_warnings: list[str],
+    parser_raw_matches: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     delivery = quote.delivery_basis_raw or (
         f"{quote.delivery_weeks}주" if quote.delivery_weeks else "미기재"
@@ -419,17 +836,47 @@ def _build_conditions_section(
     if quote.warranty_months and "출장실비" in " ".join(check_required + [quote.notes_raw]):
         warranty_display = f"{warranty_display}, 출장실비 별도"
 
+    parser_raw_matches = parser_raw_matches or {}
+    payment_terms = parser_raw_matches.get("payment_terms")
+    special_notes = clean_special_notes(
+        [
+            *(parser_raw_matches.get("special_notes") or []),
+            *check_required,
+            *[
+                warning
+                for warning in rule_warnings
+                if not split_comparison_risks([], [], [warning])[1]
+            ],
+        ],
+        payment_terms=payment_terms,
+    )
     return {
         "delivery": delivery,
         "delivery_weeks": quote.delivery_weeks,
+        "payment_terms": payment_terms,
         "warranty_months": quote.warranty_months,
         "warranty_display": warranty_display,
         "as_method": _extract_as_method(quote.notes_raw),
-        "install_location": getattr(quote.vendor_snapshot, "company_location", None),
-        "special_notes": _compact_notes(
-            [quote.notes_raw, *check_required, *rule_warnings, *parser_warnings]
-        ),
+        "install_location": install_location,
+        "special_notes": special_notes[:10],
     }
+
+
+def _resolve_install_location(
+    result,
+    *,
+    project_install_location: str | None = None,
+) -> str | None:
+    return _clean_location_value(project_install_location)
+
+
+def _clean_location_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.lower() in {"", "미입력", "없음", "null", "undefined", "none"}:
+        return None
+    return text or None
 
 
 def _extract_as_method(text: str) -> str:
@@ -516,21 +963,48 @@ def _apply_compare_highlights(rows: list[dict[str, Any]]) -> None:
 
 
 def _quote_document_installation_included(quote, score_item=None) -> bool:
-    if any(item.category == LineItemCategory.INSTALL for item in quote.line_items):
-        return True
+    install_keywords = [
+        "설치",
+        "시공",
+        "system 설치",
+        "시운전",
+        "장비 설치",
+        "제품 설치비",
+        "비디오월 설치",
+        "전광판 장비 설치",
+        "인수인계",
+    ]
+    for item in quote.line_items:
+        spec = getattr(item, "spec_parsed", {}) or {}
+        text = f"{getattr(item, 'name', '')} {getattr(item, 'spec_raw', '')}".lower()
+        amount = _line_item_amount(item)
+        if amount is not None and amount <= 0:
+            continue
+        if item.category == LineItemCategory.INSTALL:
+            return True
+        if str(spec.get("normalized_cost_type") or "").upper() == "INSTALL":
+            return True
+        if any(keyword in text for keyword in install_keywords):
+            return True
     score = getattr(score_item, "installation_score", None)
     return bool(score and score >= 80)
 
 
 def _extract_screen_size(text: str) -> str | None:
-    match = re.search(r"(\d{1,3}(?:,\d{3})?)\s*[xX×]\s*(\d{1,3}(?:,\d{3})?)\s*(?:mm)?", text)
+    match = re.search(
+        r"(?:전체화면\s*크기|스크린\s*크기|display\s*size|제안사이즈|화면사이즈)[^0-9]{0,80}"
+        r"(?:가로\s*[:：]?\s*|\(W\)\s*)?(\d{2,5}(?:,\d{3})?(?:\.\d+)?)\s*(?:mm\s*)?[xX×]\s*"
+        r"(?:세로\s*[:：]?\s*|\(H\)\s*)?(\d{2,5}(?:,\d{3})?(?:\.\d+)?)",
+        text,
+        re.IGNORECASE,
+    )
     if not match:
         return None
-    return f"{match.group(1)} x {match.group(2)}mm"
+    return f"{match.group(1).replace(',', '')} x {match.group(2).replace(',', '')}"
 
 
 def _extract_resolution(text: str) -> str | None:
-    for match in re.finditer(r"(\d{3,5})\s*[xX×]\s*(\d{3,5})\s*(?:pixels?|px)?", text):
+    for match in re.finditer(r"(?:전체화면\s*해상도|제안해상도|해상도|resolution)[^0-9]{0,80}(\d{3,5})\s*[xX×]\s*(\d{3,5})\s*(?:pixels?|px)?", text, re.IGNORECASE):
         left = int(match.group(1).replace(",", ""))
         right = int(match.group(2).replace(",", ""))
         if left <= 10000 and right <= 10000:
@@ -546,13 +1020,22 @@ def _extract_pixel_pitch(text: str) -> float | None:
 
 
 def _extract_power_kw(text: str) -> float | None:
-    match = re.search(r"(\d+(?:\.\d+)?)\s*(kW|kw|KW)", text)
+    match = re.search(r"(\d+(?:\.\d+)?)\s*kW\b", text, re.IGNORECASE)
     if match:
         return float(match.group(1))
-    match = re.search(r"(\d+(?:\.\d+)?)\s*W", text)
+    match = re.search(r"(\d+(?:\.\d+)?)\s*W\b", text, re.IGNORECASE)
     if match:
         return round(float(match.group(1)) / 1000, 3)
     return None
+
+
+def _power_w_to_kw(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return round(float(value) / 1000, 3)
+    except (TypeError, ValueError):
+        return None
 
 
 def _extract_brightness(text: str) -> int | None:

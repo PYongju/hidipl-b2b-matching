@@ -15,10 +15,8 @@ import {
   runProjectMatch,
   uploadProjectQuotes,
 } from "./api/apiClient";
-import { shouldUseMockApi } from "./api/apiMode";
 import {
   initialProjectData,
-  sampleProjects,
   makeProjectFromData,
 } from "./data/mockProjects";
 import { createMatchViewModel } from "./utils/matchAdapter";
@@ -26,11 +24,9 @@ import { createMatchViewModel } from "./utils/matchAdapter";
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [projectData, setProjectData] = useState(initialProjectData);
-  const [projects, setProjects] = useState(sampleProjects);
+  const [projects, setProjects] = useState([]);
   const [editingProjectId, setEditingProjectId] = useState("");
-  const [activeProjectId, setActiveProjectId] = useState(
-    sampleProjects[0]?.id ?? "",
-  );
+  const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
   const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
 
@@ -125,15 +121,6 @@ export default function App() {
       return;
     }
 
-    if (shouldUseMockApi) {
-      setProjectData((current) => ({
-        ...current,
-        projectApiId: current.projectApiId || current.projectId || `mock-${Date.now()}`,
-        requestId: current.requestId || `request-${Date.now()}`,
-      }));
-      return;
-    }
-
     try {
       const createdProject = await createProject(buildProjectRequest(projectData));
       const projectApiId = createdProject.project_id ?? createdProject.id;
@@ -199,28 +186,6 @@ export default function App() {
     setAnalysisErrorMessage("");
 
     try {
-      if (shouldUseMockApi) {
-        const mockProjectApiId =
-          projectData.projectApiId ||
-          projectData.projectId ||
-          `mock-${Date.now()}`;
-        const mockRequestId = projectData.requestId || `request-${Date.now()}`;
-        const mockMatchId = projectData.matchId || `match-${Date.now()}`;
-        const mockQuoteIds = (projectData.quoteFiles ?? []).map(
-          (file, index) => `mock-quote-${index + 1}-${file.name}`,
-        );
-
-        setProjectData((current) => ({
-          ...current,
-          projectApiId: mockProjectApiId,
-          requestId: mockRequestId,
-          quoteIds: mockQuoteIds,
-          matchId: mockMatchId,
-        }));
-        setAnalysisState("ready");
-        return;
-      }
-
       const createdProject = await createProject(
         buildProjectRequest(projectData),
       );

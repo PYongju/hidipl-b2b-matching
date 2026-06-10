@@ -3,7 +3,6 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { runProjectMatch } from "../api/apiClient";
-import { shouldUseMockApi } from "../api/apiMode";
 import { createMatchViewModel } from "../utils/matchAdapter";
 
 const REVIEW_STEPS = [
@@ -56,17 +55,6 @@ export default function QuoteReviewLoadingPage({
       }
       if (!projectData.quoteIds?.length) {
         throw new Error("업로드된 견적서 ID가 없어 견적 비교 분석을 실행할 수 없습니다.");
-      }
-
-      if (shouldUseMockApi) {
-        const mockMatchId = projectData.matchId || `mock-match-${Date.now()}`;
-        onProjectDataChange((current) => ({
-          ...current,
-          matchId: mockMatchId,
-          matchResult: current.matchResult ?? { matchId: mockMatchId, matches: [] },
-        }));
-        setAnalysisState("ready");
-        return;
       }
 
       const matchResult = await runProjectMatch(projectApiId);

@@ -55,6 +55,11 @@ def build_source_hash(partner: PartnerProfile) -> str:
         "response_speed": partner.response_speed,
         "financial_status": partner.financial_status,
         "is_excluded": partner.is_excluded,
+        "solution_breakdown": partner.solution_breakdown,
+        "industry_breakdown": partner.industry_breakdown,
+        "scale_breakdown": partner.scale_breakdown,
+        "installation_count": partner.installation_count,
+        "company_location": partner.company_location,
     }
     serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
@@ -85,6 +90,11 @@ def get_or_create_partner_embeddings(
             metadata={
                 "specialty_tags": partner.specialty_tags,
                 "is_premium": partner.is_premium,
+                "solution_breakdown": partner.solution_breakdown,
+                "industry_breakdown": partner.industry_breakdown,
+                "scale_breakdown": partner.scale_breakdown,
+                "installation_count": partner.installation_count,
+                "company_location": partner.company_location,
             },
         )
         updated = True

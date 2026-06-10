@@ -7,13 +7,19 @@ from dotenv import load_dotenv
 
 from services.explanation.base import ExplanationProvider
 from services.explanation.explanation_input_builder import build_explanation_input
+from services.explanation.explanation_text_policy import (
+    clean_text,
+    decision_weaknesses,
+    has_risk,
+    is_parser_quality_issue,
+    split_comparison_risks,
+    trim_sentence,
+)
 from services.explanation.schemas import (
     RecommendationExplanationResult,
     SupplierExplanation,
 )
-from services.explanation.template_explanation_provider import (
-    TemplateExplanationProvider,
-)
+from services.explanation.template_explanation_provider import TemplateExplanationProvider
 from services.recommendation.schemas import RecommendationPipelineResult
 
 
@@ -112,8 +118,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                     {
                         "role": "user",
                         "content": (
-                            "Create dashboard-facing recommendation explanation JSON "
-                            "from this recommendation result only.\n"
+                            "아래 추천 결과만 근거로 견적 비교 대시보드용 설명 JSON을 작성하세요.\n"
                             + json.dumps(payload, ensure_ascii=False)
                         ),
                     },
@@ -222,9 +227,9 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         if finish_reason:
             warnings.append(f"Azure OpenAI finish_reason: {finish_reason}")
 
-        overall_summary = self._clean_text(str(parsed.get("overall_summary", "")))[
-            :1200
-        ]
+        overall_summary = self._sanitize_overall_summary(
+            str(parsed.get("overall_summary", ""))
+        )
         if len(overall_summary) < 10:
             overall_summary = template_result.overall_summary
             warnings.append("LLM overall_summary was empty; template summary used.")
@@ -251,16 +256,22 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
     def _build_supplier_from_llm(
         self, item, raw_supplier: dict[str, Any]
     ) -> SupplierExplanation:
+        check_required, comparison_risks = split_comparison_risks(
+            item.check_required,
+            item.comparison_risks,
+            item.rule_warnings,
+        )
         return SupplierExplanation(
             quote_id=item.quote_id,
             vendor_name=item.vendor_name,
             rank=item.rank,
-            card_summary=self._clean_text(str(raw_supplier.get("card_summary", "")))[
-                :300
-            ],
-            strengths=self._clean_list(
-                raw_supplier.get("strengths", []),
-                default="비교 검토 가능",
+            card_summary=self._build_card_summary(
+                item,
+                str(raw_supplier.get("card_summary", "")),
+            ),
+            strengths=self._sanitize_strengths(
+                self._clean_list(raw_supplier.get("strengths", []), default=None),
+                item,
             ),
             weaknesses=self._merge_weaknesses(
                 llm_weaknesses=self._clean_list(
@@ -269,12 +280,13 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                 ),
                 item=item,
             ),
-            check_required=item.check_required,
+            check_required=check_required,
             metadata=self._build_supplier_metadata(
                 item,
                 provider="azure_openai",
                 llm_used=True,
                 fallback_used=False,
+                comparison_risks=comparison_risks,
             ),
         )
 
@@ -308,6 +320,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         provider: str,
         llm_used: bool,
         fallback_used: bool,
+        comparison_risks: list[str] | None = None,
     ) -> dict[str, Any]:
         return {
             "provider": provider,
@@ -321,33 +334,38 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
             "filter_reasons": item.filter_reasons,
             "llm_used": llm_used,
             "fallback_used": fallback_used,
+            "comparison_risks": comparison_risks or [],
         }
 
     def _merge_weaknesses(self, *, llm_weaknesses: list[str], item) -> list[str]:
-        candidates = [
-            *llm_weaknesses,
-            *item.check_required,
-            *item.filter_reasons,
-        ]
-        deduped = []
-        for weakness in candidates:
-            cleaned = self._clean_text(str(weakness))[:120]
-            if cleaned and cleaned not in deduped:
-                deduped.append(cleaned)
-        return deduped[:3] or ["특이 리스크 없음"]
+        return decision_weaknesses(
+            llm_weaknesses=llm_weaknesses,
+            check_required=item.check_required,
+            comparison_risks=item.comparison_risks,
+            filter_reasons=item.filter_reasons,
+            limit=2,
+        )
 
     def _system_prompt(self) -> str:
         return (
-            "당신은 대시보드에 표시될 견적 추천 설명을 작성하는 역할입니다.\n"
-            "점수, 순위, 가격, 납기, 보증기간, 설치 조건과 관련된 사실을 다시 계산하지 마세요.\n"
-            "입력에 없는 업체명, 금액, 점수, 납기, 보증기간, 설치 조건을 새로 만들어내지 마세요.\n"
-            "추천 순서를 변경하지 마세요. 입력으로 제공된 quote_id, vendor_name, rank만 사용하세요.\n"
-            "quote_id는 입력으로 제공된 값만 사용하고, 중복하거나 누락하지 마세요.\n"
-            "반드시 JSON만 반환하세요.\n"
-            "입력 데이터에 check_required 또는 filter_reasons가 있는 경우, 해당 내용을 weaknesses에 반영하세요.\n"
-            "overall_summary는 상위 3개 업체를 3~5개의 한국어 문장으로 요약해야 합니다.\n"
-            "card_summary는 간결한 한국어 한 문장으로 작성해야 합니다.\n"
-            "strengths와 weaknesses는 각각 최대 3개 항목까지만 작성하세요.\n"
+            "당신은 견적 비교 대시보드의 추천 근거를 작성합니다.\n"
+            "반드시 지킬 것:\n"
+            "- 입력된 ranking 결과와 점수를 다시 계산하지 마세요.\n"
+            "- 순위를 바꾸지 마세요.\n"
+            "- 입력에 없는 사실을 만들지 마세요.\n"
+            "- check_required는 견적서 자체의 확인 필요 항목입니다.\n"
+            "- comparison_risks는 후보 간 상대 비교에서 생긴 리스크입니다.\n"
+            "- parser_quality_notes는 설명에 사용하지 마세요.\n"
+            "- '프로젝트명이 파일명 기준으로 보정됨' 같은 Parser 내부 메시지는 summary, card_summary, strengths, weaknesses에 쓰지 마세요.\n"
+            "- '가격 차이 5% 초과'는 check_required가 아니라 comparison_risks로 해석하세요.\n"
+            "- 납기 정보가 미기재이거나 별도협의이면 '납기 우수', '납기 명확'이라고 쓰지 마세요.\n"
+            "- 설치 범위 확인이 필요하면 '설치 조건 우수'라고 단정하지 마세요.\n"
+            "- comparison_risks는 weaknesses 후보로 사용할 수 있습니다.\n"
+            "- overall_summary는 2~3문장으로 간결하게 작성하세요.\n"
+            "- card_summary는 1문장으로 작성하세요.\n"
+            "- strengths는 최대 2개, weaknesses는 최대 2개로 작성하세요.\n"
+            "- 사용자가 한눈에 비교할 수 있도록 가격, 사양, 납기, 보증, 설치 조건 중심으로 작성하세요.\n"
+            "- JSON만 반환하세요.\n"
             "출력 스키마: "
             '{"overall_summary":"...","supplier_explanations":[{"quote_id":"...",'
             '"vendor_name":"...","rank":1,"card_summary":"...","strengths":["..."],'
@@ -358,26 +376,68 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         if not isinstance(value, list):
             return [default] if default else []
 
-        cleaned = [
-            self._clean_text(str(item))[:120] for item in value if str(item).strip()
-        ]
+        cleaned = [self._clean_text(str(item))[:120] for item in value if str(item).strip()]
         if cleaned:
-            return cleaned[:3]
+            return cleaned[:2]
         return [default] if default else []
 
     def _clean_text(self, text: str) -> str:
-        replacements = {
-            "과도히": "높이",
-            "과도하게": "높게",
-            "과도": "충분",
-            "완전히": "높이",
-            "완전": "높음",
-            "최고 수준": "높은 수준",
-            "최고의": "높은",
-            "만점": "100점",
-            "정도도": "점수",
-        }
-        cleaned = text.strip()
-        for source, target in replacements.items():
-            cleaned = cleaned.replace(source, target)
-        return cleaned
+        return clean_text(text)
+
+    def _sanitize_strengths(self, strengths: list[str], item) -> list[str]:
+        result: list[str] = []
+        delivery_uncertain = has_risk(item.check_required, "납기 정보 미기재") or has_risk(
+            item.check_required, "납기 별도협의"
+        )
+        installation_uncertain = any(
+            "설치" in message and "확인" in message for message in item.check_required
+        )
+        for strength in strengths:
+            cleaned = self._clean_text(strength)
+            if not cleaned or is_parser_quality_issue(cleaned):
+                continue
+            if delivery_uncertain and self._claims_uncertain_advantage(cleaned, "납기"):
+                continue
+            if installation_uncertain and self._claims_uncertain_advantage(cleaned, "설치"):
+                continue
+            if cleaned not in result:
+                result.append(cleaned)
+            if len(result) >= 2:
+                break
+        return result or ["비교 검토 가능"]
+
+    def _build_card_summary(self, item, llm_summary: str) -> str:
+        summary = self._clean_text(llm_summary)
+        if is_parser_quality_issue(summary):
+            summary = ""
+        if (
+            has_risk(item.check_required, "납기 정보 미기재")
+            or has_risk(item.check_required, "납기 별도협의")
+        ) and self._claims_uncertain_advantage(summary, "납기"):
+            summary = ""
+        if not summary:
+            if item.rank == 1:
+                summary = "종합 점수가 가장 높은 추천 견적입니다."
+            elif item.delivery_weeks and not has_risk(item.check_required, "납기 정보 미기재"):
+                summary = "납기는 명확하지만 조건 확인이 필요합니다."
+            else:
+                summary = "가격과 조건 확인이 필요한 비교 후보입니다."
+        return trim_sentence(summary, max_chars=55)
+
+    def _claims_uncertain_advantage(self, text: str, subject: str) -> bool:
+        return subject in text and any(
+            token in text for token in ["우수", "최고", "명확", "경쟁력", "강점"]
+        )
+
+    def _sanitize_overall_summary(self, summary: str) -> str:
+        cleaned = self._clean_text(summary)
+        if not cleaned or is_parser_quality_issue(cleaned):
+            return ""
+        sentences = [
+            sentence.strip()
+            for sentence in cleaned.replace("?", "?.").split(".")
+            if sentence.strip() and not is_parser_quality_issue(sentence)
+        ]
+        if not sentences:
+            return ""
+        return ". ".join(sentences[:3]).rstrip(".") + "."

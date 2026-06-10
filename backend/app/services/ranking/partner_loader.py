@@ -53,9 +53,5 @@ def dict_to_partner_profile(partner: dict[str, Any]) -> PartnerProfile:
         avg_revenue_3yr=partner.get("avg_revenue_3yr"),
         years_in_business=partner.get("years_in_business"),
         representative=partner.get("representative"),
-        company_location=(
-            partner.get("company_location")
-            or partner.get("location")
-            or partner.get("address_city")
-        ),
+        company_location=partner.get("company_location"),
     )

@@ -1,6 +1,7 @@
 partners = [
     {
         "name": "가이드삼정",
+        "company_location": "서울특별시 강서구 화곡로 416",
         "specialty_tags": ["LED전광판", "빔프로젝터", "전자칠판"],
         "is_premium": True,
         "success_rate": 0.1,
@@ -18,6 +19,7 @@ partners = [
     },
     {
         "name": "청해엘엔에스",
+        "company_location": "경기도 의왕시 이미로 40",
         "specialty_tags": ["LED전광판"],
         "is_premium": True,
         "success_rate": 0.2,
@@ -35,6 +37,7 @@ partners = [
     },
     {
         "name": "오리온디스플레이",
+        "company_location": "서울특별시 금천구 가산디지털1로 181",
         "specialty_tags": ["LED전광판", "비디오월"],
         "is_premium": True,
         "success_rate": 0.1,
@@ -42,7 +45,13 @@ partners = [
         "financial_status": "normal",
         "is_excluded": False,
         "installation_count": 51,
-        "industry_breakdown": {"상업시설": 25, "기업": 16, "병원": 4, "교육": 3, "문화/공공": 3},
+        "industry_breakdown": {
+            "상업시설": 25,
+            "기업": 16,
+            "병원": 4,
+            "교육": 3,
+            "문화/공공": 3,
+        },
         "solution_breakdown": {"LED전광판": 46, "비디오월": 4},
         "scale_breakdown": {"엔터프라이즈": 42, "소규모 비즈니스": 9},
         "avg_projects_3yr": 100,
@@ -52,6 +61,7 @@ partners = [
     },
     {
         "name": "효성ITX",
+        "company_location": "서울특별시 영등포구 선유로 57",
         "specialty_tags": ["LED전광판"],
         "is_premium": True,
         "success_rate": 0.2,
@@ -69,6 +79,7 @@ partners = [
     },
     {
         "name": "OICKOREA",
+        "company_location": "인천광역시 부평구 안남로369번길 12",
         "specialty_tags": ["비디오월", "키오스크", "LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -86,6 +97,7 @@ partners = [
     },
     {
         "name": "성흥티에스",
+        "company_location": "경기도 성남시 중원구 사기막골로62번길 33",
         "specialty_tags": ["투명디스플레이", "사이니지", "비디오월"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -103,6 +115,7 @@ partners = [
     },
     {
         "name": "아바비젼",
+        "company_location": "경기도 안양시 만안구 안양천서로 69",
         "specialty_tags": ["LED전광판", "사이니지"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -110,7 +123,13 @@ partners = [
         "financial_status": "normal",
         "is_excluded": False,
         "installation_count": 41,
-        "industry_breakdown": {"교육": 11, "문화/공공": 11, "상업시설": 10, "병원": 4, "기업": 4},
+        "industry_breakdown": {
+            "교육": 11,
+            "문화/공공": 11,
+            "상업시설": 10,
+            "병원": 4,
+            "기업": 4,
+        },
         "solution_breakdown": {"LED전광판": 37, "사이니지": 3},
         "scale_breakdown": {"엔터프라이즈": 22, "소규모 비즈니스": 19},
         "avg_projects_3yr": 220,
@@ -120,6 +139,7 @@ partners = [
     },
     {
         "name": "다올씨앤씨",
+        "company_location": "서울특별시 용산구 새창로 181",
         "specialty_tags": ["비디오월", "LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -137,6 +157,7 @@ partners = [
     },
     {
         "name": "에이번",
+        "company_location": "서울특별시 강서구 양천로 532",
         "specialty_tags": ["LED전광판", "비디오월"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -154,6 +175,7 @@ partners = [
     },
     {
         "name": "유어존",
+        "company_location": "인천광역시 주부토로 236",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -171,6 +193,7 @@ partners = [
     },
     {
         "name": "엠이엠시스템",
+        "company_location": "경기도 광주시 곤지암읍 경충대로 517",
         "specialty_tags": ["LED전광판", "빔프로젝터", "투명디스플레이"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -188,6 +211,7 @@ partners = [
     },
     {
         "name": "엠디에스코리아",
+        "company_location": "경기도 화성시 팔탄면 시청로940번길 20",
         "specialty_tags": ["비디오월", "사이니지", "키오스크"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -205,6 +229,7 @@ partners = [
     },
     {
         "name": "디스플레이허브",
+        "company_location": "서울특별시 중랑구 봉화산로 123",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -222,6 +247,7 @@ partners = [
     },
     {
         "name": "큐앤스",
+        "company_location": "인천광역시 부평구 부평대로 301",
         "specialty_tags": ["LED전광판", "비디오월", "사이니지"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -239,6 +265,7 @@ partners = [
     },
     {
         "name": "디지털서울오에이",
+        "company_location": "서울 영등포구 선유로 27",
         "specialty_tags": ["LED전광판", "투명디스플레이", "비디오월"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -256,6 +283,7 @@ partners = [
     },
     {
         "name": "시스메이트",
+        "company_location": "서울특별시 금천구 가산디지털1로 119",
         "specialty_tags": ["LED전광판", "비디오월"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -273,6 +301,7 @@ partners = [
     },
     {
         "name": "키코",
+        "company_location": "서울특별시 금천구 가산디지털1로 88",
         "specialty_tags": ["LED전광판", "투명디스플레이"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -290,6 +319,7 @@ partners = [
     },
     {
         "name": "윈미디텍",
+        "company_location": "서울특별시 영등포구 경인로 775",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -307,6 +337,7 @@ partners = [
     },
     {
         "name": "엠앤엠네트웍스",
+        "company_location": "서울특별시 성동구 성수일로8길 5",
         "specialty_tags": ["사이니지", "빔프로젝터"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -324,6 +355,7 @@ partners = [
     },
     {
         "name": "에이스뷰",
+        "company_location": "경기도 시흥시 포도원로116번길 25",
         "specialty_tags": ["사이니지", "LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -341,6 +373,7 @@ partners = [
     },
     {
         "name": "디스플레이앤라이프",
+        "company_location": "경기도 안양시 만안구 덕천로152번길 25",
         "specialty_tags": ["투명디스플레이"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -358,6 +391,7 @@ partners = [
     },
     {
         "name": "딥사이닝",
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
         "specialty_tags": ["사이니지", "비디오월"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -375,6 +409,7 @@ partners = [
     },
     {
         "name": "윈스타비투비",
+        "company_location": "서울특별시 영등포구 선유로9길 10",
         "specialty_tags": ["비디오월", "LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -392,6 +427,7 @@ partners = [
     },
     {
         "name": "에스큐브랩",
+        "company_location": "경기도 안양시 동안구 시민대로109번길 29",
         "specialty_tags": ["사이니지", "LED전광판"],
         "is_premium": False,
         "success_rate": 0.04,
@@ -409,6 +445,7 @@ partners = [
     },
     {
         "name": "에이치디지코리아",
+        "company_location": "서울 송파구 중대로9길 53-5",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -426,6 +463,7 @@ partners = [
     },
     {
         "name": "에드원",
+        "company_location": "서울시 영등포구 당산로 41 길 11",
         "specialty_tags": ["키오스크", "사이니지"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -443,6 +481,7 @@ partners = [
     },
     {
         "name": "INFILED",
+        "company_location": "중국 선전",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -460,6 +499,7 @@ partners = [
     },
     {
         "name": "스마트솔루션",
+        "company_location": "광주광역시 서구 군분 2로 54",
         "specialty_tags": ["비디오월", "투명디스플레이"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -477,6 +517,7 @@ partners = [
     },
     {
         "name": "주봉정보시스템",
+        "company_location": "서울특별시 강남구 자곡로 174-10",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -494,6 +535,7 @@ partners = [
     },
     {
         "name": "빛글림",
+        "company_location": "서울특별시 종로구 북촌로5가길 22",
         "specialty_tags": ["콘텐츠"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -511,6 +553,7 @@ partners = [
     },
     {
         "name": "씨케이미디어",
+        "company_location": "경기도 광명시 하안로 60",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -528,6 +571,7 @@ partners = [
     },
     {
         "name": "씨엠지",
+        "company_location": "서울특별시 금천구 가산디지털2로 14",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -545,6 +589,7 @@ partners = [
     },
     {
         "name": "Absen",
+        "company_location": "중국 선전",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -556,12 +601,13 @@ partners = [
         "solution_breakdown": {"LED전광판": 5},
         "scale_breakdown": {"엔터프라이즈": 5},
         "avg_projects_3yr": None,
-        "avg_revenue_3yr": "7조원",
+        "avg_revenue_3yr": "70000억원",
         "years_in_business": 24,
         "representative": "Hansen Ding",
     },
     {
         "name": "이케이엠",
+        "company_location": "경기도 고양시 일산동구 장백로 200",
         "specialty_tags": ["콘텐츠"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -579,6 +625,7 @@ partners = [
     },
     {
         "name": "탐투스",
+        "company_location": "경기도 부천시 오정구 석천로 345",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -596,6 +643,7 @@ partners = [
     },
     {
         "name": "토비스",
+        "company_location": "인천광역시 연수구 하모니로226번길 15",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -613,6 +661,7 @@ partners = [
     },
     {
         "name": "에이텍씨앤",
+        "company_location": "경기도 성남시 분당구 판교로 289",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.03,
@@ -621,7 +670,12 @@ partners = [
         "is_excluded": False,
         "installation_count": 5,
         "industry_breakdown": {},
-        "solution_breakdown": {"비디오월": 1, "LED전광판": 1, "키오스크": 1, "사이니지": 1},
+        "solution_breakdown": {
+            "비디오월": 1,
+            "LED전광판": 1,
+            "키오스크": 1,
+            "사이니지": 1,
+        },
         "scale_breakdown": {"소규모 비즈니스": 4, "엔터프라이즈": 1},
         "avg_projects_3yr": 130,
         "avg_revenue_3yr": "502억원",
@@ -630,6 +684,7 @@ partners = [
     },
     {
         "name": "DahuaTechnology",
+        "company_location": "서울특별시 금천구 서부샛길 606",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -647,6 +702,7 @@ partners = [
     },
     {
         "name": "바이서치코리아",
+        "company_location": "서울특별시 강남구 강남대로114길 41",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -664,6 +720,7 @@ partners = [
     },
     {
         "name": "한맥아이티",
+        "company_location": "서울특별시 성동구 상원1길 26",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -681,6 +738,7 @@ partners = [
     },
     {
         "name": "테크커넥트",
+        "company_location": "경기도 성남시 분당구 판교로 697",
         "specialty_tags": ["LED전광판"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -698,6 +756,7 @@ partners = [
     },
     {
         "name": "비비엠씨",
+        "company_location": "서울특별시 성동구 성수일로 111",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.03,
@@ -715,6 +774,7 @@ partners = [
     },
     {
         "name": "엘토브",
+        "company_location": "서울특별시 구로구 디지털로33길 11",
         "specialty_tags": ["키오스크"],
         "is_premium": False,
         "success_rate": 0.03,
@@ -732,6 +792,7 @@ partners = [
     },
     {
         "name": "시스템앤솔루션",
+        "company_location": "경기도 수원시 영통구 신원로 88",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.03,
@@ -749,6 +810,7 @@ partners = [
     },
     {
         "name": "와이앤아이테크놀러지",
+        "company_location": "경기 부천시 양지로 237",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.03,
@@ -760,12 +822,13 @@ partners = [
         "solution_breakdown": {},
         "scale_breakdown": {"엔터프라이즈": 2},
         "avg_projects_3yr": 50,
-        "avg_revenue_3yr": "100만원",
+        "avg_revenue_3yr": "1억원",
         "years_in_business": 3,
         "representative": None,
     },
     {
         "name": "디스플레이비투비",
+        "company_location": "인천광역시 부평구 부평대로 301",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.03,
@@ -783,6 +846,7 @@ partners = [
     },
     {
         "name": "KJCDisplay",
+        "company_location": "서울특별시 영등포구 여의대방로69길 7",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.02,
@@ -800,6 +864,7 @@ partners = [
     },
     {
         "name": "코스윌",
+        "company_location": "서울특별시 강동구 천호대로200길 54",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.02,
@@ -817,6 +882,7 @@ partners = [
     },
     {
         "name": "동경티앤씨",
+        "company_location": "경기도 부천시 오정구 석천로 397",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.02,
@@ -834,6 +900,7 @@ partners = [
     },
     {
         "name": "스퀴즈아트",
+        "company_location": "스퀴즈아트",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.02,
@@ -851,6 +918,7 @@ partners = [
     },
     {
         "name": "라이프앤미디어",
+        "company_location": "경기도 하남시 신우실로 100",
         "specialty_tags": [],
         "is_premium": False,
         "success_rate": 0.02,
