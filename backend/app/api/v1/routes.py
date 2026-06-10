@@ -1,7 +1,10 @@
+import logging
 import tempfile
 import shutil
 from pathlib import Path
 from services.api_demo import routers as demo_routers
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -49,8 +52,8 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
         db.rollback()
     except Exception as e:
         db.rollback()
-        raise  # 또는 로깅 후 HTTP 500 반환
-    
+        logger.warning("projects DB insert 실패 (비치명적): %s", e)
+
     return {"ok": True, "data": result, "error": None}
 
 
@@ -107,7 +110,7 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
             db.rollback()
         except Exception as e:
             db.rollback()
-            raise  # 또는 로깅 후 HTTP 500 반환
+            logger.warning("quotes DB insert 실패 (비치명적): %s", e)
         return {"ok": True, "data": result, "error": None}
 
     except KeyError as e:
@@ -181,7 +184,7 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
             db.rollback()
         except Exception as e:
             db.rollback()
-            raise  # 또는 로깅 후 HTTP 500 반환
+            logger.warning("match_results DB insert 실패 (비치명적): %s", e)
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
