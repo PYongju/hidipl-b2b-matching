@@ -13,7 +13,7 @@ const EMPTY_EXPLANATION_VIEW_MODEL = {
 };
 
 function getProjectApiId(projectData) {
-  return projectData.projectApiId ?? projectData.projectId;
+  return projectData.projectApiId;
 }
 
 function getMatchId(projectData) {

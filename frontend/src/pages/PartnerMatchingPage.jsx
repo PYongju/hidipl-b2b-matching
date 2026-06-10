@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
+import { fetchCandidateVendors } from "../api/apiClient";
+import { shouldUseMockApi } from "../api/apiMode";
+import { createCandidatePartnerViewModel } from "../utils/candidatePartnerAdapter";
 
 const candidatePartners = [
   {
@@ -123,20 +126,56 @@ export default function PartnerMatchingPage({
   onBack,
   onGoDashboard,
 }) {
+  const [partners, setPartners] = useState(candidatePartners);
+  const [candidateStatus, setCandidateStatus] = useState("mock");
   const [targetIds, setTargetIds] = useState([]);
   const [showAllPartners, setShowAllPartners] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [premiumFilter, setPremiumFilter] = useState("all");
   const [sortKey, setSortKey] = useState("ai");
 
-  const recommendedCount = candidatePartners.filter((partner) => partner.recommended).length;
-  const cautionCount = candidatePartners.filter((partner) => partner.caution).length;
+  useEffect(() => {
+    const projectId = projectData.projectApiId;
+    if (shouldUseMockApi) {
+      setPartners(candidatePartners);
+      setCandidateStatus("mock");
+      return;
+    }
+    if (!projectId) {
+      setPartners([]);
+      setCandidateStatus("missing-project-api-id");
+      return;
+    }
+
+    let isMounted = true;
+    setCandidateStatus("loading");
+
+    fetchCandidateVendors(projectId, 10)
+      .then((response) => {
+        if (!isMounted) return;
+        const nextPartners = createCandidatePartnerViewModel(response);
+        setPartners(nextPartners);
+        setCandidateStatus(nextPartners.length > 0 ? "ready" : "empty");
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setPartners([]);
+        setCandidateStatus("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [projectData.projectApiId]);
+
+  const recommendedCount = partners.filter((partner) => partner.recommended).length;
+  const cautionCount = partners.filter((partner) => partner.caution).length;
 
   const visiblePartners = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const base = showAllPartners
-      ? candidatePartners
-      : candidatePartners.filter((partner) => partner.recommended);
+      ? partners
+      : partners.filter((partner) => partner.recommended);
 
     return base
       .filter((partner) => {
@@ -156,13 +195,14 @@ export default function PartnerMatchingPage({
         if (sortKey === "response") return parseFloat(a.response) - parseFloat(b.response);
         return b.score - a.score;
       });
-  }, [premiumFilter, searchTerm, showAllPartners, sortKey]);
+  }, [partners, premiumFilter, searchTerm, showAllPartners, sortKey]);
 
   const targetPartners = useMemo(
-    () => candidatePartners.filter((partner) => targetIds.includes(partner.id)),
-    [targetIds],
+    () => partners.filter((partner) => targetIds.includes(partner.id)),
+    [partners, targetIds],
   );
-  const cautionPartners = candidatePartners.filter((partner) => partner.caution);
+  const cautionPartners = partners.filter((partner) => partner.caution);
+  const candidateEmptyMessage = getCandidateEmptyMessage(candidateStatus);
 
   const addPartner = (partnerId) => {
     setTargetIds((current) =>
@@ -186,7 +226,7 @@ export default function PartnerMatchingPage({
     setTargetIds((current) => [
       ...new Set([
         ...current,
-        ...candidatePartners
+        ...partners
           .filter((partner) => partner.recommended)
           .map((partner) => partner.id),
       ]),
@@ -301,6 +341,14 @@ export default function PartnerMatchingPage({
                   </tr>
                 </thead>
                 <tbody>
+                  {visiblePartners.length === 0 ? (
+                    <tr>
+                      <td className="partner-empty-cell" colSpan={11}>
+                        <b>{candidateEmptyMessage.title}</b>
+                        <span>{candidateEmptyMessage.description}</span>
+                      </td>
+                    </tr>
+                  ) : null}
                   {visiblePartners.map((partner) => {
                     const isTarget = targetIds.includes(partner.id);
                     return (
@@ -449,4 +497,35 @@ function SummaryItem({ label, value }) {
       <strong>{value}</strong>
     </article>
   );
+}
+
+function getCandidateEmptyMessage(status) {
+  if (status === "loading") {
+    return {
+      title: "추천 후보를 불러오는 중입니다.",
+      description: "프로젝트 조건을 기준으로 파트너 후보를 조회하고 있습니다.",
+    };
+  }
+  if (status === "empty") {
+    return {
+      title: "추천 후보가 없습니다.",
+      description: "현재 조건으로 조회된 파트너가 없습니다. 요구사항을 보완하거나 전체 파트너 조건을 다시 확인해주세요.",
+    };
+  }
+  if (status === "missing-project-api-id") {
+    return {
+      title: "프로젝트 생성 정보가 없습니다.",
+      description: "서버에 생성된 프로젝트 ID가 없어 추천 후보를 조회하지 않았습니다.",
+    };
+  }
+  if (status === "error") {
+    return {
+      title: "추천 후보를 불러오지 못했습니다.",
+      description: "candidate-vendors API 연결 상태를 확인해야 합니다. 실제 데이터 대신 mock으로 대체하지 않았습니다.",
+    };
+  }
+  return {
+    title: "표시할 파트너가 없습니다.",
+    description: "검색어 또는 필터 조건을 조정해주세요.",
+  };
 }

@@ -70,7 +70,7 @@ export default function QuoteWaitingPage({
         return;
       }
 
-      const projectApiId = projectData.projectApiId || projectData.projectId;
+      const projectApiId = projectData.projectApiId;
       if (!projectApiId) {
         throw new Error("프로젝트 API ID가 없어 견적서를 업로드할 수 없습니다.");
       }
@@ -126,7 +126,7 @@ export default function QuoteWaitingPage({
         <ProjectStepTabs
           activeStep={3}
           onGoPartnerMatching={onBack}
-          onGoQuoteReview={selectedFiles.length ? onGoDashboard : undefined}
+          onGoQuoteReview={uploadState === "done" ? onGoDashboard : undefined}
         />
 
         <section className="quote-status-bar">

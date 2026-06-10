@@ -191,7 +191,7 @@ function getByPath(source, path) {
 }
 
 function getSupplierId(row) {
-  return row.vendor_snapshot?.vendor_id ?? row.quote_id ?? row.vendor_name;
+  return row.vendor_name || row.quote_id || row.vendor_snapshot?.vendor_id;
 }
 
 function getLogo(name, index) {

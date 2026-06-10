@@ -21,6 +21,7 @@ import {
   sampleProjects,
   makeProjectFromData,
 } from "./data/mockProjects";
+import { createMatchViewModel } from "./utils/matchAdapter";
 
 export default function App() {
   const [screen, setScreen] = useState("login");
@@ -116,7 +117,67 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
-  const buildProjectRequest = (data) => ({
+  const startPartnerMatchingFromRequirements = async () => {
+    setAnalysisErrorMessage("");
+    setScreen("partnerMatchingLoading");
+
+    if (projectData.projectApiId) {
+      return;
+    }
+
+    if (shouldUseMockApi) {
+      setProjectData((current) => ({
+        ...current,
+        projectApiId: current.projectApiId || current.projectId || `mock-${Date.now()}`,
+        requestId: current.requestId || `request-${Date.now()}`,
+      }));
+      return;
+    }
+
+    try {
+      const createdProject = await createProject(buildProjectRequest(projectData));
+      const projectApiId = createdProject.project_id ?? createdProject.id;
+      const requestId = createdProject.request_id ?? createdProject.requestId;
+
+      setProjectData((current) => ({
+        ...current,
+        projectApiId,
+        requestId,
+        createdProject,
+      }));
+    } catch (error) {
+      setAnalysisErrorMessage(
+        error.message || "프로젝트 요구사항 저장 중 오류가 발생했습니다.",
+      );
+      setScreen("requirements");
+    }
+  };
+
+  const buildProjectRequest = (data) => {
+    const displaySizeText = data.displaySize || "";
+
+    return {
+      company_name: data.companyName || "미입력",
+      location: data.location || null,
+      deadline: data.projectDate || null,
+      request_text: [
+        `프로젝트명: ${data.projectName || "미입력"}`,
+        `활용 용도: ${data.usage || "미입력"}`,
+        `디스플레이 크기: ${displaySizeText || "미입력"}`,
+        `수량: ${data.quantity || "미입력"}`,
+        `운영 시간: ${data.operationTime || "미입력"}`,
+        `카테고리: ${data.category || "미입력"}`,
+        `예산 상한: ${data.budgetAmount || "미입력"}`,
+        `현재 단계: ${data.currentStage || "미입력"}`,
+        `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
+        `추가 요청사항: ${data.otherConditions || "없음"}`,
+        `첨부 메모: ${data.attachmentMemo || "없음"}`,
+      ].join("\n"),
+    };
+  };
+
+  /*
+  const buildProjectRequestLegacy = (data) => ({
     company_name: data.companyName,
     location: data.location,
     deadline: data.projectDate,
@@ -130,6 +191,7 @@ export default function App() {
       `현재 단계: ${data.currentStage}`,
     ].join(", "),
   });
+  */
 
   const startAnalysisFlow = async () => {
     setScreen("analysis");
@@ -142,6 +204,7 @@ export default function App() {
           projectData.projectApiId ||
           projectData.projectId ||
           `mock-${Date.now()}`;
+        const mockRequestId = projectData.requestId || `request-${Date.now()}`;
         const mockMatchId = projectData.matchId || `match-${Date.now()}`;
         const mockQuoteIds = (projectData.quoteFiles ?? []).map(
           (file, index) => `mock-quote-${index + 1}-${file.name}`,
@@ -150,6 +213,7 @@ export default function App() {
         setProjectData((current) => ({
           ...current,
           projectApiId: mockProjectApiId,
+          requestId: mockRequestId,
           quoteIds: mockQuoteIds,
           matchId: mockMatchId,
         }));
@@ -161,6 +225,7 @@ export default function App() {
         buildProjectRequest(projectData),
       );
       const projectApiId = createdProject.project_id ?? createdProject.id;
+      const requestId = createdProject.request_id ?? createdProject.requestId;
       const uploadResult = await uploadProjectQuotes(
         projectApiId,
         projectData.quoteFiles ?? [],
@@ -170,13 +235,17 @@ export default function App() {
         uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
         [];
       const matchResult = await runProjectMatch(projectApiId);
-      const matchId = matchResult.match_id ?? matchResult.id;
+      const matchViewModel = createMatchViewModel(matchResult);
+      const matchId = matchViewModel.matchId;
 
       setProjectData((current) => ({
         ...current,
         projectApiId,
+        requestId,
+        createdProject,
         quoteIds,
         matchId,
+        matchResult: matchViewModel,
         quoteUploadResult: uploadResult,
       }));
       setAnalysisState("ready");
@@ -210,7 +279,7 @@ export default function App() {
       <ProjectRequirementsPage
         projectData={projectData}
         onBack={() => setScreen("projects")}
-        onNext={() => setScreen("partnerMatchingLoading")}
+        onNext={startPartnerMatchingFromRequirements}
         onProjectDataChange={setProjectData}
       />
     );
@@ -276,6 +345,7 @@ export default function App() {
         projectData={projectData}
         onBack={() => setScreen("quoteWaiting")}
         onComplete={openDashboard}
+        onProjectDataChange={setProjectData}
       />
     );
   }

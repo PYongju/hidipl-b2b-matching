@@ -1,9 +1,12 @@
+// spec D1~D5 기준: ok / to_be_discussed / parse_fail / separate / included
 const API_CELL_STATUSES = [
+  "ok",
   "normal",
   "included",
   "separate",
   "missing",
   "to_be_discussed",
+  "parse_fail",
   "parse_failed",
 ];
 
@@ -31,11 +34,15 @@ const STATUS_UI = {
 };
 
 const API_STATUS_TO_UI_STATUS = {
+  // spec D1~D5
+  ok: undefined,           // D1 — 정상, 배지 없음
+  to_be_discussed: "toBeDiscussed", // D2
+  parse_fail: "parseFail",          // D3
+  separate: "separate",             // D4
+  included: "included",             // D5
+  // 이전 호환 (구 enum / 한글 표기)
   normal: undefined,
-  included: "included",
-  separate: "separate",
   missing: "missing",
-  to_be_discussed: "toBeDiscussed",
   parse_failed: "parseFail",
   포함: "included",
   "별도 청구": "separate",

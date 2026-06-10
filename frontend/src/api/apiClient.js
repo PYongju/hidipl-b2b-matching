@@ -70,6 +70,21 @@ function runProjectMatch(projectId, topN = 3, runExplanation = true, explanation
   });
 }
 
+function fetchProjectMatches(projectId) {
+  return request(`/api/v1/projects/${projectId}/matches`, {
+    method: "GET",
+  });
+}
+
+function fetchCandidateVendors(projectId, quoteTopN = 10) {
+  return request(`/api/v1/projects/${projectId}/candidate-vendors`, {
+    method: "POST",
+    body: JSON.stringify({
+      quote_top_n: quoteTopN,
+    }),
+  });
+}
+
 function fetchCompare(compareRequest) {
   const projectId = compareRequest.project_id;
   return request(`/api/v1/projects/${projectId}/compare`, {
@@ -92,8 +107,10 @@ function fetchExplanation(projectId, matchId) {
 
 export {
   createProject,
+  fetchCandidateVendors,
   fetchCompare,
   fetchExplanation,
+  fetchProjectMatches,
   request,
   runProjectMatch,
   uploadProjectQuotes,

@@ -12,12 +12,39 @@ export default function ProjectRequirementsPage({
 }) {
   const checks = getMatchingChecks(projectData);
   const readiness = getReadinessScore(checks);
+  const displayUnit = projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
+  const isDisplayInch = displayUnit === "inch";
+  const displayWidthValue = projectData.displayWidth ?? parseDisplayDimension(projectData.displaySize, "width");
+  const displayHeightValue = projectData.displayHeight ?? parseDisplayDimension(projectData.displaySize, "height");
+  const displayInchValue = projectData.displayInch ?? parseDisplayInch(projectData.displaySize);
 
   const updateField = (field, value) => {
     onProjectDataChange((current) => ({
       ...current,
       [field]: value,
     }));
+  };
+
+  const updateDisplaySize = (nextValues) => {
+    onProjectDataChange((current) => {
+      const nextUnit = nextValues.displayUnit ?? current.displayUnit ?? displayUnit;
+      const nextWidth = nextValues.displayWidth ?? current.displayWidth ?? displayWidthValue;
+      const nextHeight = nextValues.displayHeight ?? current.displayHeight ?? displayHeightValue;
+      const nextInch = nextValues.displayInch ?? current.displayInch ?? displayInchValue;
+      const nextDisplaySize =
+        nextUnit === "inch"
+          ? formatInchSize(nextInch)
+          : formatDimensionSize(nextWidth, nextHeight, nextUnit);
+
+      return {
+        ...current,
+        displayUnit: nextUnit,
+        displayWidth: nextUnit === "inch" ? "" : nextWidth,
+        displayHeight: nextUnit === "inch" ? "" : nextHeight,
+        displayInch: nextUnit === "inch" ? nextInch : "",
+        displaySize: nextDisplaySize,
+      };
+    });
   };
 
   return (
@@ -128,19 +155,48 @@ export default function ProjectRequirementsPage({
                 </div>
               </div>
               <div className="requirements-form-grid">
-                <label>
+                <label className="display-size-field">
                   <span>디스플레이 크기</span>
-                  <div className="requirements-money-field">
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => {
-                        const value = event.target.value.replace(/인치/g, "").trim();
-                        updateField("displaySize", value ? `${value}인치` : "");
-                      }}
-                      placeholder="예: 55"
-                      value={(projectData.displaySize || "").replace(/인치$/, "")}
-                    />
-                    <em>인치</em>
+                  <div className={isDisplayInch ? "display-size-control inch" : "display-size-control dimension"}>
+                    {isDisplayInch ? (
+                      <input
+                        inputMode="decimal"
+                        onChange={(event) => updateDisplaySize({ displayInch: event.target.value.trim() })}
+                        placeholder="예: 55"
+                        value={displayInchValue}
+                      />
+                    ) : (
+                      <>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateDisplaySize({ displayWidth: event.target.value.trim() })}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              event.currentTarget.nextElementSibling?.focus();
+                            }
+                          }}
+                          placeholder="W 12000"
+                          value={displayWidthValue}
+                        />
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateDisplaySize({ displayHeight: event.target.value.trim() })}
+                          placeholder="H 3000"
+                          value={displayHeightValue}
+                        />
+                      </>
+                    )}
+                    <select
+                      aria-label="display size unit"
+                      onChange={(event) => updateDisplaySize({ displayUnit: event.target.value })}
+                      value={displayUnit}
+                    >
+                      <option value="mm">mm</option>
+                      <option value="cm">cm</option>
+                      <option value="m">m</option>
+                      <option value="inch">인치</option>
+                    </select>
                   </div>
                 </label>
                 <label>
@@ -323,7 +379,12 @@ function getMatchingChecks(data) {
   const hasCompany = Boolean(data.companyName?.trim());
   const hasLocation = Boolean(data.location?.trim());
   const hasUsage = Boolean(data.usage?.trim());
-  const hasSpec = Boolean(data.displaySize?.trim() || data.quantity?.trim());
+  const hasDisplayDimension = Boolean(
+    data.displaySize?.trim() ||
+      data.displayInch?.trim() ||
+      (data.displayWidth?.trim() && data.displayHeight?.trim()),
+  );
+  const hasSpec = Boolean(hasDisplayDimension || data.quantity?.trim());
   const hasBudget = Boolean(data.budgetAmount?.trim());
   const hasCategory = Boolean(data.category?.trim());
 
@@ -370,6 +431,41 @@ function getReadinessScore(checks) {
   const base = 42;
   const score = checks.reduce((sum, check) => sum + (check.level === "ok" ? 11 : 5), base);
   return Math.min(score, 96);
+}
+
+function inferDisplayUnit(displaySize = "") {
+  if (/인치|inch/i.test(displaySize)) return "inch";
+  const unitMatch = displaySize.match(/\b(mm|cm|m)\b/i);
+  return unitMatch?.[1]?.toLowerCase() || "mm";
+}
+
+function parseDisplayInch(displaySize = "") {
+  const match = displaySize.match(/([\d,.]+)\s*(?:인치|inch)/i);
+  return match?.[1] || "";
+}
+
+function parseDisplayDimension(displaySize = "", axis) {
+  const axisPattern = axis === "width" ? /W\s*([\d,.]+)/i : /H\s*([\d,.]+)/i;
+  const axisMatch = displaySize.match(axisPattern);
+  if (axisMatch?.[1]) return axisMatch[1];
+
+  const pairMatch = displaySize.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
+  if (!pairMatch) return "";
+  return axis === "width" ? pairMatch[1] : pairMatch[2];
+}
+
+function formatInchSize(value = "") {
+  const normalized = value.replace(/인치/g, "").trim();
+  return normalized ? `${normalized}인치` : "";
+}
+
+function formatDimensionSize(width = "", height = "", unit = "mm") {
+  const normalizedWidth = width.trim();
+  const normalizedHeight = height.trim();
+  if (!normalizedWidth && !normalizedHeight) return "";
+  if (!normalizedHeight) return `W ${normalizedWidth} ${unit}`;
+  if (!normalizedWidth) return `H ${normalizedHeight} ${unit}`;
+  return `W ${normalizedWidth} x H ${normalizedHeight} ${unit}`;
 }
 
 function getScheduleState(value) {

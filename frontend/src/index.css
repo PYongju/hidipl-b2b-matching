@@ -2957,6 +2957,23 @@ textarea {
   font-size: 11px;
 }
 
+.partner-table .partner-empty-cell {
+  color: #475569;
+  padding: 34px 20px;
+  text-align: center;
+}
+
+.partner-table .partner-empty-cell b,
+.partner-table .partner-empty-cell span {
+  display: block;
+}
+
+.partner-table .partner-empty-cell b {
+  color: #0f172a;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
 .partner-table input {
   width: 16px;
   height: 16px;
@@ -4450,6 +4467,45 @@ textarea {
   color: #334155;
   font-size: 12px;
   font-style: normal;
+  font-weight: 900;
+}
+
+.display-size-field {
+  min-width: 0;
+}
+
+.display-size-control {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #cfd9e7;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.display-size-control.dimension {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 82px;
+}
+
+.display-size-control.inch {
+  grid-template-columns: minmax(0, 1fr) 82px;
+}
+
+.display-size-control input,
+.display-size-control select {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.display-size-control input + input,
+.display-size-control select {
+  border-left: 1px solid #e2e8f0;
+}
+
+.display-size-control select {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
   font-weight: 900;
 }
 
