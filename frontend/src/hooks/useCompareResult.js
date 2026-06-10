@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchCompare } from "../api/apiClient";
-import { shouldUseMockApi } from "../api/apiMode";
-import getMockCompareResponse from "../data/getMockCompareResponse";
 import { createCompareViewModel } from "../utils/compareAdapter";
 
 const EMPTY_COMPARE_VIEW_MODEL = {
@@ -25,18 +23,11 @@ function useCompareResult(projectData) {
     rawResponse: null,
     state: "loading",
   });
-  const mockResponse = useMemo(() => getMockCompareResponse(projectData), [projectData]);
 
   useEffect(() => {
     let ignore = false;
 
     if (forcedState === "loading" || forcedState === "error") {
-      return () => {
-        ignore = true;
-      };
-    }
-
-    if (shouldUseMockApi) {
       return () => {
         ignore = true;
       };
@@ -59,8 +50,8 @@ function useCompareResult(projectData) {
     };
   }, [forcedState, projectData]);
 
-  const compareState = forcedState ?? (shouldUseMockApi ? "ready" : apiState.state);
-  const rawResponse = shouldUseMockApi ? mockResponse : apiState.rawResponse;
+  const compareState = forcedState ?? apiState.state;
+  const rawResponse = apiState.rawResponse;
   const compareErrorMessage =
     projectData.compareErrorMessage ??
     apiState.error?.message ??
@@ -78,7 +69,6 @@ function useCompareResult(projectData) {
     ...viewModel,
     compareErrorMessage,
     compareState,
-    isMockCompare: shouldUseMockApi,
   };
 }
 
