@@ -128,8 +128,6 @@ async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
         return demo_routers.run_candidate_vendors(project_id, payload)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
 
 
 # [P3] 매칭 실행
