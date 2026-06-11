@@ -205,35 +205,6 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
-  const startPartnerMatchingFromRequirements = async () => {
-    setAnalysisErrorMessage("");
-    setScreen("partnerMatchingLoading");
-
-    if (projectData.projectApiId) {
-      return;
-    }
-
-    try {
-      const createdProject = await createProject(
-        buildProjectRequest(projectData),
-      );
-      const projectApiId = createdProject.project_id ?? createdProject.id;
-      const requestId = createdProject.request_id ?? createdProject.requestId;
-
-      setProjectData((current) => ({
-        ...current,
-        projectApiId,
-        requestId,
-        createdProject,
-      }));
-    } catch (error) {
-      setAnalysisErrorMessage(
-        error.message || "프로젝트 요구사항 저장 중 오류가 발생했습니다.",
-      );
-      setScreen("requirements");
-    }
-  };
-
   const buildProjectRequest = (data) => {
     const displaySizeText = data.displaySize || "";
 
@@ -257,41 +228,8 @@ export default function App() {
     };
   };
 
-  /*
-  const buildProjectRequestLegacy = (data) => ({
-    company_name: data.companyName,
-    location: data.location,
-    deadline: data.projectDate,
-=======
-=======
->>>>>>> 6eb2dff90210dae5d728f0e7b1117d0def3b261b
-  const buildProjectRequest = (data) => ({
-    company_name: data.companyName || "미입력",
-    location: data.location || null,
-    deadline: data.projectDate || null,
-<<<<<<< HEAD
->>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
-=======
->>>>>>> 6eb2dff90210dae5d728f0e7b1117d0def3b261b
-    request_text: [
-      `프로젝트명: ${data.projectName || "미입력"}`,
-      `활용 용도: ${data.usage || "미입력"}`,
-      `디스플레이 크기: ${data.displaySize || "미입력"}`,
-      `수량: ${data.quantity || "미입력"}`,
-      `운영 시간: ${data.operationTime || "미입력"}`,
-      `카테고리: ${data.category || "미입력"}`,
-      `예산 상한: ${data.budgetAmount || "미입력"}`,
-      `현재 단계: ${data.currentStage || "미입력"}`,
-      `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
-      `추가 요청사항: ${data.otherConditions || "없음"}`,
-      `첨부 메모: ${data.attachmentMemo || "없음"}`,
-    ].join("\n"),
-  });
-
   const unwrapCandidateVendors = (response) =>
-    response?.candidate_vendors ??
-    response?.candidates ??
-    [];
+    response?.candidate_vendors ?? response?.candidates ?? [];
 
   const startPartnerMatchingFromRequirements = async () => {
     if (partnerMatchingTransition === "loading") return;
@@ -329,33 +267,41 @@ export default function App() {
       );
       const candidateVendors = unwrapCandidateVendors(candidateResponse);
 
-      await runPartnerMatchingStep("finishing", setPartnerMatchingStep, async () => {});
+      await runPartnerMatchingStep(
+        "finishing",
+        setPartnerMatchingStep,
+        async () => {},
+      );
 
-      updateProjectData((current) => ({
-        ...current,
-        projectApiId,
-        requestId:
-          createdProject?.request_id ??
-          createdProject?.requestId ??
-          current.requestId,
-        createdProject: createdProject ?? current.createdProject,
-        candidateVendors,
-        candidateVendorsLoaded: true,
-        candidateVendorsResponse: candidateResponse,
-        currentStage: "요청 대상 검토중",
-        workflowStatus: "진행 중",
-        lastScreen: "partnerMatching",
-      }), {
-        status: "진행 중",
-        statusTone: "blue",
-        desc: "파트너 추천/요청 대상 검토 중",
-      });
+      updateProjectData(
+        (current) => ({
+          ...current,
+          projectApiId,
+          requestId:
+            createdProject?.request_id ??
+            createdProject?.requestId ??
+            current.requestId,
+          createdProject: createdProject ?? current.createdProject,
+          candidateVendors,
+          candidateVendorsLoaded: true,
+          candidateVendorsResponse: candidateResponse,
+          currentStage: "요청 대상 검토중",
+          workflowStatus: "진행 중",
+          lastScreen: "partnerMatching",
+        }),
+        {
+          status: "진행 중",
+          statusTone: "blue",
+          desc: "파트너 추천/요청 대상 검토 중",
+        },
+      );
       setPartnerMatchingTransition("idle");
       setScreen("partnerMatching");
     } catch (error) {
       setPartnerMatchingTransition("error");
       setPartnerMatchingError(
-        error.message || "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
+        error.message ||
+          "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
       );
     }
   };
@@ -426,60 +372,58 @@ export default function App() {
   }
 
   const goQuoteWaitingFromPartner = () => {
-    updateProjectData((current) => ({
-      ...current,
-      currentStage: "견적서 업로드 대기",
-      workflowStatus: "진행 중",
-      lastScreen: "quoteWaiting",
-    }), {
-      status: "진행 중",
-      statusTone: "blue",
-      desc: "견적서 업로드 대기",
-    });
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적서 업로드 대기",
+        workflowStatus: "진행 중",
+        lastScreen: "quoteWaiting",
+      }),
+      {
+        status: "진행 중",
+        statusTone: "blue",
+        desc: "견적서 업로드 대기",
+      },
+    );
     setScreen("quoteWaiting");
   };
 
   const goQuoteReviewLoading = () => {
-    updateProjectData((current) => ({
-      ...current,
-      currentStage: "견적 비교 분석 중",
-      workflowStatus: "검토 중",
-      lastScreen: "quoteReviewLoading",
-    }), {
-      status: "검토 중",
-      statusTone: "orange",
-      desc: "견적 비교 분석 중",
-    });
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 비교 분석 중",
+        workflowStatus: "검토 중",
+        lastScreen: "quoteReviewLoading",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 비교 분석 중",
+      },
+    );
     setScreen("quoteReviewLoading");
   };
 
   const openDashboardAfterMatch = () => {
-    updateProjectData((current) => ({
-      ...current,
-      currentStage: "견적 검토",
-      workflowStatus: "검토 중",
-      lastScreen: "dashboard",
-    }), {
-      status: "검토 중",
-      statusTone: "orange",
-      desc: "견적 검토 중",
-    });
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 검토",
+        workflowStatus: "검토 중",
+        lastScreen: "dashboard",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 검토 중",
+      },
+    );
     openDashboard();
   };
 
   if (screen === "requirements") {
     return (
-<<<<<<< HEAD
-<<<<<<< HEAD
-      <ProjectRequirementsPage
-        projectData={projectData}
-        onBack={() => setScreen("projects")}
-        onNext={startPartnerMatchingFromRequirements}
-        onProjectDataChange={setProjectData}
-      />
-=======
-=======
->>>>>>> 6eb2dff90210dae5d728f0e7b1117d0def3b261b
       <>
         <ProjectRequirementsPage
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
@@ -487,26 +431,27 @@ export default function App() {
           onBack={() => setScreen("projects")}
           onNext={startPartnerMatchingFromRequirements}
           onProjectDataChange={updateProjectData}
-          onSaveDraft={() => saveCurrentProjectScreen("requirements", {
-            currentStage: "요구사항",
-            workflowStatus: "진행 중",
-          })}
+          onSaveDraft={() =>
+            saveCurrentProjectScreen("requirements", {
+              currentStage: "요구사항",
+              workflowStatus: "진행 중",
+            })
+          }
         />
         <PartnerMatchingLoadingModal
           errorMessage={partnerMatchingError}
           loadingStep={partnerMatchingStep}
           onCancel={cancelPartnerMatchingTransition}
           onRetry={startPartnerMatchingFromRequirements}
-          open={partnerMatchingTransition === "loading" || partnerMatchingTransition === "error"}
+          open={
+            partnerMatchingTransition === "loading" ||
+            partnerMatchingTransition === "error"
+          }
           category={projectData.category}
           companyName={projectData.companyName}
           status={partnerMatchingTransition === "error" ? "error" : "loading"}
         />
       </>
-<<<<<<< HEAD
->>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
-=======
->>>>>>> 6eb2dff90210dae5d728f0e7b1117d0def3b261b
     );
   }
 
@@ -551,10 +496,12 @@ export default function App() {
         onBack={() => setScreen("partnerMatching")}
         onGoDashboard={goQuoteReviewLoading}
         onProjectDataChange={updateProjectData}
-        onSaveDraft={() => saveCurrentProjectScreen("quoteWaiting", {
-          currentStage: "견적서 업로드 대기",
-          workflowStatus: "진행 중",
-        })}
+        onSaveDraft={() =>
+          saveCurrentProjectScreen("quoteWaiting", {
+            currentStage: "견적서 업로드 대기",
+            workflowStatus: "진행 중",
+          })
+        }
       />
     );
   }
@@ -586,8 +533,12 @@ function getProjectStatusTone(status) {
 }
 
 function mergeServerProjectData(localData, serverProject) {
-  const serverStatus = serverProject?.status ?? localData.serverStatus ?? localData.status;
-  const lastScreen = getScreenFromServerStatus(serverStatus, localData.lastScreen);
+  const serverStatus =
+    serverProject?.status ?? localData.serverStatus ?? localData.status;
+  const lastScreen = getScreenFromServerStatus(
+    serverStatus,
+    localData.lastScreen,
+  );
   const workflowStatus = getWorkflowStatusFromServerStatus(
     serverStatus,
     localData.workflowStatus,
@@ -602,7 +553,10 @@ function mergeServerProjectData(localData, serverProject) {
     projectDate: serverProject?.deadline ?? localData.projectDate,
     requestText: serverProject?.request_text ?? localData.requestText,
     createdAt: serverProject?.created_at ?? localData.createdAt,
-    currentStage: getCurrentStageFromServerStatus(serverStatus, localData.currentStage),
+    currentStage: getCurrentStageFromServerStatus(
+      serverStatus,
+      localData.currentStage,
+    ),
     workflowStatus,
     lastScreen,
   };
@@ -646,6 +600,4 @@ function getScreenFromProject(data) {
     return lastScreen;
   }
   return "requirements";
-
-} */
 }
