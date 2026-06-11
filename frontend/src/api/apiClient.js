@@ -44,10 +44,12 @@ function getApiErrorMessage(payload, fallback) {
   const detail = payload.detail;
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
-    return detail
-      .map((item) => item?.msg ?? item?.message ?? JSON.stringify(item))
-      .filter(Boolean)
-      .join("\n") || fallback;
+    return (
+      detail
+        .map((item) => item?.msg ?? item?.message ?? JSON.stringify(item))
+        .filter(Boolean)
+        .join("\n") || fallback
+    );
   }
   if (detail && typeof detail === "object") {
     return detail.message ?? detail.msg ?? JSON.stringify(detail);
@@ -82,7 +84,12 @@ function uploadProjectQuotes(projectId, files) {
   });
 }
 
-function runProjectMatch(projectId, topN = 3, runExplanation = true, explanationProvider = null) {
+function runProjectMatch(
+  projectId,
+  topN = 3,
+  runExplanation = true,
+  explanationProvider = null,
+) {
   return request(`/api/v1/projects/${projectId}/matches`, {
     method: "POST",
     body: JSON.stringify({
@@ -93,18 +100,12 @@ function runProjectMatch(projectId, topN = 3, runExplanation = true, explanation
   });
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 function fetchProjectMatches(projectId) {
   return request(`/api/v1/projects/${projectId}/matches`, {
     method: "GET",
   });
 }
 
-=======
->>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
-=======
->>>>>>> 6eb2dff90210dae5d728f0e7b1117d0def3b261b
 function fetchCandidateVendors(projectId, quoteTopN = 10) {
   return request(`/api/v1/projects/${projectId}/candidate-vendors`, {
     method: "POST",
