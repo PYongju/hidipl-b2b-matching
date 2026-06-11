@@ -124,11 +124,8 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
 @router.post("/projects/{project_id}/candidate-vendors")
 async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
     try:
-        result = demo_routers.run_candidate_vendors(
-            project_id,
-            CandidateVendorsRequest(top_n=body.quote_top_n),
-        )
-        return {"ok": True, "data": result, "error": None}
+        payload = CandidateVendorsRequest(top_n=body.quote_top_n)
+        return demo_routers.run_candidate_vendors(project_id, payload)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
     except ValueError as e:

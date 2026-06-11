@@ -6,6 +6,8 @@ except ImportError:
     HTTPException = Exception
     UploadFile = None
 
+from typing import Any
+
 from config.paths import UPLOAD_DIR
 from services.api_demo.routers import (
     compare_quotes,
@@ -18,11 +20,30 @@ from services.api_demo.routers import (
     upload_quote_paths,
 )
 from services.api_demo.schemas import (
+    CandidateVendorRequest,
     CandidateVendorsRequest,
     CompareRequest,
     MatchRunRequest,
     ProjectCreateRequest,
 )
+
+
+def coerce_candidate_vendors_payload(payload: Any) -> CandidateVendorsRequest | None:
+    if payload is None:
+        return None
+    if isinstance(payload, CandidateVendorsRequest):
+        return payload
+    if isinstance(payload, CandidateVendorRequest):
+        return CandidateVendorsRequest(top_n=payload.quote_top_n)
+    if isinstance(payload, dict):
+        data = dict(payload)
+        if "quote_top_n" in data and "top_n" not in data:
+            data["top_n"] = data["quote_top_n"]
+        return CandidateVendorsRequest(**data)
+    raise TypeError(
+        "candidate-vendors route expected CandidateVendorsRequest, "
+        f"CandidateVendorRequest, dict, or None, got {type(payload).__name__}"
+    )
 
 
 if FastAPI is not None:
@@ -80,10 +101,11 @@ if FastAPI is not None:
     @app.post("/api/v1/projects/{project_id}/candidate-vendors")
     def post_candidate_vendors(
         project_id: str,
-        payload: CandidateVendorsRequest | None = None,
+        payload: dict[str, Any] | None = None,
     ):
         try:
-            return run_candidate_vendors(project_id, payload=payload)
+            candidate_payload = coerce_candidate_vendors_payload(payload)
+            return run_candidate_vendors(project_id, payload=candidate_payload)
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 

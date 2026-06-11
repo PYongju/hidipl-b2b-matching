@@ -251,6 +251,11 @@ def run_candidate_vendors(
     payload: CandidateVendorsRequest | None = None,
 ) -> dict[str, Any]:
     project = _require_project(project_id)
+    if payload is not None and not isinstance(payload, CandidateVendorsRequest):
+        raise TypeError(
+            "run_candidate_vendors expected CandidateVendorsRequest or None, "
+            f"got {type(payload).__name__}"
+        )
     payload = payload or CandidateVendorsRequest()
     top_n = payload.top_n or 10
     similarity_threshold = payload.similarity_threshold
