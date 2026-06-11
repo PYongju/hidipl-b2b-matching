@@ -28,6 +28,17 @@ class PartnerMatchCandidate:
     filter_reasons: list[str]
     check_required: list[str]
     sort_key: list[Any]
+    rank: int | None = None
+    company_location: str | None = None
+    installation_count: int | None = None
+    final_score: float = 0.0
+    semantic_score_calibrated: float = 0.0
+    specialty_match_score: float = 0.0
+    installation_score: float = 0.0
+    success_score: float = 0.0
+    premium_score: float = 0.0
+    stability_score: float = 0.0
+    score_breakdown: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

@@ -93,12 +93,6 @@ function runProjectMatch(projectId, topN = 3, runExplanation = true, explanation
   });
 }
 
-function fetchProjectMatches(projectId) {
-  return request(`/api/v1/projects/${projectId}/matches`, {
-    method: "GET",
-  });
-}
-
 function fetchCandidateVendors(projectId, quoteTopN = 10) {
   return request(`/api/v1/projects/${projectId}/candidate-vendors`, {
     method: "POST",
@@ -134,7 +128,6 @@ export {
   fetchCompare,
   fetchExplanation,
   fetchProject,
-  fetchProjectMatches,
   request,
   runProjectMatch,
   uploadProjectQuotes,

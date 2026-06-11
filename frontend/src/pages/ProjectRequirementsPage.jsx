@@ -9,7 +9,7 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
-  onSaveDraft,
+  isPartnerMatchingLoading = false,
 }) {
   const checks = getMatchingChecks(projectData);
   const readiness = getReadinessScore(checks);
@@ -365,8 +365,13 @@ export default function ProjectRequirementsPage({
           <button className="button action-secondary" onClick={onSaveDraft} type="button">
             임시 저장
           </button>
-          <button className="button action-primary" onClick={onNext} type="button">
-            다음: 파트너 매칭
+          <button
+            className="button action-primary"
+            disabled={isPartnerMatchingLoading}
+            onClick={onNext}
+            type="button"
+          >
+            {isPartnerMatchingLoading ? "파트너 매칭 준비 중..." : "다음: 파트너 매칭"}
           </button>
         </div>
       </footer>
