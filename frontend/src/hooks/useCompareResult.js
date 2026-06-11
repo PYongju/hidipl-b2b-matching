@@ -77,8 +77,11 @@ function useCompareResult(projectData) {
       return EMPTY_COMPARE_VIEW_MODEL;
     }
 
-    return createCompareViewModel(rawResponse);
-  }, [compareState, rawResponse]);
+    return createCompareViewModel(rawResponse, {
+      quoteFileCount: projectData.quoteFiles?.length,
+      quoteIds: projectData.quoteIds,
+    });
+  }, [compareState, rawResponse, projectData.quoteFiles?.length, projectData.quoteIds]);
 
   return {
     ...viewModel,

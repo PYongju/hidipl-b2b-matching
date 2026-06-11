@@ -220,14 +220,12 @@ export default function App() {
   const unwrapCandidateVendors = (response) =>
     response?.candidate_vendors ??
     response?.candidates ??
-    response?.data?.candidate_vendors ??
-    response?.data?.candidates ??
     [];
 
   const startPartnerMatchingFromRequirements = async () => {
     if (partnerMatchingTransition === "loading") return;
 
-    if (projectData.projectApiId) {
+    if (projectData.projectApiId && projectData.candidateVendors?.length) {
       setScreen("partnerMatching");
       return;
     }
@@ -237,12 +235,21 @@ export default function App() {
     setPartnerMatchingError("");
 
     try {
-      const createdProject = await runPartnerMatchingStep(
-        "creating-project",
-        setPartnerMatchingStep,
-        () => createProject(buildProjectRequest(projectData)),
-      );
-      const projectApiId = createdProject.project_id ?? createdProject.id;
+      const createdProject = projectData.projectApiId
+        ? projectData.createdProject
+        : await runPartnerMatchingStep(
+            "creating-project",
+            setPartnerMatchingStep,
+            () => createProject(buildProjectRequest(projectData)),
+          );
+      const projectApiId =
+        projectData.projectApiId ??
+        createdProject?.project_id ??
+        createdProject?.id;
+
+      if (!projectApiId) {
+        throw new Error("서버 프로젝트 ID를 확인하지 못했습니다.");
+      }
 
       const candidateResponse = await runPartnerMatchingStep(
         "fetching-candidates",
@@ -253,13 +260,25 @@ export default function App() {
 
       await runPartnerMatchingStep("finishing", setPartnerMatchingStep, async () => {});
 
-      setProjectData((current) => ({
+      updateProjectData((current) => ({
         ...current,
         projectApiId,
-        requestId: createdProject.request_id ?? createdProject.requestId,
-        createdProject,
+        requestId:
+          createdProject?.request_id ??
+          createdProject?.requestId ??
+          current.requestId,
+        createdProject: createdProject ?? current.createdProject,
         candidateVendors,
-      }));
+        candidateVendorsLoaded: true,
+        candidateVendorsResponse: candidateResponse,
+        currentStage: "요청 대상 검토중",
+        workflowStatus: "진행 중",
+        lastScreen: "partnerMatching",
+      }), {
+        status: "진행 중",
+        statusTone: "blue",
+        desc: "파트너 추천/요청 대상 검토 중",
+      });
       setPartnerMatchingTransition("idle");
       setScreen("partnerMatching");
     } catch (error) {
@@ -385,7 +404,11 @@ export default function App() {
           projectData={projectData}
           onBack={() => setScreen("projects")}
           onNext={startPartnerMatchingFromRequirements}
-          onProjectDataChange={setProjectData}
+          onProjectDataChange={updateProjectData}
+          onSaveDraft={() => saveCurrentProjectScreen("requirements", {
+            currentStage: "요구사항",
+            workflowStatus: "진행 중",
+          })}
         />
         <PartnerMatchingLoadingModal
           errorMessage={partnerMatchingError}

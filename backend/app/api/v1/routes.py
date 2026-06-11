@@ -122,15 +122,23 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
 
 #[P2-1] 파트너 후보 추천
 @router.post("/projects/{project_id}/candidate-vendors")
-async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
+async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, db: Session = Depends(get_db)):
     try:
         payload = CandidateVendorsRequest(top_n=body.quote_top_n)
         result = demo_routers.run_candidate_vendors(project_id, payload)
+        db.execute(
+            text("UPDATE projects SET status = 'partner_matched' WHERE project_id = :project_id"),
+            {"project_id": project_id},
+        )
+        db.commit()
         return result.get("data", result)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    except Exception:
+        db.rollback()
+        raise
 
 
 # [P3] 매칭 실행

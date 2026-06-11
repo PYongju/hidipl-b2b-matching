@@ -74,8 +74,9 @@ function sortRowsByRanking(rows) {
     .map(({ row }) => row);
 }
 
-function createCompareViewModel(response) {
-  const rows = sortRowsByRanking(response?.rows ?? []);
+function createCompareViewModel(response, options = {}) {
+  const rows = sortRowsByRanking(filterRowsByQuoteIds(response?.rows ?? [], options.quoteIds))
+    .slice(0, getExpectedQuoteCount(options));
   const vendorCounts = getVendorCounts(rows);
   const vendorSeen = new Map();
   const suppliers = rows.map((row, index) => {
@@ -108,6 +109,17 @@ function createCompareViewModel(response) {
   ];
 
   return { suppliers, comparisonSections: sections, totalRows };
+}
+
+function getExpectedQuoteCount(options) {
+  const fileCount = options.quoteFileCount ?? 0;
+  const quoteIdCount = options.quoteIds?.length ?? 0;
+
+  if (fileCount > 0 && quoteIdCount > 0) {
+    return Math.min(fileCount, quoteIdCount);
+  }
+
+  return fileCount || quoteIdCount || undefined;
 }
 
 function toSupplier(row, index, vendorMeta) {
@@ -206,13 +218,45 @@ function getByPath(source, path) {
 }
 
 function getSupplierId(row, index = 0) {
+  const quoteId = getRowQuoteId(row);
+  if (quoteId !== null && quoteId !== undefined && quoteId !== "") {
+    return `quote-${quoteId}-${index}`;
+  }
+
   return (
-    row.quote_id ??
     row.id ??
-    row.vendor_snapshot?.quote_id ??
     row.vendor_snapshot?.vendor_id ??
     `${getVendorName(row)}-${index}`
   );
+}
+
+function getRowQuoteId(row) {
+  return row.quote_id ?? row.id ?? row.vendor_snapshot?.quote_id;
+}
+
+function filterRowsByQuoteIds(rows, quoteIds = []) {
+  const expectedIds = new Set((quoteIds ?? []).map((id) => String(id)));
+  const seenQuoteIds = new Set();
+
+  return rows.filter((row) => {
+    const quoteId = getRowQuoteId(row);
+
+    if (quoteId === null || quoteId === undefined || quoteId === "") {
+      return true;
+    }
+
+    const normalizedQuoteId = String(quoteId);
+    if (expectedIds.size > 0 && !expectedIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    if (seenQuoteIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    seenQuoteIds.add(normalizedQuoteId);
+    return true;
+  });
 }
 
 function getVendorName(row) {

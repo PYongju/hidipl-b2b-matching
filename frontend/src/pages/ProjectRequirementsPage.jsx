@@ -9,6 +9,7 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
+  onSaveDraft = () => {},
   isPartnerMatchingLoading = false,
 }) {
   const checks = getMatchingChecks(projectData);

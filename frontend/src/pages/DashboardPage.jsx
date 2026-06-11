@@ -51,7 +51,7 @@ export default function DashboardPage({
   onGoProjects,
   onProjectDataChange,
 }) {
-  const [selectedVendor, setSelectedVendor] = useState(projectData.selectedVendor ?? "");
+  const [selectedSupplierId, setSelectedSupplierId] = useState(projectData.selectedSupplierId ?? "");
   const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId = projectData.projectId || projectData.projectApiId || "프로젝트";
   const {
@@ -99,19 +99,11 @@ export default function DashboardPage({
     () => suppliers.slice(supplierStartIndex, supplierStartIndex + VISIBLE_SUPPLIER_COUNT),
     [suppliers, supplierStartIndex]
   );
-  const selectableVendors = useMemo(() => {
-    const vendorMap = new Map();
-    suppliers.forEach((supplier) => {
-      const vendorName = supplier.vendorName ?? supplier.name;
-      if (!vendorMap.has(vendorName)) {
-        vendorMap.set(vendorName, {
-          ...supplier,
-          name: vendorName,
-        });
-      }
-    });
-    return Array.from(vendorMap.values());
-  }, [suppliers]);
+  const selectableSuppliers = suppliers;
+  const selectedSupplier = useMemo(
+    () => selectableSuppliers.find((supplier) => supplier.id === selectedSupplierId) ?? null,
+    [selectableSuppliers, selectedSupplierId],
+  );
   const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
   const canGoNextSuppliers = canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
 
@@ -120,15 +112,15 @@ export default function DashboardPage({
   }, [supplierCount]);
 
   useEffect(() => {
-    if (!selectableVendors.length) return;
-    setSelectedVendor((current) =>
-      current && selectableVendors.some((supplier) => supplier.name === current)
+    if (!selectableSuppliers.length) return;
+    setSelectedSupplierId((current) =>
+      current && selectableSuppliers.some((supplier) => supplier.id === current)
         ? current
-        : projectData.selectedVendor && selectableVendors.some((supplier) => supplier.name === projectData.selectedVendor)
-          ? projectData.selectedVendor
-        : selectableVendors[0].name,
+        : projectData.selectedSupplierId && selectableSuppliers.some((supplier) => supplier.id === projectData.selectedSupplierId)
+          ? projectData.selectedSupplierId
+        : selectableSuppliers[0].id,
     );
-  }, [projectData.selectedVendor, selectableVendors]);
+  }, [projectData.selectedSupplierId, selectableSuppliers]);
 
   useEffect(() => {
     setSelectionFinalized(projectData.workflowStatus === "완료");
@@ -245,7 +237,8 @@ export default function DashboardPage({
     onProjectDataChange?.((current) => ({
       ...current,
       currentStage: "검토 완료",
-      selectedVendor,
+      selectedSupplierId,
+      selectedVendor: selectedSupplier?.name ?? "",
       workflowStatus: "완료",
       lastScreen: "dashboard",
     }));
@@ -610,14 +603,14 @@ export default function DashboardPage({
             <section className="panel final-panel">
               <h3>최종 선정 <small>(담당자 선택)</small></h3>
               <div className="choice-grid">
-                {selectableVendors.map((supplier) => (
+                {selectableSuppliers.map((supplier) => (
                   <label
-                    className={`choice-card ${selectedVendor === supplier.name ? "selected" : ""}`}
-                    key={supplier.name}
+                    className={`choice-card ${selectedSupplierId === supplier.id ? "selected" : ""}`}
+                    key={supplier.id}
                   >
                     <input
-                      checked={selectedVendor === supplier.name}
-                      onChange={() => setSelectedVendor(supplier.name)}
+                      checked={selectedSupplierId === supplier.id}
+                      onChange={() => setSelectedSupplierId(supplier.id)}
                       type="radio"
                     />
                     <b>{supplier.name}</b>
@@ -664,7 +657,7 @@ export default function DashboardPage({
         </button>
         <button
           className={selectionFinalized ? "button selection-complete-button" : "button action-primary"}
-          disabled={selectionFinalized || !selectedVendor}
+          disabled={selectionFinalized || !selectedSupplier}
           onClick={() => setConfirmOpen(true)}
           type="button"
         >
@@ -676,7 +669,7 @@ export default function DashboardPage({
         <div className="confirm-layer" role="presentation">
           <div className="confirm-dialog" role="dialog" aria-modal="true" aria-label="최종 선정 확인">
             <h2>최종 선정 업체 확정</h2>
-            <p>{selectedVendor}를 최종 선정 업체로 확정하시겠습니까?</p>
+            <p>{selectedSupplier?.name}를 최종 선정 업체로 확정하시겠습니까?</p>
             <div className="confirm-actions">
               <button className="button" onClick={() => setConfirmOpen(false)} type="button">
                 취소
@@ -690,7 +683,7 @@ export default function DashboardPage({
       )}
       {toastVisible && (
         <div className="selection-toast" role="status">
-          {selectedVendor}가 최종 선정 업체로 확정되었습니다.
+          {selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.
         </div>
       )}
       {selectionFinalized && followupVisible && (
@@ -703,7 +696,7 @@ export default function DashboardPage({
           >
             ×
           </button>
-          <b>{selectedVendor}가 최종 선정 업체로 확정되었습니다.</b>
+          <b>{selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.</b>
           <span>프로젝트 상태가 검토 완료로 변경되었습니다.</span>
           <div>
             <button className="button" onClick={onGoProjects} type="button">프로젝트 목록으로 이동</button>
