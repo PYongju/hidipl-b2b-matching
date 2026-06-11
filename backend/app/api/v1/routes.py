@@ -1,4 +1,3 @@
-import logging
 import tempfile
 import logging
 import shutil
@@ -6,7 +5,6 @@ from pathlib import Path
 from unittest import result
 from services.api_demo import routers as demo_routers
 
-logger = logging.getLogger(__name__)
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 from pydantic import BaseModel
