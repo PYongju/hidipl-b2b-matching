@@ -35,6 +35,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         client=None,
         fallback_to_template: bool = True,
         max_tokens: int | None = None,
+        capture_raw_output: bool = False,
     ) -> None:
         load_dotenv()
 
@@ -107,38 +108,54 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         explanation_input = build_explanation_input(recommendation_result)
         payload = asdict(explanation_input)
 
+        error_type = "unknown"
         try:
-            response = self.client.chat.completions.create(
-                model=self.deployment,
-                temperature=0.2,
-                max_tokens=self.max_tokens,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": self._system_prompt()},
-                    {
-                        "role": "user",
-                        "content": (
-                            "아래 추천 결과만 근거로 견적 비교 대시보드용 설명 JSON을 작성하세요.\n"
-                            + json.dumps(payload, ensure_ascii=False)
-                        ),
-                    },
-                ],
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.deployment,
+                    temperature=0.2,
+                    max_tokens=self.max_tokens,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": self._system_prompt()},
+                        {
+                            "role": "user",
+                            "content": (
+                                "아래 추천 결과만 근거로 견적 비교 대시보드용 설명 JSON을 작성하세요.\n"
+                                + json.dumps(payload, ensure_ascii=False)
+                            ),
+                        },
+                    ],
+                )
+            except Exception:
+                error_type = "api_call"    
+                raise
+
             choice = response.choices[0]
             finish_reason = getattr(choice, "finish_reason", None)
             if finish_reason == "length":
+                error_type = "truncated"
                 raise RuntimeError(
                     "Azure OpenAI response truncated: finish_reason=length"
                 )
 
             content = choice.message.content or ""
-            parsed = json.loads(content)
-            return self._to_result(
-                parsed=parsed,
-                recommendation_result=recommendation_result,
-                raw_response=content,
-                finish_reason=finish_reason,
-            )
+            try:
+                parsed = json.loads(content)
+            except Exception:
+                error_type = "json_parse"
+                raise
+            try : 
+                return self._to_result(
+                    parsed=parsed,
+                    recommendation_result=recommendation_result,
+                    raw_response=content,
+                    finish_reason=finish_reason,
+                )
+            except Exception:
+                error_type = "postprocess"
+                raise
+
         except Exception as e:
             if self.fallback_to_template:
                 fallback = self.template_provider.generate(recommendation_result)
@@ -147,6 +164,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                     f"Azure OpenAI explanation generation failed; template fallback used: {e}"
                 )
                 fallback.metadata["fallback_reason"] = str(e)
+                fallback.metadata["fallback_error_type"] = error_type
                 fallback.metadata["max_tokens"] = self.max_tokens
                 return fallback
 
@@ -251,6 +269,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                 "missing_quote_ids": missing_quote_ids,
                 "raw_response_preview": raw_response[:500],
             },
+            raw_llm_output=raw_response if self.capture_raw_output else None,
         )
 
     def _build_supplier_from_llm(
