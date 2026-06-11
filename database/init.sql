@@ -27,6 +27,11 @@ CREATE TABLE IF NOT EXISTS projects (
     created_by   VARCHAR(64)  DEFAULT NULL,
     internal_notes  JSON         DEFAULT NULL,                        -- users.user_id (Entra ID 연동 전 NULL 허용)
     created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status          VARCHAR(32)  NOT NULL DEFAULT 'created',
+    company_name    VARCHAR(256) DEFAULT NULL,
+    location        VARCHAR(256) DEFAULT NULL,
+    deadline        VARCHAR(64)  DEFAULT NULL,
+    request_text    TEXT         DEFAULT NULL,
     PRIMARY KEY (project_id),
     FOREIGN KEY (created_by) REFERENCES users(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
