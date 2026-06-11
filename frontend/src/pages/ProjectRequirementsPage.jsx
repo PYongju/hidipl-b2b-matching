@@ -9,6 +9,7 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
+  onSaveDraft = () => {},
   isPartnerMatchingLoading = false,
 }) {
   const checks = getMatchingChecks(projectData);
@@ -362,7 +363,7 @@ export default function ProjectRequirementsPage({
       <footer className="requirements-bottom-actions">
         <span>요구사항은 빈 값이어도 저장할 수 있습니다.</span>
         <div>
-          <button className="button action-secondary" type="button">
+          <button className="button action-secondary" onClick={onSaveDraft} type="button">
             임시 저장
           </button>
           <button

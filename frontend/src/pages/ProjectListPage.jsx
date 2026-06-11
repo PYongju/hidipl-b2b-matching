@@ -383,7 +383,6 @@ function normalizeStatus(value) {
   if (value === "완료" || String(value).includes("완료")) return "완료";
   if (String(value).includes("검토")) return "검토 중";
   if (String(value).includes("진행")) return "진행 중";
-  if (String(value).includes("초안")) return "초안";
   return readable(value, "진행 중");
 }
 
