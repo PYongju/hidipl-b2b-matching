@@ -3,8 +3,6 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes } from "../api/apiClient";
-import { shouldUseMockApi } from "../api/apiMode";
-
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp";
 
 export default function QuoteWaitingPage({
@@ -52,24 +50,6 @@ export default function QuoteWaitingPage({
     setErrorMessage("");
 
     try {
-      if (shouldUseMockApi) {
-        const mockQuoteIds = selectedFiles.map(
-          (file, index) => `mock-quote-${index + 1}-${file.name}`,
-        );
-        onProjectDataChange((current) => ({
-          ...current,
-          quoteFiles: selectedFiles,
-          quoteIds: mockQuoteIds,
-          quoteUploadResult: {
-            quote_ids: mockQuoteIds,
-            file_count: selectedFiles.length,
-          },
-        }));
-        setUploadState("done");
-        onGoDashboard();
-        return;
-      }
-
       const projectApiId = projectData.projectApiId || projectData.projectId;
       if (!projectApiId) {
         throw new Error("프로젝트 API ID가 없어 견적서를 업로드할 수 없습니다.");

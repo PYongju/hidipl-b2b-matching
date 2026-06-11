@@ -5,6 +5,11 @@ from typing import Any
 from uuid import uuid4
 
 from config.paths import UPLOAD_DIR
+from services.api_demo.project_requirement_adapter import (
+    build_requirement_info_from_project_payload,
+    build_requirement_info_from_project_payload_dict,
+    is_frontend_project_payload,
+)
 from services.api_demo.response_builders import (
     build_candidate_vendors_not_found_response,
     build_candidate_vendors_response,
@@ -34,16 +39,28 @@ SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".xlsx", ".xls"}
 def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
     request_id = f"request_{uuid4().hex[:8]}"
     pipeline = create_requirement_ingestion_pipeline()
-    requirement_result = pipeline.process_text(
-        payload.request_text,
-        request_id=request_id,
-    )
+    if is_frontend_project_payload(payload):
+        requirement_info = build_requirement_info_from_project_payload(
+            payload,
+            request_id=request_id,
+        )
+        requirement_result = pipeline.process_requirement_info(
+            requirement_info,
+            request_id=request_id,
+        )
+    else:
+        requirement_result = pipeline.process_text(
+            payload.request_text,
+            request_id=request_id,
+        )
     record = store.create_project(
         company_name=payload.company_name,
         location=payload.location,
         deadline=payload.deadline,
         request_text=payload.request_text,
         requirement_result=requirement_result,
+        original_request_text=payload.request_text,
+        requirement_source=requirement_result.metadata.get("requirement_source"),
     )
     return build_project_response(record)
 
@@ -201,8 +218,7 @@ def compare_quotes(project_id: str, payload: CompareRequest) -> dict[str, Any]:
     project = _require_project(project_id)
     quote_pool = _require_quote_pool(project_id)
     match = store.get_latest_match(project_id)
-    requirement = getattr(project.requirement_result, "requirement", None)
-    project_install_location = project.location or getattr(requirement, "region", None)
+    project_install_location = _resolve_project_install_location(project)
     return build_compare_response(
         project_id=project_id,
         quote_results=quote_pool.quote_ingestion_results,
@@ -213,11 +229,33 @@ def compare_quotes(project_id: str, payload: CompareRequest) -> dict[str, Any]:
     )
 
 
+def _resolve_project_install_location(project) -> str | None:
+    requirement_result = getattr(project, "requirement_result", None)
+    requirement = getattr(requirement_result, "requirement", None)
+    return _normalize_project_location(
+        getattr(requirement, "region", None)
+    ) or _normalize_project_location(getattr(project, "location", None))
+
+
+def _normalize_project_location(value) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text.lower() in {"", "미입력", "없음", "null", "undefined", "none"}:
+        return None
+    return text
+
+
 def run_candidate_vendors(
     project_id: str,
     payload: CandidateVendorsRequest | None = None,
 ) -> dict[str, Any]:
     project = _require_project(project_id)
+    if payload is not None and not isinstance(payload, CandidateVendorsRequest):
+        raise TypeError(
+            "run_candidate_vendors expected CandidateVendorsRequest or None, "
+            f"got {type(payload).__name__}"
+        )
     payload = payload or CandidateVendorsRequest()
     top_n = payload.top_n or 10
     similarity_threshold = payload.similarity_threshold
@@ -252,12 +290,22 @@ def get_candidate_vendors(project_id: str) -> dict[str, Any]:
 
 def _resolve_candidate_requirement_result(project, payload: CandidateVendorsRequest):
     if _has_candidate_requirement_override(payload):
-        request_text = _build_candidate_requirement_text(project, payload)
-        if not request_text.strip():
-            raise ValueError("candidate-vendors requirement text is required.")
+        payload_dict = {
+            "company_name": payload.customer_name or project.company_name,
+            "location": payload.region or project.location,
+            "deadline": payload.install_schedule_text or project.deadline,
+            "request_text": payload.request_text or _build_candidate_requirement_text(project, payload),
+            "products": payload.products or [],
+        }
+        requirement_info = build_requirement_info_from_project_payload_dict(
+            payload_dict,
+            request_id=project.request_id,
+        )
+        requirement_info.metadata["candidate_override"] = True
+        requirement_info.metadata["save_as_project_requirement"] = False
         pipeline = create_requirement_ingestion_pipeline()
-        return pipeline.process_text(
-            request_text,
+        return pipeline.process_requirement_info(
+            requirement_info,
             request_id=project.request_id,
         )
 

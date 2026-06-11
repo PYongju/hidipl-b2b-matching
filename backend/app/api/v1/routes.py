@@ -7,7 +7,7 @@ from typing import List
 from pydantic import BaseModel
 from services.api_demo.schemas import (
     ProjectCreateRequest as DemoProjectCreateRequest,
-    MatchRunRequest, CandidateVendorRequest, InternalNoteRequest,
+    MatchRunRequest, CandidateVendorRequest, CandidateVendorsRequest, InternalNoteRequest,
 )
 from services.api_demo.schemas import CompareRequest
 from sqlalchemy.orm import Session
@@ -121,8 +121,8 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
 @router.post("/projects/{project_id}/candidate-vendors")
 async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
     try:
-        result = demo_routers.run_candidate_vendors(project_id, body.quote_top_n)
-        return {"ok": True, "data": result, "error": None}
+        payload = CandidateVendorsRequest(top_n=body.quote_top_n)
+        return demo_routers.run_candidate_vendors(project_id, payload)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
 
