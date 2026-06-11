@@ -70,12 +70,15 @@ function runProjectMatch(projectId, topN = 3, runExplanation = true, explanation
   });
 }
 
+<<<<<<< HEAD
 function fetchProjectMatches(projectId) {
   return request(`/api/v1/projects/${projectId}/matches`, {
     method: "GET",
   });
 }
 
+=======
+>>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
 function fetchCandidateVendors(projectId, quoteTopN = 10) {
   return request(`/api/v1/projects/${projectId}/candidate-vendors`, {
     method: "POST",

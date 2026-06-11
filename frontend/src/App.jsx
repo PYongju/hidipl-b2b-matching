@@ -6,12 +6,13 @@ import ProjectRequirementsPage from "./pages/ProjectRequirementsPage";
 import AnalysisPage from "./pages/AnalysisPage";
 import DashboardPage from "./pages/DashboardPage";
 import PartnerMatchingPage from "./pages/PartnerMatchingPage";
-import PartnerMatchingLoadingPage from "./pages/PartnerMatchingLoadingPage";
+import PartnerMatchingLoadingModal from "./components/PartnerMatchingLoadingModal";
 import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import ReportHistoryPage from "./pages/ReportHistoryPage";
 import {
   createProject,
+  fetchCandidateVendors,
   runProjectMatch,
   uploadProjectQuotes,
 } from "./api/apiClient";
@@ -21,6 +22,25 @@ import {
 } from "./data/mockProjects";
 import { createMatchViewModel } from "./utils/matchAdapter";
 
+const PARTNER_MATCHING_MIN_STEP_MS = 1800;
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function runPartnerMatchingStep(step, setStep, action) {
+  const stepStartedAt = Date.now();
+  setStep(step);
+  const result = await action();
+  const remainingStepMs = PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
+  if (remainingStepMs > 0) {
+    await wait(remainingStepMs);
+  }
+  return result;
+}
+
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [projectData, setProjectData] = useState(initialProjectData);
@@ -29,6 +49,9 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
   const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
+  const [partnerMatchingTransition, setPartnerMatchingTransition] = useState("idle");
+  const [partnerMatchingStep, setPartnerMatchingStep] = useState("creating-project");
+  const [partnerMatchingError, setPartnerMatchingError] = useState("");
 
   const startNewProject = () => {
     setEditingProjectId("");
@@ -113,6 +136,7 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
+<<<<<<< HEAD
   const startPartnerMatchingFromRequirements = async () => {
     setAnalysisErrorMessage("");
     setScreen("partnerMatchingLoading");
@@ -168,17 +192,86 @@ export default function App() {
     company_name: data.companyName,
     location: data.location,
     deadline: data.projectDate,
+=======
+  const buildProjectRequest = (data) => ({
+    company_name: data.companyName || "미입력",
+    location: data.location || null,
+    deadline: data.projectDate || null,
+>>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
     request_text: [
-      `프로젝트명: ${data.projectName}`,
-      `활용 용도: ${data.usage}`,
-      `디스플레이 요구: ${data.displayRequirements || data.displaySize}`,
-      `수량: ${data.quantity}`,
-      `예산: ${data.budgetAmount}`,
-      `운영 조건: ${data.operationTime}`,
-      `현재 단계: ${data.currentStage}`,
-    ].join(", "),
+      `프로젝트명: ${data.projectName || "미입력"}`,
+      `활용 용도: ${data.usage || "미입력"}`,
+      `디스플레이 크기: ${data.displaySize || "미입력"}`,
+      `수량: ${data.quantity || "미입력"}`,
+      `운영 시간: ${data.operationTime || "미입력"}`,
+      `카테고리: ${data.category || "미입력"}`,
+      `예산 상한: ${data.budgetAmount || "미입력"}`,
+      `현재 단계: ${data.currentStage || "미입력"}`,
+      `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
+      `추가 요청사항: ${data.otherConditions || "없음"}`,
+      `첨부 메모: ${data.attachmentMemo || "없음"}`,
+    ].join("\n"),
   });
   */
+
+  const unwrapCandidateVendors = (response) =>
+    response?.candidate_vendors ??
+    response?.candidates ??
+    response?.data?.candidate_vendors ??
+    response?.data?.candidates ??
+    [];
+
+  const startPartnerMatchingFromRequirements = async () => {
+    if (partnerMatchingTransition === "loading") return;
+
+    if (projectData.projectApiId) {
+      setScreen("partnerMatching");
+      return;
+    }
+
+    setPartnerMatchingTransition("loading");
+    setPartnerMatchingStep("creating-project");
+    setPartnerMatchingError("");
+
+    try {
+      const createdProject = await runPartnerMatchingStep(
+        "creating-project",
+        setPartnerMatchingStep,
+        () => createProject(buildProjectRequest(projectData)),
+      );
+      const projectApiId = createdProject.project_id ?? createdProject.id;
+
+      const candidateResponse = await runPartnerMatchingStep(
+        "fetching-candidates",
+        setPartnerMatchingStep,
+        () => fetchCandidateVendors(projectApiId, 10),
+      );
+      const candidateVendors = unwrapCandidateVendors(candidateResponse);
+
+      await runPartnerMatchingStep("finishing", setPartnerMatchingStep, async () => {});
+
+      setProjectData((current) => ({
+        ...current,
+        projectApiId,
+        requestId: createdProject.request_id ?? createdProject.requestId,
+        createdProject,
+        candidateVendors,
+      }));
+      setPartnerMatchingTransition("idle");
+      setScreen("partnerMatching");
+    } catch (error) {
+      setPartnerMatchingTransition("error");
+      setPartnerMatchingError(
+        error.message || "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
+      );
+    }
+  };
+
+  const cancelPartnerMatchingTransition = () => {
+    setPartnerMatchingTransition("idle");
+    setPartnerMatchingStep("creating-project");
+    setPartnerMatchingError("");
+  };
 
   const startAnalysisFlow = async () => {
     setScreen("analysis");
@@ -241,12 +334,34 @@ export default function App() {
 
   if (screen === "requirements") {
     return (
+<<<<<<< HEAD
       <ProjectRequirementsPage
         projectData={projectData}
         onBack={() => setScreen("projects")}
         onNext={startPartnerMatchingFromRequirements}
         onProjectDataChange={setProjectData}
       />
+=======
+      <>
+        <ProjectRequirementsPage
+          isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
+          projectData={projectData}
+          onBack={() => setScreen("projects")}
+          onNext={startPartnerMatchingFromRequirements}
+          onProjectDataChange={setProjectData}
+        />
+        <PartnerMatchingLoadingModal
+          errorMessage={partnerMatchingError}
+          loadingStep={partnerMatchingStep}
+          onCancel={cancelPartnerMatchingTransition}
+          onRetry={startPartnerMatchingFromRequirements}
+          open={partnerMatchingTransition === "loading" || partnerMatchingTransition === "error"}
+          category={projectData.category}
+          companyName={projectData.companyName}
+          status={partnerMatchingTransition === "error" ? "error" : "loading"}
+        />
+      </>
+>>>>>>> db10df9d292b702bfd77cb05b4074f01aa4d61d1
     );
   }
 
@@ -269,16 +384,6 @@ export default function App() {
         onDashboard={completeAnalysis}
         onRetry={startAnalysisFlow}
         state={analysisState}
-      />
-    );
-  }
-
-  if (screen === "partnerMatchingLoading") {
-    return (
-      <PartnerMatchingLoadingPage
-        projectData={projectData}
-        onBack={() => setScreen("requirements")}
-        onComplete={() => setScreen("partnerMatching")}
       />
     );
   }
