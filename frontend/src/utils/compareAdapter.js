@@ -76,7 +76,18 @@ function sortRowsByRanking(rows) {
 
 function createCompareViewModel(response) {
   const rows = sortRowsByRanking(response?.rows ?? []);
-  const suppliers = rows.map((row, index) => toSupplier(row, index));
+  const vendorCounts = getVendorCounts(rows);
+  const vendorSeen = new Map();
+  const suppliers = rows.map((row, index) => {
+    const vendorName = getVendorName(row);
+    const nextIndex = (vendorSeen.get(vendorName) ?? 0) + 1;
+    vendorSeen.set(vendorName, nextIndex);
+    return toSupplier(row, index, {
+      hasMultipleQuotes: (vendorCounts.get(vendorName) ?? 0) > 1,
+      quoteOptionIndex: nextIndex,
+      vendorName,
+    });
+  });
   const sections = sectionDefs.map((section) => ({
     ...section,
     rows: section.rows.map((rowDef) => toComparisonRow(rowDef, rows)),
@@ -84,9 +95,9 @@ function createCompareViewModel(response) {
   const totalRows = [
     {
       label: "견적 총액",
-      cells: rows.reduce((cells, row) => {
+      cells: rows.reduce((cells, row, index) => {
         const isUnconfirmed = row.total?.is_confirmed === false;
-        cells[getSupplierId(row)] = {
+        cells[getSupplierId(row, index)] = {
           value: row.total?.display_text ?? formatWon(row.total_with_vat),
           status: isUnconfirmed ? "needsReview" : undefined,
           highlight: !isUnconfirmed && row.highlights?.is_lowest_total_price ? "bestPrice" : undefined,
@@ -99,18 +110,22 @@ function createCompareViewModel(response) {
   return { suppliers, comparisonSections: sections, totalRows };
 }
 
-function toSupplier(row, index) {
-  const id = getSupplierId(row);
+function toSupplier(row, index, vendorMeta) {
+  const id = getSupplierId(row, index);
   const score = getFinalScore(row);
   const hasScore = score !== Number.NEGATIVE_INFINITY;
   const hasParseIssue = row.rule_warnings?.some((warning) => warning.includes("OCR") || warning.includes("Parser"));
   const isRecommended = Boolean(row.highlights?.is_highest_score);
+  const displayName = vendorMeta.hasMultipleQuotes
+    ? `${vendorMeta.vendorName} ${vendorMeta.quoteOptionIndex}안`
+    : vendorMeta.vendorName;
 
   return {
     id,
+    vendorName: vendorMeta.vendorName,
     rank: index + 1,
-    name: row.vendor_name || "업체명 확인 필요",
-    logo: getLogo(row.vendor_name, index),
+    name: displayName,
+    logo: getLogo(vendorMeta.vendorName, index),
     logoClass: ["logo-blue", "logo-purple", "logo-teal", "logo-orange", "logo-gray"][index] ?? "logo-gray",
     fit: hasScore ? Math.round(score) : "-",
     fitClass: hasScore && score >= 80 ? "fit-good" : "fit-warn",
@@ -126,11 +141,11 @@ function toSupplier(row, index) {
 function toComparisonRow(rowDef, rows) {
   return {
     label: rowDef.label,
-    cells: rows.reduce((cells, quoteRow) => {
+    cells: rows.reduce((cells, quoteRow, index) => {
       const cell = rowDef.costKey
         ? getCostCell(quoteRow, rowDef.costKey)
         : getValueCell(quoteRow, rowDef);
-      cells[getSupplierId(quoteRow)] = cell;
+      cells[getSupplierId(quoteRow, index)] = cell;
       return cells;
     }, {}),
   };
@@ -190,8 +205,26 @@ function getByPath(source, path) {
   return path.reduce((value, key) => value?.[key], source);
 }
 
-function getSupplierId(row) {
-  return row.vendor_name || row.quote_id || row.vendor_snapshot?.vendor_id;
+function getSupplierId(row, index = 0) {
+  return (
+    row.quote_id ??
+    row.id ??
+    row.vendor_snapshot?.quote_id ??
+    row.vendor_snapshot?.vendor_id ??
+    `${getVendorName(row)}-${index}`
+  );
+}
+
+function getVendorName(row) {
+  return row.vendor_name || row.vendor_snapshot?.vendor_name || "업체명 확인 필요";
+}
+
+function getVendorCounts(rows) {
+  return rows.reduce((counts, row) => {
+    const vendorName = getVendorName(row);
+    counts.set(vendorName, (counts.get(vendorName) ?? 0) + 1);
+    return counts;
+  }, new Map());
 }
 
 function getLogo(name, index) {
