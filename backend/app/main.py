@@ -1,15 +1,20 @@
 from fastapi import FastAPI
-from api.v1.routes import router
 from fastapi.middleware.cors import CORSMiddleware
- 
-app = FastAPI(title="하이디플 B2B 매칭 시스템", version="0.1.0")
+
+from api.v1.routes import router
+
+
+app = FastAPI(title="HIDIPL B2B Matching API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
 )
 
 app.include_router(router)

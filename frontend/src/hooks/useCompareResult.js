@@ -10,7 +10,7 @@ const EMPTY_COMPARE_VIEW_MODEL = {
 
 function buildCompareRequest(projectData) {
   return {
-    project_id: projectData.projectApiId ?? projectData.projectId,
+    project_id: projectData.projectApiId,
     quote_ids: projectData.quoteIds,
     match_id: projectData.matchId,
   };
@@ -23,11 +23,25 @@ function useCompareResult(projectData) {
     rawResponse: null,
     state: "loading",
   });
+  const apiParamError = useMemo(
+    () =>
+      !forcedState && !projectData.projectApiId
+        ? new Error("비교 검토에 필요한 projectApiId가 없습니다.")
+        : null,
+    [forcedState, projectData.projectApiId],
+  );
 
   useEffect(() => {
     let ignore = false;
 
     if (forcedState === "loading" || forcedState === "error") {
+      return () => {
+        ignore = true;
+      };
+    }
+
+    if (apiParamError) {
+      setApiState({ error: apiParamError, rawResponse: null, state: "error" });
       return () => {
         ignore = true;
       };
@@ -48,12 +62,13 @@ function useCompareResult(projectData) {
     return () => {
       ignore = true;
     };
-  }, [forcedState, projectData]);
+  }, [apiParamError, forcedState, projectData.projectApiId, projectData.quoteIds, projectData.matchId]);
 
-  const compareState = forcedState ?? apiState.state;
+  const compareState = forcedState ?? (apiParamError ? "error" : apiState.state);
   const rawResponse = apiState.rawResponse;
   const compareErrorMessage =
     projectData.compareErrorMessage ??
+    apiParamError?.message ??
     apiState.error?.message ??
     "견적 비교 데이터를 불러오지 못했습니다.";
 
@@ -62,8 +77,11 @@ function useCompareResult(projectData) {
       return EMPTY_COMPARE_VIEW_MODEL;
     }
 
-    return createCompareViewModel(rawResponse);
-  }, [compareState, rawResponse]);
+    return createCompareViewModel(rawResponse, {
+      quoteFileCount: projectData.quoteFiles?.length,
+      quoteIds: projectData.quoteIds,
+    });
+  }, [compareState, rawResponse, projectData.quoteFiles?.length, projectData.quoteIds]);
 
   return {
     ...viewModel,

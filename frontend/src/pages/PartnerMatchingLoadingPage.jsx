@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import { fetchCandidateVendors } from "../api/apiClient";
 
 const MATCHING_STEPS = [
   {
@@ -29,16 +30,28 @@ export default function PartnerMatchingLoadingPage({
   projectData,
   onBack,
   onComplete,
+  onProjectDataChange,
 }) {
   const [activeStep, setActiveStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [candidateState, setCandidateState] = useState(
+    projectData.candidateVendors?.length ? "ready" : "waiting-project",
+  );
+  const [errorMessage, setErrorMessage] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+  const isProjectCreated = Boolean(projectData.projectApiId);
+  const isReady =
+    isComplete &&
+    isProjectCreated &&
+    candidateState === "ready" &&
+    (projectData.candidateVendors?.length ?? 0) > 0;
   const progress = useMemo(() => {
-    if (isComplete) return 100;
+    if (isReady) return 100;
     return Math.min(
-      96,
+      candidateState === "loading" ? 96 : 90,
       Math.round(((activeStep + 1) / MATCHING_STEPS.length) * 92),
     );
-  }, [activeStep, isComplete]);
+  }, [activeStep, candidateState, isReady]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -54,6 +67,68 @@ export default function PartnerMatchingLoadingPage({
 
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!projectData.projectApiId) {
+      setCandidateState("waiting-project");
+      return;
+    }
+
+    if (projectData.candidateVendors?.length) {
+      setCandidateState("ready");
+      return;
+    }
+
+    if (projectData.candidateVendorsLoaded) {
+      setCandidateState("empty");
+      return;
+    }
+
+    let isMounted = true;
+    setCandidateState("loading");
+    setErrorMessage("");
+
+    fetchCandidateVendors(projectData.projectApiId, 51)
+      .then((response) => {
+        if (!isMounted) return;
+        const candidates = response?.candidate_vendors ?? [];
+
+        onProjectDataChange((current) => ({
+          ...current,
+          candidateVendors: candidates,
+          candidateVendorsLoaded: true,
+          candidateVendorsResponse: response,
+        }));
+        setCandidateState(candidates.length ? "ready" : "empty");
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setCandidateState("error");
+        setErrorMessage(error.message || "파트너 추천 후보 조회 중 오류가 발생했습니다.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    onProjectDataChange,
+    projectData.candidateVendors?.length,
+    projectData.candidateVendorsLoaded,
+    projectData.projectApiId,
+    retryCount,
+  ]);
+
+  const retryCandidateFetch = () => {
+    onProjectDataChange((current) => ({
+      ...current,
+      candidateVendors: [],
+      candidateVendorsLoaded: false,
+      candidateVendorsResponse: null,
+    }));
+    setRetryCount((current) => current + 1);
+  };
+
+  const statusText = getCandidateStatusText(candidateState, isProjectCreated, isReady);
 
   return (
     <div className="flow-page matching-loading-page">
@@ -71,11 +146,11 @@ export default function PartnerMatchingLoadingPage({
           <div className="matching-loading-symbol" aria-hidden="true">
             <span />
           </div>
-          <Badge tone={isComplete ? "green" : "blue"}>
-            {isComplete ? "추천 준비 완료" : "AI 파트너 매칭중"}
+          <Badge tone={isReady ? "green" : candidateState === "error" ? "orange" : "blue"}>
+            {statusText.badge}
           </Badge>
           <h1>
-            {isComplete
+            {isReady
               ? "추천 파트너 검토 준비가 완료되었습니다"
               : "프로젝트 조건에 맞는 파트너를 찾고 있습니다"}
           </h1>
@@ -123,16 +198,63 @@ export default function PartnerMatchingLoadingPage({
             </article>
           </div>
 
+          {candidateState === "waiting-project" ? (
+            <div className="matching-loading-message">
+              프로젝트를 저장하는 중입니다. 저장이 완료되면 파트너 추천을 시작합니다.
+            </div>
+          ) : null}
+
+          {candidateState === "loading" ? (
+            <div className="matching-loading-message">
+              candidate-vendors API에서 추천 후보를 조회하고 있습니다.
+            </div>
+          ) : null}
+
+          {candidateState === "empty" ? (
+            <div className="matching-loading-message warning">
+              추천 후보가 없습니다. 요구사항을 보완하거나 백엔드 후보 조회 결과를 확인해야 합니다.
+            </div>
+          ) : null}
+
+          {candidateState === "error" ? (
+            <div className="matching-loading-message warning">
+              <b>추천 후보 조회 실패</b>
+              <span>{errorMessage}</span>
+              <button className="button button-small" onClick={retryCandidateFetch} type="button">
+                다시 조회
+              </button>
+            </div>
+          ) : null}
+
           <div className="matching-loading-actions">
             <button className="button" onClick={onBack} type="button">
               요구사항 수정
             </button>
-            <button className="button action-primary" disabled={!isComplete} onClick={onComplete} type="button">
-              추천 결과 보기
+            <button className="button action-primary" disabled={!isReady} onClick={onComplete} type="button">
+              {statusText.action}
             </button>
           </div>
         </section>
       </main>
     </div>
   );
+}
+
+function getCandidateStatusText(candidateState, isProjectCreated, isReady) {
+  if (isReady) {
+    return { badge: "추천 준비 완료", action: "추천 결과 보기" };
+  }
+  if (!isProjectCreated || candidateState === "waiting-project") {
+    return { badge: "프로젝트 저장중", action: "프로젝트 저장 대기" };
+  }
+  if (candidateState === "loading") {
+    return { badge: "추천 후보 조회중", action: "추천 후보 조회중" };
+  }
+  if (candidateState === "empty") {
+    return { badge: "추천 후보 없음", action: "추천 결과 없음" };
+  }
+  if (candidateState === "error") {
+    return { badge: "추천 조회 오류", action: "추천 조회 필요" };
+  }
+  return { badge: "AI 파트너 매칭중", action: "추천 결과 보기" };
 }

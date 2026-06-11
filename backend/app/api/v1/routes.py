@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 from unittest import result
 from services.api_demo import routers as demo_routers
+
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -59,8 +60,8 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
         db.rollback()
     except Exception as e:
         db.rollback()
-        raise  # 또는 로깅 후 HTTP 500 반환
-    
+        logger.warning("projects DB insert 실패 (비치명적): %s", e)
+
     return {"ok": True, "data": result, "error": None}
 
 

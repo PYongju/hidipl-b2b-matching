@@ -3,19 +3,20 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes } from "../api/apiClient";
-const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp";
+
+const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
 
 export default function QuoteWaitingPage({
   projectData,
   onBack,
   onGoDashboard,
   onProjectDataChange,
+  onSaveDraft,
 }) {
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [uploadState, setUploadState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const canCompare = selectedFiles.length > 0 && uploadState !== "uploading";
-  const viewedCount = 0;
   const receivedCount = selectedFiles.length;
 
   const updateFiles = (files) => {
@@ -50,7 +51,7 @@ export default function QuoteWaitingPage({
     setErrorMessage("");
 
     try {
-      const projectApiId = projectData.projectApiId || projectData.projectId;
+      const projectApiId = projectData.projectApiId;
       if (!projectApiId) {
         throw new Error("프로젝트 API ID가 없어 견적서를 업로드할 수 없습니다.");
       }
@@ -106,13 +107,13 @@ export default function QuoteWaitingPage({
         <ProjectStepTabs
           activeStep={3}
           onGoPartnerMatching={onBack}
-          onGoQuoteReview={selectedFiles.length ? onGoDashboard : undefined}
+          onGoQuoteReview={uploadState === "done" ? onGoDashboard : undefined}
         />
 
         <section className="quote-status-bar">
           <article>
-            <span>요청 상태</span>
-            <strong>견적 요청 발송됨</strong>
+            <span>현재 상태</span>
+            <strong>{uploadState === "done" ? "견적서 업로드 완료" : uploadState === "uploading" ? "견적서 업로드 중" : "견적서 업로드 대기"}</strong>
           </article>
           <article>
             <span>견적서 업로드</span>
@@ -124,7 +125,7 @@ export default function QuoteWaitingPage({
           </article>
           <article>
             <span>마지막 업데이트</span>
-            <strong>업로드 후 자동 갱신</strong>
+            <strong>{uploadState === "done" ? "업로드 완료" : "업로드 전"}</strong>
           </article>
         </section>
 
@@ -141,6 +142,13 @@ export default function QuoteWaitingPage({
               </div>
             </div>
 
+            {uploadState === "uploading" ? (
+              <div className="quote-upload-progress-box" aria-live="polite">
+                <b>견적서를 업로드하고 OCR/파싱을 준비하고 있습니다.</b>
+                <span>파일 수와 용량에 따라 잠시 시간이 걸릴 수 있습니다. 완료되면 자동으로 비교 분석 단계로 이동합니다.</span>
+              </div>
+            ) : null}
+
             <label className="drop-zone upload-drop-zone quote-bulk-drop-zone">
               <input
                 accept={ACCEPTED_QUOTE_FILES}
@@ -149,7 +157,7 @@ export default function QuoteWaitingPage({
                 type="file"
               />
               <b>파일을 드래그하거나 클릭하여 업로드</b>
-              <span>PDF, Excel, Word, 이미지 파일 지원 · 여러 개 선택 가능</span>
+              <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
             </label>
 
             <div className="uploaded-list quote-uploaded-list">
@@ -192,19 +200,35 @@ export default function QuoteWaitingPage({
             </div>
 
             <section>
-              <h3>리마인드 발송</h3>
-              <button className="quote-action-button" type="button">
-                미열람 업체에 발송 <Badge tone="blue">{viewedCount}</Badge>
+              <h3>업로드 안내</h3>
+              <button
+                className="quote-action-button"
+                disabled
+                title="현재 통합 범위에서는 프로젝트 단위 업로드만 사용합니다."
+                type="button"
+              >
+                프로젝트 단위 일괄 업로드 <Badge tone="blue">{selectedFiles.length}</Badge>
               </button>
-              <button className="quote-action-button" type="button">
-                전체 미수신 업체에 발송 <Badge tone="blue">-</Badge>
+              <button
+                className="quote-action-button"
+                disabled
+                title="업체명 매핑은 OCR/파싱 결과 연동 후 확인할 수 있습니다."
+                type="button"
+              >
+                업체명 매핑은 OCR/파싱 후 확인
               </button>
             </section>
 
             <section>
-              <h3>요청 대상 관리</h3>
-              <button className="quote-action-button" type="button">요청 대상 추가</button>
-              <button className="quote-action-button" type="button">수동 업로드 등록</button>
+              <h3>후속 작업</h3>
+              <button
+                className="quote-action-button"
+                disabled
+                title="하단의 업로드 후 비교 분석 버튼을 사용하세요."
+                type="button"
+              >
+                업로드 완료 후 비교 분석
+              </button>
             </section>
 
             <label className="request-memo">
@@ -224,8 +248,7 @@ export default function QuoteWaitingPage({
               : "견적서를 업로드하면 비교 검토를 시작할 수 있습니다."}
         </span>
         <div>
-          <button className="button action-secondary" type="button">임시 저장</button>
-          <button className="button button-blue" type="button">리마인드 발송</button>
+          <button className="button action-secondary" onClick={onSaveDraft} type="button">임시 저장</button>
           <button
             className="button action-primary"
             disabled={!canCompare}
