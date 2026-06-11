@@ -1,6 +1,7 @@
 import tempfile
 import shutil
 from pathlib import Path
+from unittest import result
 from services.api_demo import routers as demo_routers
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
@@ -122,7 +123,8 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
 async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest):
     try:
         payload = CandidateVendorsRequest(top_n=body.quote_top_n)
-        return demo_routers.run_candidate_vendors(project_id, payload)
+        result = demo_routers.run_candidate_vendors(project_id, payload)
+        return result.get("data", result)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
 
