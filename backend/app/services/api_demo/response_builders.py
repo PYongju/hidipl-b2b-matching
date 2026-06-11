@@ -68,11 +68,20 @@ def build_quote_summary(result) -> dict[str, Any]:
 def build_candidate_vendors_response(project_id: str, candidate_vendor_record) -> dict[str, Any]:
     result = candidate_vendor_record.candidate_vendor_result
     requirement = getattr(candidate_vendor_record.requirement_result, "requirement", None)
+    all_candidates = list(getattr(result, "all_candidates", []) or [])
+    selected_candidates = [
+        candidate for candidate in all_candidates if getattr(candidate, "business_rule_passed", False)
+    ]
+    filtered_candidates = [
+        candidate for candidate in all_candidates if not getattr(candidate, "business_rule_passed", False)
+    ]
     metadata = dict(getattr(result, "metadata", {}) or {})
     metadata.update(
         {
-            "candidate_count": len(result.candidates),
+            "candidate_count": len(all_candidates),
             "selected_vendor_count": candidate_vendor_record.selected_vendor_count,
+            "selected_count": len(selected_candidates),
+            "not_selected_count": len(filtered_candidates),
             "executed_at": candidate_vendor_record.executed_at,
         }
     )
@@ -91,11 +100,11 @@ def build_candidate_vendors_response(project_id: str, candidate_vendor_record) -
             "requested_vendor_names": list(candidate_vendor_record.requested_vendor_names),
             "candidate_vendors": [
                 build_candidate_vendor_item(candidate, rank=index + 1)
-                for index, candidate in enumerate(result.candidates)
+                for index, candidate in enumerate(all_candidates)
             ],
             "filtered_vendors": [
                 build_filtered_vendor_item(candidate)
-                for candidate in result.filtered_candidates[:20]
+                for candidate in filtered_candidates
             ],
             "metadata": strip_heavy_fields(metadata),
         },
@@ -125,16 +134,23 @@ def _safe_display_path(value: str | None) -> str | None:
 def build_candidate_vendor_item(candidate, *, rank: int) -> dict[str, Any]:
     metadata = getattr(candidate, "metadata", {}) or {}
     return {
-        "rank": rank,
+        "rank": getattr(candidate, "rank", None) or rank,
         "vendor_name": candidate.partner_name,
         "specialty_tags": list(candidate.specialty_tags),
         "semantic_similarity_score": candidate.semantic_similarity_score,
+        "semantic_score_calibrated": getattr(candidate, "semantic_score_calibrated", None),
         "cosine_similarity": candidate.cosine_similarity,
+        "final_score": getattr(candidate, "final_score", None),
+        "score_breakdown": strip_heavy_fields(getattr(candidate, "score_breakdown", {}) or {}),
         "is_premium": candidate.is_premium,
         "success_rate": candidate.success_rate,
         "response_speed": candidate.response_speed,
         "financial_status": candidate.financial_status,
-        "company_location": metadata.get("company_location"),
+        "company_location": getattr(candidate, "company_location", None)
+        or metadata.get("company_location"),
+        "installation_count": getattr(candidate, "installation_count", None)
+        if getattr(candidate, "installation_count", None) is not None
+        else metadata.get("installation_count"),
         "business_rule_passed": candidate.business_rule_passed,
         "business_stage": candidate.business_stage,
         "filter_reasons": list(candidate.filter_reasons),
@@ -150,7 +166,11 @@ def build_filtered_vendor_item(candidate) -> dict[str, Any]:
         "business_rule_passed": candidate.business_rule_passed,
         "business_stage": candidate.business_stage,
         "filter_reasons": list(candidate.filter_reasons),
-        "company_location": metadata.get("company_location"),
+        "company_location": getattr(candidate, "company_location", None)
+        or metadata.get("company_location"),
+        "installation_count": getattr(candidate, "installation_count", None)
+        if getattr(candidate, "installation_count", None) is not None
+        else metadata.get("installation_count"),
     }
 
 
@@ -1100,7 +1120,17 @@ def strip_heavy_fields(obj: Any) -> Any:
     if isinstance(obj, dict):
         result = {}
         for key, value in obj.items():
-            if key in {"embedding_vector", "raw", "raw_document", "binary_content"}:
+            if key in {
+                "embedding_vector",
+                "requirement_embedding",
+                "partner_embedding",
+                "raw",
+                "raw_document",
+                "binary_content",
+                "api_key",
+                "endpoint",
+                "deployment",
+            }:
                 continue
             if key in {"source_text", "ocr_text"}:
                 result[key] = str(value)[:1000]
