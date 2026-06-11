@@ -1,9 +1,11 @@
+import json
 import tempfile
 import logging
 import shutil
 from pathlib import Path
 from unittest import result
 from services.api_demo import routers as demo_routers
+
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -59,8 +61,8 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
         db.rollback()
     except Exception as e:
         db.rollback()
-        raise  # 또는 로깅 후 HTTP 500 반환
-    
+        logger.warning("projects DB insert 실패 (비치명적): %s", e)
+
     return {"ok": True, "data": result, "error": None}
 
 
@@ -89,11 +91,13 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
                     text("""
                         INSERT INTO quotes (
                             quote_id, project_id, vendor_name, vendor_id,
+                            project_name, received_at,
                             total_supply_price, total_with_vat,
                             delivery_weeks, delivery_basis_raw,
                             warranty_months, created_at
                         ) VALUES (
                             :quote_id, :project_id, :vendor_name, :vendor_id,
+                            :project_name, :received_at,
                             :total_supply_price, :total_with_vat,
                             :delivery_weeks, :delivery_basis_raw,
                             :warranty_months, :created_at
@@ -103,7 +107,9 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
                         "quote_id": quote["quote_id"],
                         "project_id": project_id,
                         "vendor_name": quote["vendor_name"],
-                        "vendor_id": quote.get("vendor_snapshot", {}).get("vendor_id"),
+                        "vendor_id": (quote.get("vendor_snapshot") or {}).get("vendor_id"),
+                        "project_name": quote.get("project_name") or "미입력",
+                        "received_at": quote.get("received_at") or datetime.now(),
                         "total_supply_price": quote["total_supply_price"],
                         "total_with_vat": quote.get("total_with_vat"),
                         "delivery_weeks": quote.get("delivery_weeks"),
@@ -191,10 +197,10 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
                         "delivery_score": item.get("delivery_score", 0.0),
                         "warranty_score": item.get("warranty_score", 0.0),
                         "installation_score": item.get("installation_score", 0.0),
-                        "matched_rules": str(item.get("matched_rules", [])),
-                        "filter_reasons": str(item.get("filter_reasons", [])),
-                        "check_required": str(item.get("check_required", [])),
-                        "rule_warnings": str(item.get("rule_warnings", [])),
+                        "matched_rules": json.dumps(item.get("matched_rules") or [], ensure_ascii=False),
+                        "filter_reasons": json.dumps(item.get("filter_reasons") or [], ensure_ascii=False),
+                        "check_required": json.dumps(item.get("check_required") or [], ensure_ascii=False),
+                        "rule_warnings": json.dumps(item.get("rule_warnings") or [], ensure_ascii=False),
                     }
                 )
             db.commit()

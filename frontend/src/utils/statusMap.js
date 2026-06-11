@@ -1,9 +1,12 @@
+// spec D1~D5 기준: ok / to_be_discussed / parse_fail / separate / included
 const API_CELL_STATUSES = [
+  "ok",
   "normal",
   "included",
   "separate",
   "missing",
   "to_be_discussed",
+  "parse_fail",
   "parse_failed",
 ];
 
@@ -31,11 +34,15 @@ const STATUS_UI = {
 };
 
 const API_STATUS_TO_UI_STATUS = {
-  normal: undefined,
-  included: "included",
-  separate: "separate",
-  missing: "missing",
+  // spec D1~D5
+  ok: undefined,
   to_be_discussed: "toBeDiscussed",
+  parse_fail: "parseFail",
+  separate: "separate",
+  included: "included",
+  // 이전 호환
+  normal: undefined,
+  missing: "missing",
   parse_failed: "parseFail",
   포함: "included",
   "별도 청구": "separate",
@@ -46,7 +53,7 @@ const API_STATUS_TO_UI_STATUS = {
   "OCR 분석 실패": "parseFail",
   "수정 필요": "parseFail",
   미기재: "missing",
-  미확정: "needsReview",
+  미확인: "needsReview",
 };
 
 function normalizeApiStatus(status) {
