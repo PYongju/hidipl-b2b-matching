@@ -248,6 +248,11 @@ def build_compare_response(
             item.quote_id
             for item in recommendation_result.items[:top_n]
         }
+    elif not selected_ids and recommendation_result:
+        selected_ids = {
+            item.quote_id
+            for item in recommendation_result.all_items
+        }
 
     rows = []
     for result in quote_results:
@@ -266,6 +271,20 @@ def build_compare_response(
 
     _apply_compare_highlights(rows)
 
+    product_group_filter = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get("product_group_filter")
+        if recommendation_result
+        else None
+    )
+    product_group_excluded_candidates = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get(
+            "product_group_excluded_candidates",
+            [],
+        )
+        if recommendation_result
+        else []
+    )
+
     return {
         "project_id": project_id,
         "rows": rows,
@@ -273,6 +292,8 @@ def build_compare_response(
             "row_count": len(rows),
             "quote_ids": quote_ids or [],
             "top_n": top_n,
+            "product_group_filter": product_group_filter,
+            "excluded_candidates": product_group_excluded_candidates,
         },
     }
 
