@@ -16,10 +16,7 @@ import {
   runProjectMatch,
   uploadProjectQuotes,
 } from "./api/apiClient";
-import {
-  initialProjectData,
-  makeProjectFromData,
-} from "./data/mockProjects";
+import { initialProjectData, makeProjectFromData } from "./data/mockProjects";
 import { createMatchViewModel } from "./utils/matchAdapter";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
@@ -34,7 +31,8 @@ async function runPartnerMatchingStep(step, setStep, action) {
   const stepStartedAt = Date.now();
   setStep(step);
   const result = await action();
-  const remainingStepMs = PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
+  const remainingStepMs =
+    PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
   if (remainingStepMs > 0) {
     await wait(remainingStepMs);
   }
@@ -49,16 +47,21 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
   const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
-  const [partnerMatchingTransition, setPartnerMatchingTransition] = useState("idle");
-  const [partnerMatchingStep, setPartnerMatchingStep] = useState("creating-project");
+  const [partnerMatchingTransition, setPartnerMatchingTransition] =
+    useState("idle");
+  const [partnerMatchingStep, setPartnerMatchingStep] =
+    useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
     id,
     name: data.projectName || `${data.companyName || "신규 고객"} 검토 건`,
     status: overrides.status || data.workflowStatus || "진행 중",
-    statusTone: overrides.statusTone || getProjectStatusTone(overrides.status || data.workflowStatus),
-    desc: overrides.desc || data.currentStage || data.usage || "요구사항 정리 중",
+    statusTone:
+      overrides.statusTone ||
+      getProjectStatusTone(overrides.status || data.workflowStatus),
+    desc:
+      overrides.desc || data.currentStage || data.usage || "요구사항 정리 중",
     meta: [
       data.projectDate || "일정 미정",
       data.budgetAmount ? `${data.budgetAmount} 이하` : "예산 미정",
@@ -139,11 +142,15 @@ export default function App() {
       setActiveProjectId(project.id);
       setEditingProjectId(project.id);
 
-      const apiProjectId = localProjectData.projectApiId ?? localProjectData.project_id;
+      const apiProjectId =
+        localProjectData.projectApiId ?? localProjectData.project_id;
       if (apiProjectId) {
         try {
           const serverProject = await fetchProject(apiProjectId);
-          const restoredProjectData = mergeServerProjectData(localProjectData, serverProject);
+          const restoredProjectData = mergeServerProjectData(
+            localProjectData,
+            serverProject,
+          );
           setProjectData(restoredProjectData);
           syncProjectList(restoredProjectData);
           setScreen(getScreenFromProject(restoredProjectData));
@@ -198,8 +205,6 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   const startPartnerMatchingFromRequirements = async () => {
     setAnalysisErrorMessage("");
     setScreen("partnerMatchingLoading");
@@ -209,7 +214,9 @@ export default function App() {
     }
 
     try {
-      const createdProject = await createProject(buildProjectRequest(projectData));
+      const createdProject = await createProject(
+        buildProjectRequest(projectData),
+      );
       const projectApiId = createdProject.project_id ?? createdProject.id;
       const requestId = createdProject.request_id ?? createdProject.requestId;
 
@@ -639,4 +646,6 @@ function getScreenFromProject(data) {
     return lastScreen;
   }
   return "requirements";
+
+} */
 }
