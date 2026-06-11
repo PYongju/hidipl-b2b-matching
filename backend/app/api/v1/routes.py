@@ -2,7 +2,6 @@ import logging
 import tempfile
 import shutil
 from pathlib import Path
-from unittest import result
 from services.api_demo import routers as demo_routers
 
 logger = logging.getLogger(__name__)
