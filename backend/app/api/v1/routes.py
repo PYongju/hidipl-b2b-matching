@@ -4,7 +4,6 @@ import shutil
 from pathlib import Path
 from services.api_demo import routers as demo_routers
 
-logger = logging.getLogger(__name__)
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -19,6 +18,9 @@ from datetime import datetime
 from core.database import get_db
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -41,10 +43,15 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
     )
     try:
         db.execute(
-            text("INSERT INTO projects (project_id, created_at) VALUES (:project_id, :created_at)"),
+            text("INSERT INTO projects (project_id, created_at, status, company_name, location, deadline, request_text) VALUES (:project_id, :created_at, :status, :company_name, :location, :deadline, :request_text)"),
             {
                 "project_id": result["project_id"],
                 "created_at": datetime.now(),
+                "status": "created",
+                "company_name": body.company_name,
+                "location": body.location,
+                "deadline": body.deadline,
+                "request_text": body.request_text,
             }
         )
         db.commit()
@@ -110,7 +117,12 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
             db.rollback()
         except Exception as e:
             db.rollback()
-            logger.warning("quotes DB insert 실패 (비치명적): %s", e)
+            raise  # 또는 로깅 후 HTTP 500 반환
+        db.execute(
+            text("UPDATE projects SET status = 'quote_uploaded' WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        )
+        db.commit()
         return {"ok": True, "data": result, "error": None}
 
     except KeyError as e:
@@ -195,13 +207,47 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
             db.rollback()
         except Exception as e:
             db.rollback()
-            logger.warning("match_results DB insert 실패 (비치명적): %s", e)
+            raise  # 또는 로깅 후 HTTP 500 반환
+
+        db.execute(
+            text("UPDATE projects SET status = 'matched' WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        )
+        db.commit()
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
+
+# [P8] 프로젝트 상태 조회
+@router.get("/projects/{project_id}")
+async def get_project(project_id: str, db: Session = Depends(get_db)):
+    try:
+        row = db.execute(
+            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+        return {
+            "ok": True,
+            "data": {
+                "project_id": row.project_id,
+                "status": row.status,
+                "company_name": row.company_name,
+                "location": row.location,
+                "deadline": row.deadline,
+                "request_text": row.request_text,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            },
+            "error": None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
