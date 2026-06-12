@@ -14,14 +14,12 @@ async function request(endpoint, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(
-      payload?.error?.message ?? payload?.message ?? "API request failed",
-    );
+    throw new Error(getApiErrorMessage(payload, "API request failed"));
   }
 
   if (payload && typeof payload === "object" && "ok" in payload) {
     if (!payload.ok) {
-      throw new Error(payload.error?.message ?? "API request failed");
+      throw new Error(getApiErrorMessage(payload, "API request failed"));
     }
     return payload.data;
   }
@@ -40,10 +38,37 @@ async function parseJson(response) {
   }
 }
 
+function getApiErrorMessage(payload, fallback) {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const detail = payload.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return (
+      detail
+        .map((item) => item?.msg ?? item?.message ?? JSON.stringify(item))
+        .filter(Boolean)
+        .join("\n") || fallback
+    );
+  }
+  if (detail && typeof detail === "object") {
+    return detail.message ?? detail.msg ?? JSON.stringify(detail);
+  }
+
+  if (typeof payload.error === "string") return payload.error;
+  return payload.error?.message ?? payload.message ?? fallback;
+}
+
 function createProject(project) {
   return request("/api/v1/projects", {
     method: "POST",
     body: JSON.stringify(project),
+  });
+}
+
+function fetchProject(projectId) {
+  return request(`/api/v1/projects/${projectId}`, {
+    method: "GET",
   });
 }
 
@@ -59,7 +84,12 @@ function uploadProjectQuotes(projectId, files) {
   });
 }
 
-function runProjectMatch(projectId, topN = 3, runExplanation = true, explanationProvider = null) {
+function runProjectMatch(
+  projectId,
+  topN = 3,
+  runExplanation = true,
+  explanationProvider = null,
+) {
   return request(`/api/v1/projects/${projectId}/matches`, {
     method: "POST",
     body: JSON.stringify({
@@ -67,6 +97,12 @@ function runProjectMatch(projectId, topN = 3, runExplanation = true, explanation
       run_explanation: runExplanation,
       explanation_provider: explanationProvider,
     }),
+  });
+}
+
+function fetchProjectMatches(projectId) {
+  return request(`/api/v1/projects/${projectId}/matches`, {
+    method: "GET",
   });
 }
 
@@ -99,11 +135,28 @@ function fetchExplanation(projectId, matchId) {
   );
 }
 
+function fetchProjects() {
+  return request("/api/v1/projects", {
+    method: "GET",
+  });
+}
+
+function deleteProjects(projectIds) {
+  return request("/api/v1/projects", {
+    method: "DELETE",
+    body: JSON.stringify({ project_ids: projectIds }),
+  });
+}
+
 export {
   createProject,
+  deleteProjects, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
   fetchCompare,
   fetchExplanation,
+  fetchProject,
+  fetchProjectMatches, // 6/12 백엔드 작업에서 추가
+  fetchProjects, // 6/12 백엔드 작업에서 추가
   request,
   runProjectMatch,
   uploadProjectQuotes,

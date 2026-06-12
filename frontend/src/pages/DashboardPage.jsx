@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Badge from '../components/Badge';
-import ReviewDrawer from '../components/ReviewDrawer';
+import BrandHomeButton from '../components/BrandHomeButton';
 import useCompareResult from '../hooks/useCompareResult';
 import useExplanationResult from '../hooks/useExplanationResult';
 import { getStatusUi } from '../utils/statusMap';
@@ -50,12 +50,11 @@ function SupplierPager({
 export default function DashboardPage({
   projectData,
   onGoProjects,
-  onGoReport,
+  onProjectDataChange,
 }) {
-  const [selectedVendor, setSelectedVendor] = useState("A Display");
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(projectData.selectedSupplierId ?? "");
   const isFailureScenario = Boolean(projectData.failureScenario);
-  const projectId = projectData.projectId || "PV-2025-0421";
+  const projectId = projectData.projectId || projectData.projectApiId || "프로젝트";
   const {
     compareErrorMessage,
     compareState,
@@ -82,7 +81,7 @@ export default function DashboardPage({
   );
   const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectionFinalized, setSelectionFinalized] = useState(false);
+  const [selectionFinalized, setSelectionFinalized] = useState(projectData.workflowStatus === "완료");
   const [toastVisible, setToastVisible] = useState(false);
   const [followupVisible, setFollowupVisible] = useState(false);
   const [prosOpen, setProsOpen] = useState(true);
@@ -93,10 +92,18 @@ export default function DashboardPage({
   const [supplierStartIndex, setSupplierStartIndex] = useState(0);
   const supplierCount = suppliers.length;
   const canNavigateSuppliers = supplierCount > VISIBLE_SUPPLIER_COUNT;
-  const maxSupplierStartIndex = Math.max(0, supplierCount - VISIBLE_SUPPLIER_COUNT);
+  const maxSupplierStartIndex =
+    supplierCount <= VISIBLE_SUPPLIER_COUNT
+      ? 0
+      : Math.floor((supplierCount - 1) / VISIBLE_SUPPLIER_COUNT) * VISIBLE_SUPPLIER_COUNT;
   const visibleSuppliers = useMemo(
     () => suppliers.slice(supplierStartIndex, supplierStartIndex + VISIBLE_SUPPLIER_COUNT),
     [suppliers, supplierStartIndex]
+  );
+  const selectableSuppliers = suppliers;
+  const selectedSupplier = useMemo(
+    () => selectableSuppliers.find((supplier) => supplier.id === selectedSupplierId) ?? null,
+    [selectableSuppliers, selectedSupplierId],
   );
   const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
   const canGoNextSuppliers = canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
@@ -106,6 +113,21 @@ export default function DashboardPage({
   }, [supplierCount]);
 
   useEffect(() => {
+    if (!selectableSuppliers.length) return;
+    setSelectedSupplierId((current) =>
+      current && selectableSuppliers.some((supplier) => supplier.id === current)
+        ? current
+        : projectData.selectedSupplierId && selectableSuppliers.some((supplier) => supplier.id === projectData.selectedSupplierId)
+          ? projectData.selectedSupplierId
+        : selectableSuppliers[0].id,
+    );
+  }, [projectData.selectedSupplierId, selectableSuppliers]);
+
+  useEffect(() => {
+    setSelectionFinalized(projectData.workflowStatus === "완료");
+  }, [projectData.workflowStatus]);
+
+  useEffect(() => {
     const memo = projectData.reviewMemo ?? "";
     setReviewMemo(memo);
     setDraftMemo(memo);
@@ -113,11 +135,13 @@ export default function DashboardPage({
   }, [projectId, projectData.reviewMemo]);
 
   const goPrevSuppliers = () => {
-    setSupplierStartIndex((current) => Math.max(0, current - 1));
+    setSupplierStartIndex((current) => Math.max(0, current - VISIBLE_SUPPLIER_COUNT));
   };
 
   const goNextSuppliers = () => {
-    setSupplierStartIndex((current) => Math.min(maxSupplierStartIndex, current + 1));
+    setSupplierStartIndex((current) =>
+      Math.min(maxSupplierStartIndex, current + VISIBLE_SUPPLIER_COUNT),
+    );
   };
 
   const supplierPagerProps = {
@@ -135,7 +159,7 @@ export default function DashboardPage({
       return "AI 근거 요약을 불러오는 중입니다.";
     }
 
-    return explanationByVendor.get(supplier.name)?.cardSummary ?? "";
+    return explanationByVendor.get(supplier.vendorName ?? supplier.name)?.cardSummary ?? "";
   };
 
   const toggleSection = (sectionId) => {
@@ -211,6 +235,14 @@ export default function DashboardPage({
     setSelectionFinalized(true);
     setFollowupVisible(true);
     setToastVisible(true);
+    onProjectDataChange?.((current) => ({
+      ...current,
+      currentStage: "검토 완료",
+      selectedSupplierId,
+      selectedVendor: selectedSupplier?.name ?? "",
+      workflowStatus: "완료",
+      lastScreen: "dashboard",
+    }));
     window.setTimeout(() => setToastVisible(false), 3200);
   };
 
@@ -218,13 +250,7 @@ export default function DashboardPage({
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-zone">
-          <div className="brand-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="brand-title">견적 검토 쿼파일럿</div>
+          <BrandHomeButton onClick={onGoProjects} />
           <Badge tone="gray">v1.3.2</Badge>
           <div className="top-divider" />
           <span className="breadcrumb-muted">프로젝트 목록</span>
@@ -245,22 +271,29 @@ export default function DashboardPage({
       <main className="dashboard">
         <section className="project-head">
           <div className="project-title">
-            <h1>프로젝트 {projectId}</h1>
-            <button className="icon-button" type="button">✎</button>
-            <Badge>{projectData.projectName}</Badge>
+            <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
+            <button
+              className="icon-button"
+              disabled
+              title="프로젝트명 수정 API 연결 후 사용할 수 있습니다."
+              type="button"
+            >
+              ✎
+            </button>
+            <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
           <div className="project-actions">
             <button className="button action-secondary" onClick={onGoProjects} type="button">
               프로젝트 목록
             </button>
-            <button className="button action-primary project-create" onClick={() => setDrawerOpen(true)} type="button">
-              + 검토 건 생성
-            </button>
-            <button className={selectionFinalized ? "button button-green" : "button button-blue"} type="button">
+            <button
+              className={selectionFinalized ? "button button-green" : "button button-blue"}
+              disabled
+              title="상태는 현재 화면 진행에 따라 자동 반영됩니다."
+              type="button"
+            >
               {selectionFinalized ? "검토 완료" : "검토 진행 중"}
             </button>
-            <button className="button" type="button">D-2</button>
-            <button className="button button-green" type="button">정시 진행</button>
           </div>
         </section>
 
@@ -346,7 +379,7 @@ export default function DashboardPage({
                   return (
                   <article
                     className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
-                    key={supplier.name}
+                    key={supplier.id}
                   >
                     <div className="supplier-row">
                       <div className="supplier-name">
@@ -401,11 +434,10 @@ export default function DashboardPage({
               <div className="compare-header">
                 <div>
                   <b>견적 비교</b>
-                  <span>(추출 기준일: 2025-04-22)</span>
+                  <span>업로드된 견적서 기준</span>
                 </div>
                 <div className="compare-header-actions">
                   <SupplierPager {...supplierPagerProps} />
-                  <button className="button button-small" type="button">⊙ 행 근거 보기</button>
                 </div>
               </div>
               <div className="legend">
@@ -421,7 +453,7 @@ export default function DashboardPage({
                     <tr>
                       <th>항목(요구사항)</th>
                       {visibleSuppliers.map((supplier) => (
-                        <th className={supplier.recommended ? "ai-col" : ""} key={supplier.name}>
+                        <th className={supplier.recommended ? "ai-col" : ""} key={supplier.id}>
                           {supplier.name}
                           {supplier.recommended && <Badge>AI 추천</Badge>}
                         </th>
@@ -448,7 +480,7 @@ export default function DashboardPage({
                             <tr key={row.label}>
                               <td>{row.label}</td>
                               {visibleSuppliers.map((supplier) => (
-                                <td key={supplier.name + row.label}>
+                                <td key={`${supplier.id}-${row.label}`}>
                                   {renderCompareCell(supplier, row)}
                                 </td>
                               ))}
@@ -484,7 +516,7 @@ export default function DashboardPage({
                               </div>
                             </td>
                             {visibleSuppliers.map((supplier) => (
-                              <td key={supplier.name + row.label}>
+                              <td key={`${supplier.id}-${row.label}`}>
                                 {renderCompareCell(supplier, row)}
                               </td>
                             ))}
@@ -532,15 +564,6 @@ export default function DashboardPage({
 
             <div className="side-split">
               <section className="panel compact-panel">
-                <h3>근거 출처 <small>(비교 행 연결)</small></h3>
-                <div className="compact-panel-body">
-                  <p>3. 단가(공급가) <a>A-03, B-03, C-03</a></p>
-                  <p>7. 납기 <a>A-07, B-07, C-07</a></p>
-                  <p>8. 품질 보증 <a>A-08, B-08, C-08</a></p>
-                </div>
-                <button className="button full" type="button">전체 근거 보기</button>
-              </section>
-              <section className="panel compact-panel">
                 <h3>검토 메모 <small>(내부용)</small></h3>
                 <div className="compact-panel-body">
                   <textarea
@@ -575,21 +598,21 @@ export default function DashboardPage({
             <section className="panel final-panel">
               <h3>최종 선정 <small>(담당자 선택)</small></h3>
               <div className="choice-grid">
-                {suppliers.map((supplier) => (
+                {selectableSuppliers.map((supplier) => (
                   <label
-                    className={`choice-card ${selectedVendor === supplier.name ? "selected" : ""}`}
-                    key={supplier.name}
+                    className={`choice-card ${selectedSupplierId === supplier.id ? "selected" : ""}`}
+                    key={supplier.id}
                   >
                     <input
-                      checked={selectedVendor === supplier.name}
-                      onChange={() => setSelectedVendor(supplier.name)}
+                      checked={selectedSupplierId === supplier.id}
+                      onChange={() => setSelectedSupplierId(supplier.id)}
                       type="radio"
                     />
                     <b>{supplier.name}</b>
                     {supplier.recommended && (
                       <div>
                         <Badge>추천</Badge>
-                        <Badge>AI 추천 / 최저가</Badge>
+                        <Badge>AI 추천</Badge>
                       </div>
                     )}
                   </label>
@@ -604,13 +627,6 @@ export default function DashboardPage({
               </div>
             </section>
 
-            <section className="panel export-panel">
-              <h3>보고서/내보내기</h3>
-              <div>
-                <button className="button full" type="button">비교표 다운로드 (Excel)</button>
-                <button className="button full" onClick={onGoReport} type="button">고객 보고서 미리보기</button>
-              </div>
-            </section>
           </aside>
         </div>
         )}
@@ -618,11 +634,25 @@ export default function DashboardPage({
 
       {compareState === "ready" && (
       <footer className="bottom-actions">
-        <button className="button action-secondary" type="button">▣ 임시 저장</button>
-        <button className="button action-secondary" onClick={onGoReport} type="button">□ 고객 보고서로 내보내기</button>
+        <button
+          className="button action-secondary"
+          disabled
+          title="검토 메모 저장은 우측 메모 영역에서만 가능합니다."
+          type="button"
+        >
+          ▣ 임시 저장
+        </button>
+        <button
+          className="button action-secondary"
+          disabled
+          title="고객 보고서 기능은 이번 통합 범위 밖이라 아직 사용할 수 없습니다."
+          type="button"
+        >
+          고객 보고서로 내보내기
+        </button>
         <button
           className={selectionFinalized ? "button selection-complete-button" : "button action-primary"}
-          disabled={selectionFinalized}
+          disabled={selectionFinalized || !selectedSupplier}
           onClick={() => setConfirmOpen(true)}
           type="button"
         >
@@ -634,7 +664,7 @@ export default function DashboardPage({
         <div className="confirm-layer" role="presentation">
           <div className="confirm-dialog" role="dialog" aria-modal="true" aria-label="최종 선정 확인">
             <h2>최종 선정 업체 확정</h2>
-            <p>{selectedVendor}를 최종 선정 업체로 확정하시겠습니까?</p>
+            <p>{selectedSupplier?.name}를 최종 선정 업체로 확정하시겠습니까?</p>
             <div className="confirm-actions">
               <button className="button" onClick={() => setConfirmOpen(false)} type="button">
                 취소
@@ -648,7 +678,7 @@ export default function DashboardPage({
       )}
       {toastVisible && (
         <div className="selection-toast" role="status">
-          {selectedVendor}가 최종 선정 업체로 확정되었습니다.
+          {selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.
         </div>
       )}
       {selectionFinalized && followupVisible && (
@@ -661,15 +691,13 @@ export default function DashboardPage({
           >
             ×
           </button>
-          <b>{selectedVendor}가 최종 선정 업체로 확정되었습니다.</b>
+          <b>{selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.</b>
           <span>프로젝트 상태가 검토 완료로 변경되었습니다.</span>
           <div>
             <button className="button" onClick={onGoProjects} type="button">프로젝트 목록으로 이동</button>
-            <button className="button action-primary" onClick={onGoReport} type="button">고객 보고서 미리보기</button>
           </div>
         </div>
       )}
-      <ReviewDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

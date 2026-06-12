@@ -5,6 +5,7 @@ export default function AnalysisPage({
   onBack,
   onDashboard,
   onRetry,
+  onGoHome,
   state = "loading",
 }) {
   const isError = state === "error";
@@ -12,7 +13,7 @@ export default function AnalysisPage({
 
   return (
     <div className="flow-page analysis-page">
-      <FlowTopbar trail="새 프로젝트 생성 > AI 분석" />
+      <FlowTopbar onHome={onGoHome} trail="새 프로젝트 생성 > AI 분석" />
       <main className="analysis-card">
         {isError ? (
           <>

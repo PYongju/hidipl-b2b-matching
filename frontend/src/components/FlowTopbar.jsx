@@ -1,16 +1,11 @@
 import Badge from './Badge';
+import BrandHomeButton from './BrandHomeButton';
 
-export default function FlowTopbar({ trail, action }) {
+export default function FlowTopbar({ trail, action, onHome }) {
   return (
     <header className="topbar flow-topbar">
       <div className="brand-zone">
-        <div className="brand-mark" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="brand-title">견적 검토 쿼파일럿</div>
+        <BrandHomeButton onClick={onHome} />
         <Badge tone="gray">v1.3.2</Badge>
         {trail && (
           <>

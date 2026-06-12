@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -9,17 +9,17 @@ import PartnerMatchingPage from "./pages/PartnerMatchingPage";
 import PartnerMatchingLoadingModal from "./components/PartnerMatchingLoadingModal";
 import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
-import ReportHistoryPage from "./pages/ReportHistoryPage";
 import {
   createProject,
+  deleteProjects as deleteProjectsApi, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
+  fetchProject,
+  fetchProjects, // 6/12 백엔드 작업에서 추가
   runProjectMatch,
   uploadProjectQuotes,
 } from "./api/apiClient";
-import {
-  initialProjectData,
-  makeProjectFromData,
-} from "./data/mockProjects";
+import { initialProjectData, makeProjectFromData } from "./data/mockProjects";
+import { createMatchViewModel } from "./utils/matchAdapter";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
 
@@ -33,7 +33,8 @@ async function runPartnerMatchingStep(step, setStep, action) {
   const stepStartedAt = Date.now();
   setStep(step);
   const result = await action();
-  const remainingStepMs = PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
+  const remainingStepMs =
+    PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
   if (remainingStepMs > 0) {
     await wait(remainingStepMs);
   }
@@ -41,17 +42,105 @@ async function runPartnerMatchingStep(step, setStep, action) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("login");
-  const [projectData, setProjectData] = useState(initialProjectData);
+  // 6/12 수정
+  const [screen, setScreen] = useState(() => {
+    return localStorage.getItem("hidipl_screen") === "projects"
+      ? "projects"
+      : "login";
+  });
   const [projects, setProjects] = useState([]);
+  const [projectData, setProjectData] = useState(initialProjectData); //6/12 추가
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
   const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
-  const [partnerMatchingTransition, setPartnerMatchingTransition] = useState("idle");
-  const [partnerMatchingStep, setPartnerMatchingStep] = useState("creating-project");
+  const [partnerMatchingTransition, setPartnerMatchingTransition] =
+    useState("idle");
+  const [partnerMatchingStep, setPartnerMatchingStep] =
+    useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
 
+  const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
+    id,
+    name: data.projectName || `${data.companyName || "신규 고객"} 검토 건`,
+    status: overrides.status || data.workflowStatus || "진행 중",
+    statusTone:
+      overrides.statusTone ||
+      getProjectStatusTone(overrides.status || data.workflowStatus),
+    desc:
+      overrides.desc || data.currentStage || data.usage || "요구사항 정리 중",
+    meta: [
+      data.projectDate || "일정 미정",
+      data.budgetAmount ? `${data.budgetAmount} 이하` : "예산 미정",
+      data.category || "카테고리 미정",
+    ],
+    data: {
+      ...data,
+      ...(overrides.data ?? {}),
+    },
+  });
+
+  const syncProjectList = (data, overrides = {}) => {
+    const id = editingProjectId || data.projectId;
+    if (!id) return;
+    const nextProject = buildProjectListItem(data, id, overrides);
+    setProjects((current) => {
+      const exists = current.some((project) => project.id === id);
+      return exists
+        ? current.map((project) => (project.id === id ? nextProject : project))
+        : [nextProject, ...current];
+    });
+    setActiveProjectId(id);
+    setEditingProjectId(id);
+  };
+
+  const updateProjectData = (updater, listOverrides = {}) => {
+    setProjectData((current) => {
+      const nextData =
+        typeof updater === "function" ? updater(current) : updater;
+      syncProjectList(nextData, listOverrides);
+      return nextData;
+    });
+  };
+
+  // 6/12 기존 goToProjects 교체
+  const loadProjects = async () => {
+    try {
+      const list = await fetchProjects();
+      setProjects(
+        (list ?? []).map((item) =>
+          buildProjectListItem(
+            {
+              ...initialProjectData,
+              projectApiId: item.project_id,
+              companyName: item.company_name,
+              location: item.location,
+              projectDate: item.deadline,
+              requestText: item.request_text,
+              serverStatus: item.status,
+              workflowStatus: getWorkflowStatusFromServerStatus(item.status),
+              currentStage: getCurrentStageFromServerStatus(item.status),
+            },
+            item.project_id,
+          ),
+        ),
+      );
+    } catch (error) {
+      console.error("프로젝트 목록 조회 실패:", error);
+    }
+  };
+
+  const goToProjects = async () => {
+    await loadProjects();
+    setScreen("projects");
+    localStorage.setItem("hidipl_screen", "projects");
+  };
+
+  useEffect(() => {
+    if (localStorage.getItem("hidipl_screen") === "projects") {
+      loadProjects();
+    }
+  }, []);
   const startNewProject = () => {
     setEditingProjectId("");
     setProjectData({ ...initialProjectData });
@@ -65,20 +154,14 @@ export default function App() {
       ...draftData,
       projectId,
       currentStage: draftData.currentStage || "요구사항",
+      workflowStatus: "진행 중",
+      lastScreen: "requirements",
     };
-    const nextProject = {
-      id: projectId,
-      name: nextData.projectName || `${nextData.companyName || "신규 고객"} 검토 건`,
-      status: "초안",
-      statusTone: "gray",
-      desc: nextData.usage || "요구사항 정리 중",
-      meta: [
-        nextData.projectDate || "일정 미정",
-        nextData.budgetAmount ? `${nextData.budgetAmount} 이하` : "예산 미정",
-        nextData.category || "카테고리 미정",
-      ],
-      data: nextData,
-    };
+    const nextProject = buildProjectListItem(nextData, projectId, {
+      status: "진행 중",
+      statusTone: "blue",
+      desc: shouldContinue ? "요구사항 작성 중" : "요구사항 정리 중",
+    });
 
     setProjects((current) => [nextProject, ...current]);
     setProjectData(nextData);
@@ -90,27 +173,83 @@ export default function App() {
     }
   };
 
-  const editProject = (project) => {
+  const editProject = async (project) => {
+    const localProjectData = { ...initialProjectData, ...project.data };
     setEditingProjectId(project.id);
-    setProjectData({ ...initialProjectData, ...project.data });
-    setScreen("wizard");
+    setActiveProjectId(project.id);
+    setProjectData(localProjectData);
+
+    const apiProjectId =
+      localProjectData.projectApiId ?? localProjectData.project_id;
+    if (apiProjectId) {
+      try {
+        const serverProject = await fetchProject(apiProjectId);
+        const restoredProjectData = mergeServerProjectData(
+          localProjectData,
+          serverProject,
+        );
+        setProjectData(restoredProjectData);
+        syncProjectList(restoredProjectData);
+      } catch (error) {
+        console.error("프로젝트 수정 화면 진입 중 서버 상태 조회 실패:", error);
+      }
+    }
+
+    setScreen("requirements");
   };
 
-  const openRequirements = (projectId) => {
+  const openProjectFromList = async (projectId) => {
     const project = projects.find((item) => item.id === projectId);
     if (project) {
-      setProjectData({ ...initialProjectData, ...project.data });
+      const localProjectData = { ...initialProjectData, ...project.data };
+      setProjectData(localProjectData);
       setActiveProjectId(project.id);
       setEditingProjectId(project.id);
+
+      const apiProjectId =
+        localProjectData.projectApiId ?? localProjectData.project_id;
+      if (apiProjectId) {
+        try {
+          const serverProject = await fetchProject(apiProjectId);
+          const restoredProjectData = mergeServerProjectData(
+            localProjectData,
+            serverProject,
+          );
+          setProjectData(restoredProjectData);
+          syncProjectList(restoredProjectData);
+          setScreen(getScreenFromProject(restoredProjectData));
+          return;
+        } catch (error) {
+          setAnalysisErrorMessage(
+            error.message || "프로젝트 상태 조회 중 오류가 발생했습니다.",
+          );
+        }
+      }
+
+      setScreen(getScreenFromProject(localProjectData));
+      return;
     }
     setScreen("requirements");
+  };
+
+  const saveCurrentProjectScreen = (screenName, overrides = {}) => {
+    updateProjectData((current) => ({
+      ...current,
+      ...overrides,
+      lastScreen: screenName,
+    }));
   };
 
   const openDashboard = () => {
     setScreen("dashboard");
   };
 
-  const deleteProjects = (projectIds) => {
+  const deleteProjects = async (projectIds) => {
+    try {
+      await deleteProjectsApi(projectIds);
+    } catch (error) {
+      console.error("프로젝트 삭제 실패:", error);
+    }
     setProjects((current) =>
       current.filter((project) => !projectIds.includes(project.id)),
     );
@@ -135,36 +274,36 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
-  const buildProjectRequest = (data) => ({
-    company_name: data.companyName || "미입력",
-    location: data.location || null,
-    deadline: data.projectDate || null,
-    request_text: [
-      `프로젝트명: ${data.projectName || "미입력"}`,
-      `활용 용도: ${data.usage || "미입력"}`,
-      `디스플레이 크기: ${data.displaySize || "미입력"}`,
-      `수량: ${data.quantity || "미입력"}`,
-      `운영 시간: ${data.operationTime || "미입력"}`,
-      `카테고리: ${data.category || "미입력"}`,
-      `예산 상한: ${data.budgetAmount || "미입력"}`,
-      `현재 단계: ${data.currentStage || "미입력"}`,
-      `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
-      `추가 요청사항: ${data.otherConditions || "없음"}`,
-      `첨부 메모: ${data.attachmentMemo || "없음"}`,
-    ].join("\n"),
-  });
+  const buildProjectRequest = (data) => {
+    const displaySizeText = data.displaySize || "";
+
+    return {
+      company_name: data.companyName || "미입력",
+      location: data.location || null,
+      deadline: data.projectDate || null,
+      request_text: [
+        `프로젝트명: ${data.projectName || "미입력"}`,
+        `활용 용도: ${data.usage || "미입력"}`,
+        `디스플레이 크기: ${displaySizeText || "미입력"}`,
+        `수량: ${data.quantity || "미입력"}`,
+        `운영 시간: ${data.operationTime || "미입력"}`,
+        `카테고리: ${data.category || "미입력"}`,
+        `예산 상한: ${data.budgetAmount || "미입력"}`,
+        `현재 단계: ${data.currentStage || "미입력"}`,
+        `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
+        `추가 요청사항: ${data.otherConditions || "없음"}`,
+        `첨부 메모: ${data.attachmentMemo || "없음"}`,
+      ].join("\n"),
+    };
+  };
 
   const unwrapCandidateVendors = (response) =>
-    response?.candidate_vendors ??
-    response?.candidates ??
-    response?.data?.candidate_vendors ??
-    response?.data?.candidates ??
-    [];
+    response?.candidate_vendors ?? response?.candidates ?? [];
 
   const startPartnerMatchingFromRequirements = async () => {
     if (partnerMatchingTransition === "loading") return;
 
-    if (projectData.projectApiId) {
+    if (projectData.projectApiId && projectData.candidateVendors?.length) {
       setScreen("partnerMatching");
       return;
     }
@@ -174,12 +313,21 @@ export default function App() {
     setPartnerMatchingError("");
 
     try {
-      const createdProject = await runPartnerMatchingStep(
-        "creating-project",
-        setPartnerMatchingStep,
-        () => createProject(buildProjectRequest(projectData)),
-      );
-      const projectApiId = createdProject.project_id ?? createdProject.id;
+      const createdProject = projectData.projectApiId
+        ? projectData.createdProject
+        : await runPartnerMatchingStep(
+            "creating-project",
+            setPartnerMatchingStep,
+            () => createProject(buildProjectRequest(projectData)),
+          );
+      const projectApiId =
+        projectData.projectApiId ??
+        createdProject?.project_id ??
+        createdProject?.id;
+
+      if (!projectApiId) {
+        throw new Error("서버 프로젝트 ID를 확인하지 못했습니다.");
+      }
 
       const candidateResponse = await runPartnerMatchingStep(
         "fetching-candidates",
@@ -188,21 +336,41 @@ export default function App() {
       );
       const candidateVendors = unwrapCandidateVendors(candidateResponse);
 
-      await runPartnerMatchingStep("finishing", setPartnerMatchingStep, async () => {});
+      await runPartnerMatchingStep(
+        "finishing",
+        setPartnerMatchingStep,
+        async () => {},
+      );
 
-      setProjectData((current) => ({
-        ...current,
-        projectApiId,
-        requestId: createdProject.request_id ?? createdProject.requestId,
-        createdProject,
-        candidateVendors,
-      }));
+      updateProjectData(
+        (current) => ({
+          ...current,
+          projectApiId,
+          requestId:
+            createdProject?.request_id ??
+            createdProject?.requestId ??
+            current.requestId,
+          createdProject: createdProject ?? current.createdProject,
+          candidateVendors,
+          candidateVendorsLoaded: true,
+          candidateVendorsResponse: candidateResponse,
+          currentStage: "요청 대상 검토중",
+          workflowStatus: "진행 중",
+          lastScreen: "partnerMatching",
+        }),
+        {
+          status: "진행 중",
+          statusTone: "blue",
+          desc: "파트너 추천/요청 대상 검토 중",
+        },
+      );
       setPartnerMatchingTransition("idle");
       setScreen("partnerMatching");
     } catch (error) {
       setPartnerMatchingTransition("error");
       setPartnerMatchingError(
-        error.message || "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
+        error.message ||
+          "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
       );
     }
   };
@@ -223,6 +391,7 @@ export default function App() {
         buildProjectRequest(projectData),
       );
       const projectApiId = createdProject.project_id ?? createdProject.id;
+      const requestId = createdProject.request_id ?? createdProject.requestId;
       const uploadResult = await uploadProjectQuotes(
         projectApiId,
         projectData.quoteFiles ?? [],
@@ -232,13 +401,17 @@ export default function App() {
         uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
         [];
       const matchResult = await runProjectMatch(projectApiId);
-      const matchId = matchResult.match_id ?? matchResult.id;
+      const matchViewModel = createMatchViewModel(matchResult);
+      const matchId = matchViewModel.matchId;
 
       setProjectData((current) => ({
         ...current,
         projectApiId,
+        requestId,
+        createdProject,
         quoteIds,
         matchId,
+        matchResult: matchViewModel,
         quoteUploadResult: uploadResult,
       }));
       setAnalysisState("ready");
@@ -250,10 +423,15 @@ export default function App() {
     }
   };
 
+  const goHome = () => {
+    setScreen("projects");
+  };
+
   if (screen === "login") {
-    return <LoginPage onLogin={() => setScreen("projects")} />;
+    return <LoginPage onLogin={goToProjects} />;
   }
 
+  //6/12 백엔드 작업에서 수정
   if (screen === "projects") {
     return (
       <ProjectListPage
@@ -262,10 +440,61 @@ export default function App() {
         onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
-        onOpenDashboard={openRequirements}
+        onOpenDashboard={openProjectFromList}
       />
     );
   }
+
+  const goQuoteWaitingFromPartner = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적서 업로드 대기",
+        workflowStatus: "진행 중",
+        lastScreen: "quoteWaiting",
+      }),
+      {
+        status: "진행 중",
+        statusTone: "blue",
+        desc: "견적서 업로드 대기",
+      },
+    );
+    setScreen("quoteWaiting");
+  };
+
+  const goQuoteReviewLoading = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 비교 분석 중",
+        workflowStatus: "검토 중",
+        lastScreen: "quoteReviewLoading",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 비교 분석 중",
+      },
+    );
+    setScreen("quoteReviewLoading");
+  };
+
+  const openDashboardAfterMatch = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 검토",
+        workflowStatus: "검토 중",
+        lastScreen: "dashboard",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 검토 중",
+      },
+    );
+    openDashboard();
+  };
 
   if (screen === "requirements") {
     return (
@@ -274,15 +503,25 @@ export default function App() {
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
           projectData={projectData}
           onBack={() => setScreen("projects")}
+          onGoHome={goHome}
           onNext={startPartnerMatchingFromRequirements}
-          onProjectDataChange={setProjectData}
+          onProjectDataChange={updateProjectData}
+          onSaveDraft={() =>
+            saveCurrentProjectScreen("requirements", {
+              currentStage: "요구사항",
+              workflowStatus: "진행 중",
+            })
+          }
         />
         <PartnerMatchingLoadingModal
           errorMessage={partnerMatchingError}
           loadingStep={partnerMatchingStep}
           onCancel={cancelPartnerMatchingTransition}
           onRetry={startPartnerMatchingFromRequirements}
-          open={partnerMatchingTransition === "loading" || partnerMatchingTransition === "error"}
+          open={
+            partnerMatchingTransition === "loading" ||
+            partnerMatchingTransition === "error"
+          }
           category={projectData.category}
           companyName={projectData.companyName}
           status={partnerMatchingTransition === "error" ? "error" : "loading"}
@@ -298,6 +537,7 @@ export default function App() {
         onProjectDataChange={setProjectData}
         onAnalyze={startAnalysisFlow}
         onBack={() => setScreen("projects")}
+        onGoHome={goHome}
       />
     );
   }
@@ -308,6 +548,7 @@ export default function App() {
         errorMessage={analysisErrorMessage}
         onBack={() => setScreen("wizard")}
         onDashboard={completeAnalysis}
+        onGoHome={goHome}
         onRetry={startAnalysisFlow}
         state={analysisState}
       />
@@ -319,7 +560,9 @@ export default function App() {
       <PartnerMatchingPage
         projectData={projectData}
         onBack={() => setScreen("requirements")}
-        onGoDashboard={() => setScreen("quoteWaiting")}
+        onGoDashboard={goQuoteWaitingFromPartner}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
       />
     );
   }
@@ -329,8 +572,15 @@ export default function App() {
       <QuoteWaitingPage
         projectData={projectData}
         onBack={() => setScreen("partnerMatching")}
-        onGoDashboard={() => setScreen("quoteReviewLoading")}
-        onProjectDataChange={setProjectData}
+        onGoDashboard={goQuoteReviewLoading}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
+        onSaveDraft={() =>
+          saveCurrentProjectScreen("quoteWaiting", {
+            currentStage: "견적서 업로드 대기",
+            workflowStatus: "진행 중",
+          })
+        }
       />
     );
   }
@@ -340,17 +590,9 @@ export default function App() {
       <QuoteReviewLoadingPage
         projectData={projectData}
         onBack={() => setScreen("quoteWaiting")}
-        onComplete={openDashboard}
-      />
-    );
-  }
-
-  if (screen === "reportHistory") {
-    return (
-      <ReportHistoryPage
-        projectData={projectData}
-        onBack={openDashboard}
-        onGoProjects={() => setScreen("projects")}
+        onComplete={openDashboardAfterMatch}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
       />
     );
   }
@@ -358,9 +600,84 @@ export default function App() {
   return (
     <DashboardPage
       projectData={projectData}
-      onGoProjects={() => setScreen("projects")}
-      onGoQuoteWaiting={() => setScreen("quoteWaiting")}
-      onGoReport={() => setScreen("reportHistory")}
+      onGoProjects={goToProjects}
+      onProjectDataChange={updateProjectData}
     />
   );
+}
+
+function getProjectStatusTone(status) {
+  if (status === "완료") return "green";
+  if (status === "검토 중") return "orange";
+  return "blue";
+}
+
+function mergeServerProjectData(localData, serverProject) {
+  const serverStatus =
+    serverProject?.status ?? localData.serverStatus ?? localData.status;
+  const lastScreen = getScreenFromServerStatus(
+    serverStatus,
+    localData.lastScreen,
+  );
+  const workflowStatus = getWorkflowStatusFromServerStatus(
+    serverStatus,
+    localData.workflowStatus,
+  );
+
+  return {
+    ...localData,
+    projectApiId: serverProject?.project_id ?? localData.projectApiId,
+    serverStatus,
+    companyName: serverProject?.company_name ?? localData.companyName,
+    location: serverProject?.location ?? localData.location,
+    projectDate: serverProject?.deadline ?? localData.projectDate,
+    requestText: serverProject?.request_text ?? localData.requestText,
+    createdAt: serverProject?.created_at ?? localData.createdAt,
+    currentStage: getCurrentStageFromServerStatus(
+      serverStatus,
+      localData.currentStage,
+    ),
+    workflowStatus,
+    lastScreen,
+  };
+}
+
+function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
+  if (status === "matched") return "견적 검토";
+  if (status === "quote_uploaded") return "견적 비교 분석 중";
+  if (status === "partner_matched") return "견적서 업로드 대기";
+  if (status === "created") return "요구사항";
+  return fallback;
+}
+
+function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
+  if (status === "matched") return "검토 중";
+  if (status === "quote_uploaded") return "검토 중";
+  if (status === "partner_matched") return "진행 중";
+  if (status === "created") return "진행 중";
+  return fallback;
+}
+
+function getScreenFromServerStatus(status, fallback = "requirements") {
+  if (status === "matched") return "dashboard";
+  if (status === "quote_uploaded") return "quoteReviewLoading";
+  if (status === "partner_matched") return "quoteWaiting";
+  if (status === "created") return "requirements";
+  return fallback;
+}
+
+function getScreenFromProject(data) {
+  const lastScreen = getScreenFromServerStatus(
+    data?.serverStatus ?? data?.status,
+    data?.lastScreen,
+  );
+  if (
+    lastScreen === "partnerMatching" ||
+    lastScreen === "quoteWaiting" ||
+    lastScreen === "quoteReviewLoading" ||
+    lastScreen === "dashboard"
+  ) {
+    return lastScreen;
+  }
+  return "requirements";
 }

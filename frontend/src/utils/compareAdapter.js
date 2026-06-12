@@ -5,39 +5,39 @@ const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const sectionDefs = [
   {
     id: "requiredInfo",
-    title: "섹션 0 — 회사 정보",
+    title: "섹션 0 · 회사 정보",
     defaultOpen: true,
     rows: [
       { label: "업력", path: ["company_info", "company_age_years"], format: (value) => withUnit(value, "년") },
-      { label: "매출액 (3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
-      { label: "프로젝트 수 (3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
+      { label: "매출액(3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
+      { label: "프로젝트 수(3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
       { label: "회사 위치", path: ["company_info", "company_location"] },
     ],
   },
   {
     id: "hardware",
-    title: "섹션 1 — 하드웨어 품목",
+    title: "섹션 1 · 하드웨어 항목",
     defaultOpen: true,
     rows: [
-      { label: "스크린 크기 (mm)", path: ["hardware", "screen_size_mm"] },
+      { label: "스크린 크기(mm)", path: ["hardware", "screen_size_mm"] },
       { label: "해상도", path: ["hardware", "resolution"] },
       { label: "Type", path: ["hardware", "type"] },
       { label: "Pixel Pitch", path: ["hardware", "pixel_pitch"] },
-      { label: "소비전력 (kW)", path: ["hardware", "power_consumption_kw"] },
-      { label: "밝기 (cd/m2)", path: ["hardware", "brightness_cd_m2"] },
+      { label: "소비전력(kW)", path: ["hardware", "power_consumption_kw"] },
+      { label: "밝기(cd/m2)", path: ["hardware", "brightness_cd_m2"] },
       { label: "Refresh Rate", path: ["hardware", "refresh_rate"] },
-      { label: "무상유지보수 기간", path: ["hardware", "free_maintenance_period"] },
+      { label: "무상 유지보수 기간", path: ["hardware", "free_maintenance_period"] },
     ],
   },
   {
     id: "quoteItems",
-    title: "섹션 2 — 견적 항목별 금액",
+    title: "섹션 2 · 견적 항목별 금액",
     defaultOpen: false,
     rows: [
       { label: "디스플레이 H/W", costKey: "display_hw" },
       { label: "시스템 장비", costKey: "system_equipment" },
       { label: "설치 공사비", costKey: "installation" },
-      { label: "자재비 (케이블·브라켓 등)", costKey: "materials" },
+      { label: "자재비(케이블·브라켓 등)", costKey: "materials" },
       { label: "출장비", costKey: "travel_expense" },
       { label: "기타", costKey: "etc" },
       { label: "소프트웨어", costKey: "software" },
@@ -46,7 +46,7 @@ const sectionDefs = [
   },
   {
     id: "conditions",
-    title: "섹션 3 — 기타 조건",
+    title: "섹션 3 · 기타 조건",
     defaultOpen: false,
     rows: [
       { label: "납기", path: ["conditions", "delivery"], highlight: "is_fastest_delivery" },
@@ -74,9 +74,21 @@ function sortRowsByRanking(rows) {
     .map(({ row }) => row);
 }
 
-function createCompareViewModel(response) {
-  const rows = sortRowsByRanking(response?.rows ?? []);
-  const suppliers = rows.map((row, index) => toSupplier(row, index));
+function createCompareViewModel(response, options = {}) {
+  const rows = sortRowsByRanking(filterRowsByQuoteIds(response?.rows ?? [], options.quoteIds))
+    .slice(0, getExpectedQuoteCount(options));
+  const vendorCounts = getVendorCounts(rows);
+  const vendorSeen = new Map();
+  const suppliers = rows.map((row, index) => {
+    const vendorName = getVendorName(row);
+    const nextIndex = (vendorSeen.get(vendorName) ?? 0) + 1;
+    vendorSeen.set(vendorName, nextIndex);
+    return toSupplier(row, index, {
+      hasMultipleQuotes: (vendorCounts.get(vendorName) ?? 0) > 1,
+      quoteOptionIndex: nextIndex,
+      vendorName,
+    });
+  });
   const sections = sectionDefs.map((section) => ({
     ...section,
     rows: section.rows.map((rowDef) => toComparisonRow(rowDef, rows)),
@@ -84,9 +96,9 @@ function createCompareViewModel(response) {
   const totalRows = [
     {
       label: "견적 총액",
-      cells: rows.reduce((cells, row) => {
+      cells: rows.reduce((cells, row, index) => {
         const isUnconfirmed = row.total?.is_confirmed === false;
-        cells[getSupplierId(row)] = {
+        cells[getSupplierId(row, index)] = {
           value: row.total?.display_text ?? formatWon(row.total_with_vat),
           status: isUnconfirmed ? "needsReview" : undefined,
           highlight: !isUnconfirmed && row.highlights?.is_lowest_total_price ? "bestPrice" : undefined,
@@ -99,18 +111,33 @@ function createCompareViewModel(response) {
   return { suppliers, comparisonSections: sections, totalRows };
 }
 
-function toSupplier(row, index) {
-  const id = getSupplierId(row);
+function getExpectedQuoteCount(options) {
+  const fileCount = options.quoteFileCount ?? 0;
+  const quoteIdCount = options.quoteIds?.length ?? 0;
+
+  if (fileCount > 0 && quoteIdCount > 0) {
+    return Math.min(fileCount, quoteIdCount);
+  }
+
+  return fileCount || quoteIdCount || undefined;
+}
+
+function toSupplier(row, index, vendorMeta) {
+  const id = getSupplierId(row, index);
   const score = getFinalScore(row);
   const hasScore = score !== Number.NEGATIVE_INFINITY;
   const hasParseIssue = row.rule_warnings?.some((warning) => warning.includes("OCR") || warning.includes("Parser"));
   const isRecommended = Boolean(row.highlights?.is_highest_score);
+  const displayName = vendorMeta.hasMultipleQuotes
+    ? `${vendorMeta.vendorName} ${vendorMeta.quoteOptionIndex}안`
+    : vendorMeta.vendorName;
 
   return {
     id,
+    vendorName: vendorMeta.vendorName,
     rank: index + 1,
-    name: row.vendor_name || "업체명 확인 필요",
-    logo: getLogo(row.vendor_name, index),
+    name: displayName,
+    logo: getLogo(vendorMeta.vendorName, index),
     logoClass: ["logo-blue", "logo-purple", "logo-teal", "logo-orange", "logo-gray"][index] ?? "logo-gray",
     fit: hasScore ? Math.round(score) : "-",
     fitClass: hasScore && score >= 80 ? "fit-good" : "fit-warn",
@@ -126,11 +153,11 @@ function toSupplier(row, index) {
 function toComparisonRow(rowDef, rows) {
   return {
     label: rowDef.label,
-    cells: rows.reduce((cells, quoteRow) => {
+    cells: rows.reduce((cells, quoteRow, index) => {
       const cell = rowDef.costKey
         ? getCostCell(quoteRow, rowDef.costKey)
         : getValueCell(quoteRow, rowDef);
-      cells[getSupplierId(quoteRow)] = cell;
+      cells[getSupplierId(quoteRow, index)] = cell;
       return cells;
     }, {}),
   };
@@ -154,35 +181,35 @@ function getValueCell(row, rowDef) {
 }
 
 function getDerivedStatus(value) {
-  if (value === "—" || value === "미기재") return "missing";
+  if (value === "-" || value === "미기재") return "missing";
   return undefined;
 }
 
 function formatCostValue(item) {
-  if (!item) return "—";
+  if (!item) return "-";
   if (typeof item.amount === "number") {
     return formatWon(item.amount);
   }
-  return getStatusUi(item.status)?.badge ?? item.status ?? "—";
+  return getStatusUi(item.status)?.badge ?? item.status ?? "-";
 }
 
 function formatWon(value) {
-  if (typeof value !== "number") return "—";
-  return `₩ ${moneyFormatter.format(value)}`;
+  if (typeof value !== "number") return "-";
+  return `₩${moneyFormatter.format(value)}`;
 }
 
 function formatNotes(value) {
-  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "—";
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "-";
   return formatEmpty(value);
 }
 
 function formatEmpty(value) {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return "-";
   return value;
 }
 
 function withUnit(value, unit) {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return "-";
   return `${value}${unit}`;
 }
 
@@ -190,8 +217,58 @@ function getByPath(source, path) {
   return path.reduce((value, key) => value?.[key], source);
 }
 
-function getSupplierId(row) {
-  return row.vendor_snapshot?.vendor_id ?? row.quote_id ?? row.vendor_name;
+function getSupplierId(row, index = 0) {
+  const quoteId = getRowQuoteId(row);
+  if (quoteId !== null && quoteId !== undefined && quoteId !== "") {
+    return `quote-${quoteId}-${index}`;
+  }
+
+  return (
+    row.id ??
+    row.vendor_snapshot?.vendor_id ??
+    `${getVendorName(row)}-${index}`
+  );
+}
+
+function getRowQuoteId(row) {
+  return row.quote_id ?? row.id ?? row.vendor_snapshot?.quote_id;
+}
+
+function filterRowsByQuoteIds(rows, quoteIds = []) {
+  const expectedIds = new Set((quoteIds ?? []).map((id) => String(id)));
+  const seenQuoteIds = new Set();
+
+  return rows.filter((row) => {
+    const quoteId = getRowQuoteId(row);
+
+    if (quoteId === null || quoteId === undefined || quoteId === "") {
+      return true;
+    }
+
+    const normalizedQuoteId = String(quoteId);
+    if (expectedIds.size > 0 && !expectedIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    if (seenQuoteIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    seenQuoteIds.add(normalizedQuoteId);
+    return true;
+  });
+}
+
+function getVendorName(row) {
+  return row.vendor_name || row.vendor_snapshot?.vendor_name || "업체명 확인 필요";
+}
+
+function getVendorCounts(rows) {
+  return rows.reduce((counts, row) => {
+    const vendorName = getVendorName(row);
+    counts.set(vendorName, (counts.get(vendorName) ?? 0) + 1);
+    return counts;
+  }, new Map());
 }
 
 function getLogo(name, index) {

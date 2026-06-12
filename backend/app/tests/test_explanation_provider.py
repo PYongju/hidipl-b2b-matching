@@ -6,6 +6,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 
+from config.paths import OUTPUT_DIR
 from services.explanation.azure_openai_explanation_provider import (
     AzureOpenAIExplanationProvider,
 )
@@ -14,6 +15,7 @@ from services.recommendation.schemas import RecommendationItem, RecommendationPi
 
 
 PARSER_PROJECT_FALLBACK = "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+EXPLANATION_DEBUG_PATH = OUTPUT_DIR / "api_demo_explanation_llm_io.json"
 
 
 def build_recommendation_fixture() -> RecommendationPipelineResult:
@@ -254,6 +256,62 @@ def _assert_output_lengths(result) -> None:
             )
 
 
+def _assert_debug_output_file() -> dict:
+    assert EXPLANATION_DEBUG_PATH.exists()
+    text = EXPLANATION_DEBUG_PATH.read_text(encoding="utf-8")
+    assert "embedding_vector" not in text
+    assert "requirement_embedding" not in text
+    assert "partner_embedding" not in text
+    assert "ocr_text" not in text
+    assert "ocr_full_text" not in text
+    assert "api_key" not in text.lower()
+    assert "endpoint" not in text.lower()
+
+    saved = json.loads(text)
+    assert saved["provider"] in {"azure_openai", "azure_openai_fallback_template"}
+    payload = saved["llm_input"]["payload"]
+    assert payload["request_id"] == "test_request_001"
+    assert payload["customer_name"] == "일강이앤아이"
+    assert len(payload["top_items"]) == 3
+    first_item = payload["top_items"][0]
+    for key in [
+        "rank",
+        "quote_id",
+        "vendor_name",
+        "final_score",
+        "spec_score",
+        "price_score",
+        "delivery_score",
+        "warranty_score",
+        "installation_score",
+        "total_supply_price",
+        "total_with_vat",
+        "delivery_weeks",
+        "delivery_basis_raw",
+        "warranty_months",
+        "line_item_count",
+        "check_required",
+        "comparison_risks",
+        "special_notes",
+        "score_breakdown",
+        "relative_position",
+    ]:
+        assert key in first_item
+
+    output = saved["llm_output"]
+    assert "raw_response_preview" in output
+    assert "parsed_response" in output
+    assert "final_result" in output
+    security = saved["security_check"]
+    assert security["vector_fields_present"] is False
+    assert security["requirement_vector_fields_present"] is False
+    assert security["partner_vector_fields_present"] is False
+    assert security["ocr_full_content_present"] is False
+    assert security["secret_key_fields_present"] is False
+    assert security["service_url_fields_present"] is False
+    return saved
+
+
 def run_template_test() -> None:
     print("\n========== Explanation Template Test ==========")
     recommendation_result = build_recommendation_fixture()
@@ -360,6 +418,8 @@ def run_azure_unit_tests() -> None:
     assert '"comparison_risks"' in user_payload
     assert '"parser_quality_notes"' not in user_payload
     assert "가격 차이 5% 초과" in provider._system_prompt()
+    debug_output = _assert_debug_output_file()
+    assert debug_output["llm_output"]["fallback_used"] is False
 
     print("Azure unit tests passed")
 
@@ -391,6 +451,7 @@ def run_azure_integration_test() -> None:
 
     print_explanation_result(result)
     _assert_parser_quality_filtered(result)
+    _assert_debug_output_file()
 
 
 def main() -> None:

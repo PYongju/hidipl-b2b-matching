@@ -71,6 +71,29 @@ button {
   gap: 14px;
 }
 
+.brand-home {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.brand-home:hover .brand-title {
+  color: #2563eb;
+}
+
+.brand-home:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 .brand-mark {
   display: grid;
   width: 28px;
@@ -2526,6 +2549,30 @@ textarea {
   white-space: nowrap;
 }
 
+.matching-loading-message {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  padding: 12px 14px;
+  color: #1e3a8a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.matching-loading-message.warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.matching-loading-message .button {
+  justify-self: start;
+  margin-top: 4px;
+}
+
 .matching-loading-actions {
   display: flex;
   justify-content: flex-end;
@@ -3200,6 +3247,23 @@ textarea {
   font-size: 11px;
 }
 
+.partner-table .partner-empty-cell {
+  color: #475569;
+  padding: 34px 20px;
+  text-align: center;
+}
+
+.partner-table .partner-empty-cell b,
+.partner-table .partner-empty-cell span {
+  display: block;
+}
+
+.partner-table .partner-empty-cell b {
+  color: #0f172a;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
 .partner-table input {
   width: 16px;
   height: 16px;
@@ -3765,6 +3829,27 @@ textarea {
   height: 100%;
   border-radius: inherit;
   background: #2563eb;
+}
+
+.quote-upload-progress-box {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.quote-upload-progress-box b {
+  font-size: 14px;
+}
+
+.quote-upload-progress-box span {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .quote-board-table-wrap {
@@ -4701,6 +4786,62 @@ textarea {
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
+}
+
+.display-size-field {
+  min-width: 0;
+}
+
+.display-size-control {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #cfd9e7;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.display-size-control.dimension {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 82px;
+}
+
+.display-size-control.inch {
+  grid-template-columns: minmax(0, 1fr) 82px;
+}
+
+.display-size-control input,
+.display-size-control select {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.display-size-control input + input,
+.display-size-control select {
+  border-left: 1px solid #e2e8f0;
+}
+
+.display-size-control select {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.requirements-priority-field {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+}
+
+.requirements-priority-field > span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.requirements-form-grid .requirements-priority-field .priority-chip-row {
+  min-height: 42px;
+  align-content: center;
 }
 
 .priority-chip-row {

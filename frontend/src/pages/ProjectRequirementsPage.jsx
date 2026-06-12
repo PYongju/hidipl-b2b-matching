@@ -1,18 +1,34 @@
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
+import { formatNumberInput } from "../utils/formatters";
 
-const priorityOptions = ["최저가 우선", "납기 우선", "보증/A/S 우선", "스펙 우선", "균형 추천"];
+const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
+
+function isReviewPresetSelected(current, option) {
+  const normalized = String(current ?? "")
+    .replace(/ 우선$/, "")
+    .trim();
+  return normalized === option;
+}
 
 export default function ProjectRequirementsPage({
   projectData,
   onBack,
   onNext,
   onProjectDataChange,
+  onSaveDraft = () => {},
   isPartnerMatchingLoading = false,
+  onGoHome,
 }) {
   const checks = getMatchingChecks(projectData);
-  const readiness = getReadinessScore(checks);
+  const readiness = getReadinessScore(projectData, checks);
+  const readinessMessage = getReadinessMessage(readiness, checks);
+  const displayUnit = projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
+  const isDisplayInch = displayUnit === "inch";
+  const displayWidthValue = projectData.displayWidth ?? parseDisplayDimension(projectData.displaySize, "width");
+  const displayHeightValue = projectData.displayHeight ?? parseDisplayDimension(projectData.displaySize, "height");
+  const displayInchValue = projectData.displayInch ?? parseDisplayInch(projectData.displaySize);
 
   const updateField = (field, value) => {
     onProjectDataChange((current) => ({
@@ -21,9 +37,32 @@ export default function ProjectRequirementsPage({
     }));
   };
 
+  const updateDisplaySize = (nextValues) => {
+    onProjectDataChange((current) => {
+      const nextUnit = nextValues.displayUnit ?? current.displayUnit ?? displayUnit;
+      const nextWidth = nextValues.displayWidth ?? current.displayWidth ?? displayWidthValue;
+      const nextHeight = nextValues.displayHeight ?? current.displayHeight ?? displayHeightValue;
+      const nextInch = nextValues.displayInch ?? current.displayInch ?? displayInchValue;
+      const nextDisplaySize =
+        nextUnit === "inch"
+          ? formatInchSize(nextInch)
+          : formatDimensionSize(nextWidth, nextHeight, nextUnit);
+
+      return {
+        ...current,
+        displayUnit: nextUnit,
+        displayWidth: nextUnit === "inch" ? "" : nextWidth,
+        displayHeight: nextUnit === "inch" ? "" : nextHeight,
+        displayInch: nextUnit === "inch" ? nextInch : "",
+        displaySize: nextDisplaySize,
+      };
+    });
+  };
+
   return (
     <div className="flow-page requirements-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 상세 > 요구사항"
         action={
           <>
@@ -81,7 +120,7 @@ export default function ProjectRequirementsPage({
                   <span>회사명 *</span>
                   <input
                     onChange={(event) => updateField("companyName", event.target.value)}
-                    placeholder="예: 삼성전자"
+                    placeholder="예: Microsoft"
                     value={projectData.companyName || ""}
                   />
                 </label>
@@ -129,19 +168,48 @@ export default function ProjectRequirementsPage({
                 </div>
               </div>
               <div className="requirements-form-grid">
-                <label>
+                <label className="display-size-field">
                   <span>디스플레이 크기</span>
-                  <div className="requirements-money-field">
-                    <input
-                      inputMode="decimal"
-                      onChange={(event) => {
-                        const value = event.target.value.replace(/인치/g, "").trim();
-                        updateField("displaySize", value ? `${value}인치` : "");
-                      }}
-                      placeholder="예: 55"
-                      value={(projectData.displaySize || "").replace(/인치$/, "")}
-                    />
-                    <em>인치</em>
+                  <div className={isDisplayInch ? "display-size-control inch" : "display-size-control dimension"}>
+                    {isDisplayInch ? (
+                      <input
+                        inputMode="decimal"
+                        onChange={(event) => updateDisplaySize({ displayInch: event.target.value.trim() })}
+                        placeholder="예: 55"
+                        value={displayInchValue}
+                      />
+                    ) : (
+                      <>
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateDisplaySize({ displayWidth: event.target.value.trim() })}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              event.currentTarget.nextElementSibling?.focus();
+                            }
+                          }}
+                          placeholder="W 12000"
+                          value={displayWidthValue}
+                        />
+                        <input
+                          inputMode="decimal"
+                          onChange={(event) => updateDisplaySize({ displayHeight: event.target.value.trim() })}
+                          placeholder="H 3000"
+                          value={displayHeightValue}
+                        />
+                      </>
+                    )}
+                    <select
+                      aria-label="display size unit"
+                      onChange={(event) => updateDisplaySize({ displayUnit: event.target.value })}
+                      value={displayUnit}
+                    >
+                      <option value="mm">mm</option>
+                      <option value="cm">cm</option>
+                      <option value="m">m</option>
+                      <option value="inch">인치</option>
+                    </select>
                   </div>
                 </label>
                 <label>
@@ -166,7 +234,7 @@ export default function ProjectRequirementsPage({
                   </select>
                 </label>
                 <label>
-                  <span>카테고리</span>
+                  <span>솔루션</span>
                   <select
                     onChange={(event) => updateField("category", event.target.value)}
                     value={projectData.category || "디스플레이"}
@@ -195,39 +263,34 @@ export default function ProjectRequirementsPage({
                   <div className="requirements-money-field">
                     <input
                       inputMode="numeric"
-                      onChange={(event) => updateField("budgetAmount", event.target.value)}
+                      onChange={(event) =>
+                        updateField("budgetAmount", formatNumberInput(event.target.value))
+                      }
                       placeholder="예: 120,000,000"
                       value={projectData.budgetAmount || ""}
                     />
                     <em>원</em>
                   </div>
                 </label>
-                <label>
-                  <span>현재 단계</span>
-                  <select
-                    onChange={(event) => updateField("currentStage", event.target.value)}
-                    value={projectData.currentStage || "요구사항"}
-                  >
-                    <option>정보 탐색</option>
-                    <option>요구사항</option>
-                    <option>파트너 매칭 필요</option>
-                    <option>견적 요청 전</option>
-                    <option>견적 수신중</option>
-                    <option>비교 검토중</option>
-                  </select>
-                </label>
-              </div>
-              <div className="priority-chip-row">
-                {priorityOptions.map((option) => (
-                  <button
-                    className={projectData.reviewPreset === option ? "priority-chip active" : "priority-chip"}
-                    key={option}
-                    onClick={() => updateField("reviewPreset", option)}
-                    type="button"
-                  >
-                    {option}
-                  </button>
-                ))}
+                <div className="requirements-priority-field">
+                  <span>매칭 우선순위</span>
+                  <div className="priority-chip-row">
+                    {priorityOptions.map((option) => (
+                      <button
+                        className={
+                          isReviewPresetSelected(projectData.reviewPreset, option)
+                            ? "priority-chip active"
+                            : "priority-chip"
+                        }
+                        key={option}
+                        onClick={() => updateField("reviewPreset", option)}
+                        type="button"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -286,10 +349,7 @@ export default function ProjectRequirementsPage({
               <div className="matching-readiness-bar">
                 <span style={{ width: `${readiness}%` }} />
               </div>
-              <p>
-                현재 정보만으로도 파트너 매칭을 시작할 수 있습니다. 세부 모델과 설치 방식은
-                후보 검토 과정에서 보완해 주세요.
-              </p>
+              <p>{readinessMessage}</p>
             </div>
 
             <div className="matching-next-guide refined">
@@ -306,7 +366,7 @@ export default function ProjectRequirementsPage({
       <footer className="requirements-bottom-actions">
         <span>요구사항은 빈 값이어도 저장할 수 있습니다.</span>
         <div>
-          <button className="button action-secondary" type="button">
+          <button className="button action-secondary" onClick={onSaveDraft} type="button">
             임시 저장
           </button>
           <button
@@ -323,27 +383,40 @@ export default function ProjectRequirementsPage({
   );
 }
 
+function hasDisplayDimension(data) {
+  return Boolean(
+    data.displaySize?.trim() ||
+      data.displayInch?.trim() ||
+      (data.displayWidth?.trim() && data.displayHeight?.trim()),
+  );
+}
+
 function getMatchingChecks(data) {
   const stage = data.currentStage || "";
   const schedule = getScheduleState(data.projectDate);
   const hasCompany = Boolean(data.companyName?.trim());
   const hasLocation = Boolean(data.location?.trim());
   const hasUsage = Boolean(data.usage?.trim());
-  const hasSpec = Boolean(data.displaySize?.trim() || data.quantity?.trim());
+  const hasDisplay = hasDisplayDimension(data);
+  const hasQuantity = Boolean(data.quantity?.trim());
   const hasBudget = Boolean(data.budgetAmount?.trim());
-  const hasCategory = Boolean(data.category?.trim());
+  const hasCategory = Boolean((data.category || "디스플레이").trim());
+
+  const requiredFilledCount = [hasCompany, hasLocation, hasUsage].filter(Boolean).length;
 
   return [
     {
       title: "필수값 충족",
-      level: hasCompany && hasLocation && hasUsage ? "ok" : "warn",
+      weight: 24,
+      level: requiredFilledCount === 3 ? "ok" : "warn",
       message:
-        hasCompany && hasLocation && hasUsage
+        requiredFilledCount === 3
           ? "회사명, 설치 위치, 활용 목적이 입력되었습니다."
-          : "회사명, 설치 위치, 활용 목적을 입력하면 추천 정확도가 높아집니다.",
+          : `회사명, 설치 위치, 활용 목적 중 ${requiredFilledCount}/3개가 입력되었습니다.`,
     },
     {
       title: "정보 탐색 단계 확인 필요",
+      weight: 16,
       level: stage.includes("정보 탐색") ? "warn" : "ok",
       message: stage.includes("정보 탐색")
         ? "정보 탐색 단계는 자동 매칭이 제한될 수 있습니다."
@@ -351,31 +424,138 @@ function getMatchingChecks(data) {
     },
     {
       title: "일정 6개월 이내",
+      weight: 20,
       level: schedule.level,
       message: schedule.message,
     },
     {
       title: "스펙/예산 보완",
-      level: hasSpec && hasBudget ? "ok" : "warn",
-      message:
-        hasSpec && hasBudget
-          ? "디스플레이 스펙과 예산 조건이 입력되었습니다."
-          : "디스플레이 크기, 수량, 예산을 입력하면 후보군을 더 정확히 좁힐 수 있습니다.",
+      weight: 24,
+      level: hasDisplay && hasQuantity && hasBudget ? "ok" : "warn",
+      message: (() => {
+        if (hasDisplay && hasQuantity && hasBudget) {
+          return "디스플레이 스펙, 수량, 예산 조건이 입력되었습니다.";
+        }
+        const missing = [
+          hasDisplay ? null : "디스플레이 크기",
+          hasQuantity ? null : "수량",
+          hasBudget ? null : "예산",
+        ].filter(Boolean);
+        return `${missing.join(", ")}을(를) 입력하면 후보군을 더 정확히 좁힐 수 있습니다.`;
+      })(),
     },
     {
-      title: "카테고리 적합성",
+      title: "솔루션 적합성",
+      weight: 16,
       level: hasCategory ? "ok" : "warn",
       message: hasCategory
-        ? `${data.category} 파트너 풀과 매칭할 수 있습니다.`
-        : "카테고리를 입력하면 후보군을 더 정확히 좁힐 수 있습니다.",
+        ? `${data.category || "디스플레이"} 파트너 풀과 매칭할 수 있습니다.`
+        : "솔루션을 선택하면 후보군을 더 정확히 좁힐 수 있습니다.",
     },
   ];
 }
 
-function getReadinessScore(checks) {
-  const base = 42;
-  const score = checks.reduce((sum, check) => sum + (check.level === "ok" ? 11 : 5), base);
-  return Math.min(score, 96);
+function getFieldReadinessScore(data) {
+  const hasCompany = Boolean(data.companyName?.trim());
+  const hasLocation = Boolean(data.location?.trim());
+  const hasUsage = Boolean(data.usage?.trim());
+  const hasProjectName = Boolean(data.projectName?.trim());
+  const hasProjectDate = Boolean(data.projectDate?.trim());
+  const hasDisplay = hasDisplayDimension(data);
+  const hasQuantity = Boolean(data.quantity?.trim());
+  const hasBudget = Boolean(data.budgetAmount?.trim());
+  const hasCategory = Boolean((data.category || "디스플레이").trim());
+  const hasReviewPreset = Boolean(data.reviewPreset?.trim());
+
+  const items = [
+    { filled: hasCompany, weight: 14 },
+    { filled: hasLocation, weight: 14 },
+    { filled: hasUsage, weight: 14 },
+    { filled: hasProjectName, weight: 6 },
+    { filled: hasProjectDate, weight: 8 },
+    { filled: hasDisplay, weight: 16 },
+    { filled: hasQuantity, weight: 10 },
+    { filled: hasBudget, weight: 14 },
+    { filled: hasCategory, weight: 6 },
+    { filled: hasReviewPreset, weight: 8 },
+  ];
+
+  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+  const earnedWeight = items.reduce(
+    (sum, item) => sum + (item.filled ? item.weight : 0),
+    0,
+  );
+
+  return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+}
+
+function getChecksReadinessScore(checks) {
+  if (!checks.length) return 0;
+
+  const earnedWeight = checks.reduce(
+    (sum, check) => sum + (check.level === "ok" ? check.weight : 0),
+    0,
+  );
+  const totalWeight = checks.reduce((sum, check) => sum + check.weight, 0);
+
+  return totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+}
+
+function getReadinessScore(data, checks) {
+  const fieldScore = getFieldReadinessScore(data);
+  const checkScore = getChecksReadinessScore(checks);
+
+  return Math.round(fieldScore * 0.55 + checkScore * 0.45);
+}
+
+function getReadinessMessage(readiness, checks) {
+  const warnCount = checks.filter((check) => check.level !== "ok").length;
+
+  if (readiness >= 85 && warnCount === 0) {
+    return "입력과 사전 검증이 충분합니다. 지금 상태로 파트너 매칭을 진행해도 좋습니다.";
+  }
+  if (readiness >= 60) {
+    return "기본 조건은 갖춰졌습니다. 남은 항목을 보완하면 추천 정확도가 더 높아집니다.";
+  }
+  if (warnCount > 0) {
+    return "매칭 가능성 체크에서 확인이 필요한 항목이 있습니다. 경고 항목을 먼저 보완해 주세요.";
+  }
+  return "필수 정보와 스펙/예산을 입력하면 매칭 준비도가 올라갑니다.";
+}
+
+function inferDisplayUnit(displaySize = "") {
+  if (/인치|inch/i.test(displaySize)) return "inch";
+  const unitMatch = displaySize.match(/\b(mm|cm|m)\b/i);
+  return unitMatch?.[1]?.toLowerCase() || "mm";
+}
+
+function parseDisplayInch(displaySize = "") {
+  const match = displaySize.match(/([\d,.]+)\s*(?:인치|inch)/i);
+  return match?.[1] || "";
+}
+
+function parseDisplayDimension(displaySize = "", axis) {
+  const axisPattern = axis === "width" ? /W\s*([\d,.]+)/i : /H\s*([\d,.]+)/i;
+  const axisMatch = displaySize.match(axisPattern);
+  if (axisMatch?.[1]) return axisMatch[1];
+
+  const pairMatch = displaySize.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
+  if (!pairMatch) return "";
+  return axis === "width" ? pairMatch[1] : pairMatch[2];
+}
+
+function formatInchSize(value = "") {
+  const normalized = value.replace(/인치/g, "").trim();
+  return normalized ? `${normalized}인치` : "";
+}
+
+function formatDimensionSize(width = "", height = "", unit = "mm") {
+  const normalizedWidth = width.trim();
+  const normalizedHeight = height.trim();
+  if (!normalizedWidth && !normalizedHeight) return "";
+  if (!normalizedHeight) return `W ${normalizedWidth} ${unit}`;
+  if (!normalizedWidth) return `H ${normalizedHeight} ${unit}`;
+  return `W ${normalizedWidth} x H ${normalizedHeight} ${unit}`;
 }
 
 function getScheduleState(value) {

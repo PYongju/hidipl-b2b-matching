@@ -9,6 +9,9 @@ from services.recommendation.schemas import (
     RecommendationItem,
     RecommendationPipelineResult,
 )
+from services.recommendation.product_group_filter import (
+    filter_quotes_by_product_group_scope,
+)
 from services.requirement_ingestion.schemas import RequirementIngestionResult
 
 
@@ -34,6 +37,8 @@ class RecommendationPipeline:
         requirement = requirement_result.requirement
         candidates: list[RankingCandidate] = []
         failed_candidates: list[dict[str, str]] = []
+        product_group_excluded_candidates: list[dict[str, Any]] = []
+        product_group_filter_metadata: dict[str, Any] = {}
 
         selected_normalized = {
             self._normalize_company_name(name)
@@ -50,6 +55,16 @@ class RecommendationPipeline:
             ]
             if matched_quote_results:
                 filtered_quote_results = matched_quote_results
+
+        (
+            filtered_quote_results,
+            product_group_excluded_candidates,
+            product_group_filter_metadata,
+        ) = filter_quotes_by_product_group_scope(
+            requirement=requirement,
+            quote_documents=filtered_quote_results,
+        )
+        failed_candidates.extend(product_group_excluded_candidates)
 
         for quote_result in filtered_quote_results:
             try:
@@ -106,6 +121,9 @@ class RecommendationPipeline:
                 "candidate_count": len(candidates),
                 "failed_candidate_count": len(failed_candidates),
                 "filtered_candidate_count": len(filtered_candidates),
+                "input_quote_count": len(quote_results),
+                "product_group_filter": product_group_filter_metadata,
+                "product_group_excluded_candidates": product_group_excluded_candidates,
                 "selected_partner_names": selected_partner_names or [],
                 "selected_partner_filter_applied": (
                     bool(selected_normalized)

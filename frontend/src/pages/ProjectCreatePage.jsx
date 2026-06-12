@@ -3,7 +3,13 @@ import Badge from '../components/Badge';
 import FlowTopbar from '../components/FlowTopbar';
 import { formatNumberInput } from '../utils/formatters';
 
-export default function ProjectCreatePage({ projectData, onProjectDataChange, onBack, onAnalyze }) {
+export default function ProjectCreatePage({
+  projectData,
+  onProjectDataChange,
+  onBack,
+  onAnalyze,
+  onGoHome,
+}) {
   const [step, setStep] = useState(1);
   const uploadedFiles = projectData.quoteFiles ?? [];
   const steps = [
@@ -67,6 +73,7 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
   return (
     <div className="flow-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 목록 > 새 프로젝트 생성"
         action={<button className="button" onClick={onBack} type="button">취소</button>}
       />
@@ -222,13 +229,13 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
               <p>공급사별 견적서를 한 번에 또는 하나씩 첨부할 수 있습니다. 선택한 파일은 아래 목록에 쌓입니다.</p>
               <label className="drop-zone upload-drop-zone">
                 <input
-                  accept=".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg,.webp"
+                  accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
                   multiple
                   onChange={handleFiles}
                   type="file"
                 />
                 <b>파일을 드래그하거나 클릭하여 업로드</b>
-                <span>PDF, Excel, Word 파일 지원 · 여러 개 또는 하나씩 선택 가능</span>
+                <span>PDF, Excel, 이미지 파일 지원 · 여러 개 또는 하나씩 선택 가능</span>
               </label>
               <div className="uploaded-list">
                 {uploadedFiles.length === 0 ? (
