@@ -135,12 +135,28 @@ function fetchExplanation(projectId, matchId) {
   );
 }
 
+function fetchProjects() {
+  return request("/api/v1/projects", {
+    method: "GET",
+  });
+}
+
+function deleteProjects(projectIds) {
+  return request("/api/v1/projects", {
+    method: "DELETE",
+    body: JSON.stringify({ project_ids: projectIds }),
+  });
+}
+
 export {
   createProject,
+  deleteProjects, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
   fetchCompare,
   fetchExplanation,
   fetchProject,
+  fetchProjectMatches, // 6/12 백엔드 작업에서 추가
+  fetchProjects, // 6/12 백엔드 작업에서 추가
   request,
   runProjectMatch,
   uploadProjectQuotes,
