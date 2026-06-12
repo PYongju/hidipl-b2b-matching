@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -11,6 +11,20 @@ function normalizeSimilarityScore(value) {
 function normalizeResponseSpeed(value) {
   if (typeof value === "number") return `${value}h`;
   return value ?? "미확인";
+}
+
+function parseResponseHours(value) {
+  if (typeof value === "number") return value;
+  const parsed = parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
+
+function hasRealCaution(filterReasons) {
+  return filterReasons.some(
+    (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
+  );
 }
 
 function normalizeCandidateVendor(raw, index) {
@@ -26,14 +40,19 @@ function normalizeCandidateVendor(raw, index) {
     0;
   const rank = raw.rank ?? index + 1;
   const businessRulePassed = raw.business_rule_passed === true && raw.is_excluded !== true;
+  const caution = Boolean(
+    raw.caution ?? (hasRealCaution(filterReasons) || checkRequired.length > 0),
+  );
+  const defaultReason =
+    checkRequired.join(", ") ||
+    filterReasons.join(", ") ||
+    (businessRulePassed ? "요구사항 기준 추천 가능 업체" : "추천 기준 미충족");
 
   return {
     id: raw.vendor_id ?? raw.vendor_name ?? raw.partner_id ?? raw.partner_name ?? `partner-${index}`,
     name: vendorName,
     rank,
-    score: normalizeSimilarityScore(
-      raw.semantic_similarity_score ?? raw.cosine_similarity,
-    ),
+    score: normalizeSimilarityScore(raw.final_score),
     specialty: Array.isArray(raw.specialty_tags)
       ? raw.specialty_tags.join(", ")
       : "전문 분야 미확인",
@@ -42,11 +61,8 @@ function normalizeCandidateVendor(raw, index) {
     response: normalizeResponseSpeed(raw.response_speed),
     businessRulePassed,
     recommended: businessRulePassed && rank <= 10,
-    caution: filterReasons.length > 0 || checkRequired.length > 0,
-    reason:
-      checkRequired.join(", ") ||
-      filterReasons.join(", ") ||
-      (businessRulePassed ? "요구사항 기준 추천 가능 업체" : "추천 기준 미충족"),
+    caution,
+    reason: caution ? "이전에 [납기 지연] 발생했던 업체입니다." : defaultReason,
   };
 }
 
@@ -59,6 +75,10 @@ export default function PartnerMatchingPage({
 }) {
   const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
   const [showAllPartners, setShowAllPartners] = useState(true);
+
+  useEffect(() => {
+    setTargetIds(projectData.requestTargetIds ?? []);
+  }, [projectData.requestTargetIds]);
   const [searchTerm, setSearchTerm] = useState("");
   const [premiumFilter, setPremiumFilter] = useState("all");
   const [sortKey, setSortKey] = useState("ai");
@@ -96,13 +116,19 @@ export default function PartnerMatchingPage({
         return matchesSearch && matchesPremium;
       })
       .sort((a, b) => {
-        if (a.businessRulePassed !== b.businessRulePassed) {
-          return a.businessRulePassed ? -1 : 1;
-        }
         if (sortKey === "response") {
-          return parseFloat(a.response) - parseFloat(b.response);
+          const responseDiff = parseResponseHours(a.response) - parseResponseHours(b.response);
+          if (responseDiff !== 0) return responseDiff;
+          return b.score - a.score || a.rank - b.rank;
         }
-        return a.rank - b.rank || b.score - a.score;
+        if (sortKey === "cases") {
+          const casesDiff = (b.cases ?? 0) - (a.cases ?? 0);
+          if (casesDiff !== 0) return casesDiff;
+          return b.score - a.score || a.rank - b.rank;
+        }
+        const scoreDiff = b.score - a.score;
+        if (scoreDiff !== 0) return scoreDiff;
+        return a.rank - b.rank;
       });
   }, [partners, premiumFilter, searchTerm, showAllPartners, sortKey]);
 
@@ -113,14 +139,30 @@ export default function PartnerMatchingPage({
   const cautionPartners = partners.filter((partner) => partner.caution);
   const candidateEmptyMessage = getCandidateEmptyMessage(candidateStatus);
 
+  const persistRequestTargets = (nextTargetIds, partnersList = partners) => {
+    onProjectDataChange?.((current) => ({
+      ...current,
+      requestTargetIds: nextTargetIds,
+      requestTargets: partnersList.filter((partner) => nextTargetIds.includes(partner.id)),
+    }));
+  };
+
+  const updateRequestTargets = (updater) => {
+    setTargetIds((current) => {
+      const nextTargetIds = typeof updater === "function" ? updater(current) : updater;
+      persistRequestTargets(nextTargetIds);
+      return nextTargetIds;
+    });
+  };
+
   const addPartner = (partnerId) => {
-    setTargetIds((current) =>
+    updateRequestTargets((current) =>
       current.includes(partnerId) ? current : [...current, partnerId],
     );
   };
 
   const removePartner = (partnerId) => {
-    setTargetIds((current) => current.filter((id) => id !== partnerId));
+    updateRequestTargets((current) => current.filter((id) => id !== partnerId));
   };
 
   const togglePartner = (partnerId) => {
@@ -132,7 +174,7 @@ export default function PartnerMatchingPage({
   };
 
   const addRecommendedPartners = () => {
-    setTargetIds((current) => [
+    updateRequestTargets((current) => [
       ...new Set([
         ...current,
         ...partners
@@ -151,6 +193,11 @@ export default function PartnerMatchingPage({
       currentStage: "요청 대상 검토중",
       workflowStatus: "진행 중",
     }));
+  };
+
+  const handleGoQuoteWaiting = () => {
+    persistRequestTargets(targetIds);
+    onGoDashboard();
   };
 
   return (
@@ -185,7 +232,7 @@ export default function PartnerMatchingPage({
         <ProjectStepTabs
           activeStep={2}
           onGoRequirements={onBack}
-          onGoQuoteWaiting={onGoDashboard}
+          onGoQuoteWaiting={handleGoQuoteWaiting}
         />
 
         <section className="partner-project-summary six">
@@ -222,6 +269,7 @@ export default function PartnerMatchingPage({
               <select onChange={(event) => setSortKey(event.target.value)} value={sortKey}>
                 <option value="ai">AI 추천 점수순</option>
                 <option value="response">응답 빠른순</option>
+                <option value="cases">사례 많은순</option>
               </select>
             </div>
 
@@ -238,14 +286,35 @@ export default function PartnerMatchingPage({
                   <Badge tone="orange">주의 {cautionCount}</Badge>
                   <Badge tone="gray">표시 {visiblePartners.length}</Badge>
                 </div>
-                <button className="button button-small" onClick={addRecommendedPartners} type="button">
-                  AI 추천 대상 모두 추가
-                </button>
+                <div className="partner-title-buttons">
+                  <button
+                    className="partner-expand-button partner-expand-button-inline"
+                    onClick={() => setShowAllPartners((current) => !current)}
+                    type="button"
+                  >
+                    {showAllPartners ? "AI 추천 파트너만 보기" : "전체 파트너 보기"}
+                  </button>
+                  <button className="button button-small" onClick={addRecommendedPartners} type="button">
+                    AI 추천 대상 모두 추가
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="partner-table-wrap">
               <table className="partner-table">
+                <colgroup>
+                  <col className="col-select" />
+                  <col className="col-rank" />
+                  <col className="col-name" />
+                  <col className="col-score" />
+                  <col className="col-premium" />
+                  <col className="col-cases" />
+                  <col className="col-response" />
+                  <col className="col-type" />
+                  <col className="col-reason" />
+                  <col className="col-action" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>선택</th>
@@ -325,14 +394,6 @@ export default function PartnerMatchingPage({
                 </tbody>
               </table>
             </div>
-
-            <button
-              className="partner-expand-button"
-              onClick={() => setShowAllPartners((current) => !current)}
-              type="button"
-            >
-              {showAllPartners ? "AI 추천 파트너만 보기" : "전체 파트너 보기"}
-            </button>
           </div>
 
           <aside className="request-panel">
@@ -406,7 +467,7 @@ export default function PartnerMatchingPage({
           <button
             className="button action-primary"
             disabled={targetPartners.length === 0}
-            onClick={onGoDashboard}
+            onClick={handleGoQuoteWaiting}
             type="button"
           >
             견적 요청 발송
