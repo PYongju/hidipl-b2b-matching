@@ -11,8 +11,10 @@ import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
   createProject,
+  deleteProjects as deleteProjectsApi, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
   fetchProject,
+  fetchProjects, // 6/12 백엔드 작업에서 추가
   runProjectMatch,
   uploadProjectQuotes,
 } from "./api/apiClient";
@@ -94,6 +96,33 @@ export default function App() {
       syncProjectList(nextData, listOverrides);
       return nextData;
     });
+  };
+
+  const goToProjects = async () => {
+    setScreen("projects");
+    try {
+      const list = await fetchProjects();
+      setProjects(
+        (list ?? []).map((item) =>
+          buildProjectListItem(
+            {
+              ...initialProjectData,
+              projectApiId: item.project_id,
+              companyName: item.company_name,
+              location: item.location,
+              projectDate: item.deadline,
+              requestText: item.request_text,
+              serverStatus: item.status,
+              workflowStatus: getWorkflowStatusFromServerStatus(item.status),
+              currentStage: getCurrentStageFromServerStatus(item.status),
+            },
+            item.project_id,
+          ),
+        ),
+      );
+    } catch (error) {
+      console.error("프로젝트 목록 조회 실패:", error);
+    }
   };
 
   const startNewProject = () => {
@@ -180,7 +209,12 @@ export default function App() {
     setScreen("dashboard");
   };
 
-  const deleteProjects = (projectIds) => {
+  const deleteProjects = async (projectIds) => {
+    try {
+      await deleteProjectsApi(projectIds);
+    } catch (error) {
+      console.error("프로젝트 삭제 실패:", error);
+    }
     setProjects((current) =>
       current.filter((project) => !projectIds.includes(project.id)),
     );
@@ -358,6 +392,7 @@ export default function App() {
     return <LoginPage onLogin={() => setScreen("projects")} />;
   }
 
+  //6/12 백엔드 작업에서 수정
   if (screen === "projects") {
     return (
       <ProjectListPage
@@ -367,6 +402,33 @@ export default function App() {
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
         onOpenDashboard={openProjectFromList}
+        onMount={async () => {
+          try {
+            const list = await fetchProjects();
+            setProjects(
+              (list ?? []).map((item) =>
+                buildProjectListItem(
+                  {
+                    ...initialProjectData,
+                    projectApiId: item.project_id,
+                    companyName: item.company_name,
+                    location: item.location,
+                    projectDate: item.deadline,
+                    requestText: item.request_text,
+                    serverStatus: item.status,
+                    workflowStatus: getWorkflowStatusFromServerStatus(
+                      item.status,
+                    ),
+                    currentStage: getCurrentStageFromServerStatus(item.status),
+                  },
+                  item.project_id,
+                ),
+              ),
+            );
+          } catch (error) {
+            console.error("프로젝트 목록 조회 실패:", error);
+          }
+        }}
       />
     );
   }

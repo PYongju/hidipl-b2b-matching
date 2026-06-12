@@ -222,34 +222,6 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
         raise HTTPException(status_code=422, detail=str(e))
 
 
-# [P8] 프로젝트 상태 조회
-@router.get("/projects/{project_id}")
-async def get_project(project_id: str, db: Session = Depends(get_db)):
-    try:
-        row = db.execute(
-            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
-            {"project_id": project_id}
-        ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
-        return {
-            "ok": True,
-            "data": {
-                "project_id": row.project_id,
-                "status": row.status,
-                "company_name": row.company_name,
-                "location": row.location,
-                "deadline": row.deadline,
-                "request_text": row.request_text,
-                "created_at": row.created_at.isoformat() if row.created_at else None,
-            },
-            "error": None,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
 async def get_matches(project_id: str):
@@ -319,3 +291,81 @@ async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Se
     except Exception as e:
         db.rollback()
         raise
+
+# [P9] 프로젝트 목록 조회
+@router.get("/projects")
+async def list_projects(db: Session = Depends(get_db)):
+    try:
+        rows = db.execute(
+            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects ORDER BY created_at DESC")
+        ).fetchall()
+        return {
+            "ok": True,
+            "data": [
+                {
+                    "project_id": row.project_id,
+                    "status": row.status,
+                    "company_name": row.company_name,
+                    "location": row.location,
+                    "deadline": row.deadline,
+                    "request_text": row.request_text,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ],
+            "error": None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# [P10] 프로젝트 삭제 (선택/전체)
+class ProjectDeleteRequest(BaseModel):
+    project_ids: List[str]
+
+@router.delete("/projects")
+async def delete_projects(body: ProjectDeleteRequest, db: Session = Depends(get_db)):
+    try:
+        if not body.project_ids:
+            raise HTTPException(status_code=400, detail="project_ids가 비어 있습니다.")
+        for pid in body.project_ids:
+            db.execute(
+                text("DELETE FROM projects WHERE project_id = :project_id"),
+                {"project_id": pid}
+            )
+        db.commit()
+        return {"ok": True, "data": {"deleted_count": len(body.project_ids)}, "error": None}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# [P8] 프로젝트 상태 조회
+@router.get("/projects/{project_id}")
+async def get_project(project_id: str, db: Session = Depends(get_db)):
+    try:
+        row = db.execute(
+            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+        return {
+            "ok": True,
+            "data": {
+                "project_id": row.project_id,
+                "status": row.status,
+                "company_name": row.company_name,
+                "location": row.location,
+                "deadline": row.deadline,
+                "request_text": row.request_text,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            },
+            "error": None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
