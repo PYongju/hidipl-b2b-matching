@@ -42,7 +42,11 @@ async function runPartnerMatchingStep(step, setStep, action) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("login");
+  const [screen, setScreen] = useState(() => {
+    return localStorage.getItem("hidipl_screen") === "projects"
+      ? "projects"
+      : "login";
+  });
   const [projectData, setProjectData] = useState(initialProjectData);
   const [projects, setProjects] = useState([]);
   const [editingProjectId, setEditingProjectId] = useState("");
@@ -99,7 +103,6 @@ export default function App() {
   };
 
   const goToProjects = async () => {
-    setScreen("projects");
     try {
       const list = await fetchProjects();
       setProjects(
@@ -123,6 +126,8 @@ export default function App() {
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
     }
+    setScreen("projects");
+    localStorage.setItem("hidipl_screen", "projects");
   };
 
   const startNewProject = () => {
@@ -389,7 +394,7 @@ export default function App() {
   };
 
   if (screen === "login") {
-    return <LoginPage onLogin={() => setScreen("projects")} />;
+    return <LoginPage onLogin={goToProjects} />;
   }
 
   //6/12 백엔드 작업에서 수정
@@ -402,33 +407,6 @@ export default function App() {
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
         onOpenDashboard={openProjectFromList}
-        onMount={async () => {
-          try {
-            const list = await fetchProjects();
-            setProjects(
-              (list ?? []).map((item) =>
-                buildProjectListItem(
-                  {
-                    ...initialProjectData,
-                    projectApiId: item.project_id,
-                    companyName: item.company_name,
-                    location: item.location,
-                    projectDate: item.deadline,
-                    requestText: item.request_text,
-                    serverStatus: item.status,
-                    workflowStatus: getWorkflowStatusFromServerStatus(
-                      item.status,
-                    ),
-                    currentStage: getCurrentStageFromServerStatus(item.status),
-                  },
-                  item.project_id,
-                ),
-              ),
-            );
-          } catch (error) {
-            console.error("프로젝트 목록 조회 실패:", error);
-          }
-        }}
       />
     );
   }
@@ -582,7 +560,7 @@ export default function App() {
   return (
     <DashboardPage
       projectData={projectData}
-      onGoProjects={() => setScreen("projects")}
+      onGoProjects={goToProjects}
       onProjectDataChange={updateProjectData}
     />
   );
