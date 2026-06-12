@@ -5,6 +5,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
+from config.paths import OUTPUT_DIR
 from services.explanation.base import ExplanationProvider
 from services.explanation.explanation_input_builder import build_explanation_input
 from services.explanation.explanation_text_policy import (
@@ -23,6 +24,17 @@ from services.explanation.template_explanation_provider import TemplateExplanati
 from services.recommendation.schemas import RecommendationPipelineResult
 
 
+EXPLANATION_LLM_DEBUG_OUTPUT_PATH = OUTPUT_DIR / "api_demo_explanation_llm_io.json"
+SENSITIVE_DEBUG_KEYS = {
+    "embedding_vector",
+    "requirement_embedding",
+    "partner_embedding",
+    "ocr_text",
+    "ocr_full_text",
+    "api_key",
+    "endpoint",
+    "deployment",
+}
 class AzureOpenAIExplanationProvider(ExplanationProvider):
     def __init__(
         self,
@@ -105,7 +117,8 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         recommendation_result: RecommendationPipelineResult,
     ) -> RecommendationExplanationResult:
         explanation_input = build_explanation_input(recommendation_result)
-        payload = asdict(explanation_input)
+        payload = strip_explanation_debug_sensitive_fields(asdict(explanation_input))
+        system_prompt = self._system_prompt()
 
         try:
             response = self.client.chat.completions.create(
@@ -114,7 +127,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                 max_tokens=self.max_tokens,
                 response_format={"type": "json_object"},
                 messages=[
-                    {"role": "system", "content": self._system_prompt()},
+                    {"role": "system", "content": system_prompt},
                     {
                         "role": "user",
                         "content": (
@@ -133,12 +146,24 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
 
             content = choice.message.content or ""
             parsed = json.loads(content)
-            return self._to_result(
+            result = self._to_result(
                 parsed=parsed,
                 recommendation_result=recommendation_result,
                 raw_response=content,
                 finish_reason=finish_reason,
             )
+            write_explanation_llm_debug_output(
+                provider="azure_openai",
+                system_prompt=system_prompt,
+                explanation_payload=payload,
+                parsed_response=parsed,
+                final_result=result,
+                raw_response_preview=content[:500],
+                warnings=list(result.warnings),
+                fallback_used=False,
+                fallback_reason=None,
+            )
+            return result
         except Exception as e:
             if self.fallback_to_template:
                 fallback = self.template_provider.generate(recommendation_result)
@@ -148,6 +173,17 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
                 )
                 fallback.metadata["fallback_reason"] = str(e)
                 fallback.metadata["max_tokens"] = self.max_tokens
+                write_explanation_llm_debug_output(
+                    provider="azure_openai_fallback_template",
+                    system_prompt=system_prompt,
+                    explanation_payload=payload,
+                    parsed_response=None,
+                    final_result=fallback,
+                    raw_response_preview=None,
+                    warnings=list(fallback.warnings),
+                    fallback_used=True,
+                    fallback_reason=str(e),
+                )
                 return fallback
 
             raise RuntimeError(
@@ -441,3 +477,68 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
         if not sentences:
             return ""
         return ". ".join(sentences[:3]).rstrip(".") + "."
+
+
+def write_explanation_llm_debug_output(
+    *,
+    provider: str,
+    explanation_payload: dict[str, Any],
+    parsed_response: dict[str, Any] | None,
+    final_result: RecommendationExplanationResult | None,
+    raw_response_preview: str | None,
+    warnings: list[str],
+    system_prompt: str | None = None,
+    fallback_used: bool = False,
+    fallback_reason: str | None = None,
+) -> None:
+    debug_payload = {
+        "provider": provider,
+        "llm_input": {
+            "system_prompt_preview": (system_prompt or "")[:300],
+            "payload": explanation_payload,
+        },
+        "llm_output": {
+            "raw_response_preview": raw_response_preview,
+            "parsed_response": parsed_response,
+            "final_result": asdict(final_result) if final_result is not None else None,
+            "fallback_used": fallback_used,
+            "fallback_reason": fallback_reason,
+        },
+        "warnings": warnings,
+    }
+    safe_payload = strip_explanation_debug_sensitive_fields(debug_payload)
+    serialized_without_security = json.dumps(
+        safe_payload,
+        ensure_ascii=False,
+        indent=2,
+        default=str,
+    )
+    safe_payload["security_check"] = build_debug_security_check(serialized_without_security)
+    serialized = json.dumps(safe_payload, ensure_ascii=False, indent=2, default=str)
+    EXPLANATION_LLM_DEBUG_OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    EXPLANATION_LLM_DEBUG_OUTPUT_PATH.write_text(serialized, encoding="utf-8")
+
+
+def strip_explanation_debug_sensitive_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, item in value.items():
+            if str(key).lower() in SENSITIVE_DEBUG_KEYS:
+                continue
+            cleaned[key] = strip_explanation_debug_sensitive_fields(item)
+        return cleaned
+    if isinstance(value, list):
+        return [strip_explanation_debug_sensitive_fields(item) for item in value]
+    return value
+
+
+def build_debug_security_check(serialized: str) -> dict[str, bool]:
+    lowered = serialized.lower()
+    return {
+        "vector_fields_present": "embedding_vector" in lowered,
+        "requirement_vector_fields_present": "requirement_embedding" in lowered,
+        "partner_vector_fields_present": "partner_embedding" in lowered,
+        "ocr_full_content_present": "ocr_full_text" in lowered or "ocr_text" in lowered,
+        "secret_key_fields_present": "api_key" in lowered,
+        "service_url_fields_present": "endpoint" in lowered,
+    }
