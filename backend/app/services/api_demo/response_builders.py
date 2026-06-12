@@ -1151,6 +1151,7 @@ def strip_heavy_fields(obj: Any) -> Any:
                 "api_key",
                 "endpoint",
                 "deployment",
+                "raw_llm_output",
             }:
                 continue
             if key in {"source_text", "ocr_text"}:

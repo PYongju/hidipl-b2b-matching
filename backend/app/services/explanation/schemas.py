@@ -23,6 +23,7 @@ class RecommendationExplanationResult:
     provider: str
     warnings: list[str]
     metadata: dict[str, Any] = field(default_factory=dict)
+    raw_llm_output: str | None = None
 
 
 @dataclass
