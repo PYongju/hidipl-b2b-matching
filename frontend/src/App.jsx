@@ -42,12 +42,12 @@ async function runPartnerMatchingStep(step, setStep, action) {
 }
 
 export default function App() {
+  // 6/12 수정
   const [screen, setScreen] = useState(() => {
     return localStorage.getItem("hidipl_screen") === "projects"
       ? "projects"
       : "login";
   });
-  const [projectData, setProjectData] = useState(initialProjectData);
   const [projects, setProjects] = useState([]);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
@@ -407,6 +407,7 @@ export default function App() {
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
         onOpenDashboard={openProjectFromList}
+        onMount={goToProjects}
       />
     );
   }
