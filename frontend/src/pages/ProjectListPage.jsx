@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import { formatNumberInput } from "../utils/formatters";
 
 const filterOptions = ["전체", "진행 중", "검토 중", "완료"];
 
@@ -12,6 +13,7 @@ export default function ProjectListPage({
   onOpenDashboard,
   onEditProject,
   onDeleteProjects,
+  onGoHome,
   onMount, // 6/12 추가
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
@@ -93,11 +95,9 @@ export default function ProjectListPage({
   return (
     <div className="flow-page">
       <FlowTopbar
+        onHome={onGoHome}
         action={
           <>
-            <div className="bell">
-              알림<span>3</span>
-            </div>
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
@@ -281,10 +281,8 @@ export default function ProjectListPage({
                 <label>
                   <span>회사명 *</span>
                   <input
-                    onChange={(event) =>
-                      updateDraft("companyName", event.target.value)
-                    }
-                    placeholder="예: 삼성전자"
+                    onChange={(event) => updateDraft("companyName", event.target.value)}
+                    placeholder="예: Microsoft"
                     value={draft.companyName}
                   />
                 </label>
@@ -354,7 +352,7 @@ export default function ProjectListPage({
                   </select>
                 </label>
                 <label>
-                  <span>카테고리</span>
+                  <span>솔루션</span>
                   <select
                     onChange={(event) =>
                       updateDraft("category", event.target.value)
@@ -373,7 +371,7 @@ export default function ProjectListPage({
                   <input
                     inputMode="numeric"
                     onChange={(event) =>
-                      updateDraft("budgetAmount", event.target.value)
+                      updateDraft("budgetAmount", formatNumberInput(event.target.value))
                     }
                     placeholder="예: 120,000,000"
                     value={draft.budgetAmount}

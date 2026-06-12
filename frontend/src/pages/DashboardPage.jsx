@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Badge from '../components/Badge';
+import BrandHomeButton from '../components/BrandHomeButton';
 import useCompareResult from '../hooks/useCompareResult';
 import useExplanationResult from '../hooks/useExplanationResult';
 import { getStatusUi } from '../utils/statusMap';
@@ -249,13 +250,7 @@ export default function DashboardPage({
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-zone">
-          <div className="brand-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="brand-title">견적 검토 쿼파일럿</div>
+          <BrandHomeButton onClick={onGoProjects} />
           <Badge tone="gray">v1.3.2</Badge>
           <div className="top-divider" />
           <span className="breadcrumb-muted">프로젝트 목록</span>

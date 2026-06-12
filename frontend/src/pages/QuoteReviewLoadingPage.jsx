@@ -33,6 +33,7 @@ export default function QuoteReviewLoadingPage({
   onBack,
   onComplete,
   onProjectDataChange,
+  onGoHome,
 }) {
   const [activeStep, setActiveStep] = useState(0);
   const [timerDone, setTimerDone] = useState(false);
@@ -96,6 +97,7 @@ export default function QuoteReviewLoadingPage({
   return (
     <div className="flow-page matching-loading-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 상세 > 견적 비교 분석"
         action={
           <button className="button action-secondary" onClick={onBack} type="button">
