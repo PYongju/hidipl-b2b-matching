@@ -1,4 +1,5 @@
-import { useState } from "react";
+// 6/12 수정
+import { useState, useEffect } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 
@@ -11,6 +12,7 @@ export default function ProjectListPage({
   onOpenDashboard,
   onEditProject,
   onDeleteProjects,
+  onMount, // 6/12 추가
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [openMenuId, setOpenMenuId] = useState("");
@@ -18,9 +20,20 @@ export default function ProjectListPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState(() => getEmptyDraft());
-  const completedCount = projects.filter((project) => normalizeStatus(project.status) === "완료").length;
-  const activeCount = projects.filter((project) => normalizeStatus(project.status) === "진행 중").length;
-  const reviewCount = projects.filter((project) => normalizeStatus(project.status) === "검토 중").length;
+  //6/12 추가
+  useEffect(() => {
+    if (onMount) onMount();
+  }, []);
+
+  const completedCount = projects.filter(
+    (project) => normalizeStatus(project.status) === "완료",
+  ).length;
+  const activeCount = projects.filter(
+    (project) => normalizeStatus(project.status) === "진행 중",
+  ).length;
+  const reviewCount = projects.filter(
+    (project) => normalizeStatus(project.status) === "검토 중",
+  ).length;
   const filteredProjects = projects.filter((project) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const matchesSearch =
@@ -98,9 +111,16 @@ export default function ProjectListPage({
           <div>
             <p>프로젝트 히스토리</p>
             <h1>프로젝트 목록</h1>
-            <span>진행 중인 견적 검토와 완료된 선정 이력을 프로젝트 단위로 관리합니다.</span>
+            <span>
+              진행 중인 견적 검토와 완료된 선정 이력을 프로젝트 단위로
+              관리합니다.
+            </span>
           </div>
-          <button className="button action-primary" onClick={openCreateDrawer} type="button">
+          <button
+            className="button action-primary"
+            onClick={openCreateDrawer}
+            type="button"
+          >
             + 신규 검토 건 생성
           </button>
         </section>
@@ -173,10 +193,14 @@ export default function ProjectListPage({
                   />
                   <span>{project.id}</span>
                 </label>
-                <Badge tone={project.statusTone}>{normalizeStatus(project.status)}</Badge>
+                <Badge tone={project.statusTone}>
+                  {normalizeStatus(project.status)}
+                </Badge>
                 <button
                   className="project-more-button"
-                  onClick={() => setOpenMenuId(openMenuId === project.id ? "" : project.id)}
+                  onClick={() =>
+                    setOpenMenuId(openMenuId === project.id ? "" : project.id)
+                  }
                   type="button"
                   aria-label={`${project.name} 메뉴`}
                 >
@@ -184,18 +208,34 @@ export default function ProjectListPage({
                 </button>
                 {openMenuId === project.id && (
                   <div className="project-menu">
-                    <button onClick={() => onEditProject(project)} type="button">수정</button>
-                    <button onClick={() => onDeleteProjects([project.id])} type="button">삭제</button>
+                    <button
+                      onClick={() => onEditProject(project)}
+                      type="button"
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={() => onDeleteProjects([project.id])}
+                      type="button"
+                    >
+                      삭제
+                    </button>
                   </div>
                 )}
               </div>
-              <button className="history-card-main" onClick={() => onOpenDashboard(project.id)} type="button">
+              <button
+                className="history-card-main"
+                onClick={() => onOpenDashboard(project.id)}
+                type="button"
+              >
                 <h2>{readable(project.name, "신규 검토 프로젝트")}</h2>
                 <p>{readable(project.desc, "요구사항 정리 중")}</p>
               </button>
               <div className="history-meta">
                 {project.meta.map((item) => (
-                  <Badge tone="gray" key={item}>{readable(item, "미정")}</Badge>
+                  <Badge tone="gray" key={item}>
+                    {readable(item, "미정")}
+                  </Badge>
                 ))}
               </div>
             </article>
@@ -222,7 +262,12 @@ export default function ProjectListPage({
                 <p>신규 프로젝트</p>
                 <h2>검토 건 생성</h2>
               </div>
-              <button className="drawer-close" onClick={closeCreateDrawer} type="button" aria-label="닫기">
+              <button
+                className="drawer-close"
+                onClick={closeCreateDrawer}
+                type="button"
+                aria-label="닫기"
+              >
                 ×
               </button>
             </header>
@@ -236,7 +281,9 @@ export default function ProjectListPage({
                 <label>
                   <span>회사명 *</span>
                   <input
-                    onChange={(event) => updateDraft("companyName", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("companyName", event.target.value)
+                    }
                     placeholder="예: 삼성전자"
                     value={draft.companyName}
                   />
@@ -244,7 +291,9 @@ export default function ProjectListPage({
                 <label>
                   <span>설치 위치/주소 *</span>
                   <input
-                    onChange={(event) => updateDraft("location", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("location", event.target.value)
+                    }
                     placeholder="예: 수원사업장 본관 로비"
                     value={draft.location}
                   />
@@ -252,7 +301,9 @@ export default function ProjectListPage({
                 <label>
                   <span>프로젝트 일정</span>
                   <input
-                    onChange={(event) => updateDraft("projectDate", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("projectDate", event.target.value)
+                    }
                     type="date"
                     value={draft.projectDate}
                   />
@@ -260,7 +311,9 @@ export default function ProjectListPage({
                 <label>
                   <span>활용 용도/디스플레이 요구 *</span>
                   <textarea
-                    onChange={(event) => updateDraft("usage", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("usage", event.target.value)
+                    }
                     placeholder="활용 용도, 설치 환경, 화면 크기, 운영 조건 등을 간단히 적어주세요."
                     value={draft.usage}
                   />
@@ -268,7 +321,9 @@ export default function ProjectListPage({
                 <label>
                   <span>현재 단계</span>
                   <select
-                    onChange={(event) => updateDraft("currentStage", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("currentStage", event.target.value)
+                    }
                     value={draft.currentStage}
                   >
                     <option>요구사항</option>
@@ -287,7 +342,9 @@ export default function ProjectListPage({
                 <label>
                   <span>발주처 유형</span>
                   <select
-                    onChange={(event) => updateDraft("clientType", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("clientType", event.target.value)
+                    }
                     value={draft.clientType}
                   >
                     <option>기업</option>
@@ -299,7 +356,9 @@ export default function ProjectListPage({
                 <label>
                   <span>카테고리</span>
                   <select
-                    onChange={(event) => updateDraft("category", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("category", event.target.value)
+                    }
                     value={draft.category}
                   >
                     <option>디스플레이</option>
@@ -313,7 +372,9 @@ export default function ProjectListPage({
                   <span>예산 범위</span>
                   <input
                     inputMode="numeric"
-                    onChange={(event) => updateDraft("budgetAmount", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("budgetAmount", event.target.value)
+                    }
                     placeholder="예: 120,000,000"
                     value={draft.budgetAmount}
                   />
@@ -321,23 +382,33 @@ export default function ProjectListPage({
                 <div className="quick-create-field">
                   <span>우선 검토 프리셋</span>
                   <div className="quick-preset-grid">
-                    {["균형 추천", "최저가 우선", "납기 우선", "A/S 우선"].map((preset) => (
-                      <button
-                        className={draft.reviewPreset === preset ? "quick-preset active" : "quick-preset"}
-                        key={preset}
-                        onClick={() => updateDraft("reviewPreset", preset)}
-                        type="button"
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                    {["균형 추천", "최저가 우선", "납기 우선", "A/S 우선"].map(
+                      (preset) => (
+                        <button
+                          className={
+                            draft.reviewPreset === preset
+                              ? "quick-preset active"
+                              : "quick-preset"
+                          }
+                          key={preset}
+                          onClick={() => updateDraft("reviewPreset", preset)}
+                          type="button"
+                        >
+                          {preset}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               </section>
             </div>
 
             <footer className="quick-create-footer">
-              <button className="button" onClick={closeCreateDrawer} type="button">
+              <button
+                className="button"
+                onClick={closeCreateDrawer}
+                type="button"
+              >
                 취소
               </button>
               <button
