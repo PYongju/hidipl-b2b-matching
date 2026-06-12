@@ -3158,6 +3158,13 @@ textarea {
   gap: 8px;
 }
 
+.partner-title-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .partner-count-chips,
 .request-count-chips {
   display: flex;
@@ -3190,8 +3197,48 @@ textarea {
 .partner-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
   font-size: 12px;
+}
+
+.partner-table .col-select {
+  width: 40px;
+}
+
+.partner-table .col-rank {
+  width: 40px;
+}
+
+.partner-table .col-name {
+  width: 16%;
+}
+
+.partner-table .col-score {
+  width: 72px;
+}
+
+.partner-table .col-premium {
+  width: 60px;
+}
+
+.partner-table .col-cases {
+  width: 72px;
+}
+
+.partner-table .col-response {
+  width: 56px;
+}
+
+.partner-table .col-type {
+  width: 76px;
+}
+
+.partner-table .col-reason {
+  width: 20%;
+}
+
+.partner-table .col-action {
+  width: 52px;
 }
 
 .partner-table th,
@@ -3219,21 +3266,23 @@ textarea {
   font-weight: 850;
 }
 
-.partner-table th:first-child,
-.partner-table td:first-child {
-  width: 70px;
-}
-
-.partner-table th:nth-child(2),
-.partner-table td:nth-child(2) {
-  min-width: 150px;
+.partner-table th:nth-child(3),
+.partner-table td:nth-child(3) {
   text-align: left;
 }
 
-.partner-table th:nth-child(10),
-.partner-table td:nth-child(10) {
-  min-width: 180px;
+.partner-table th:nth-child(7),
+.partner-table td:nth-child(7) {
+  white-space: nowrap;
+}
+
+.partner-table th:nth-child(9),
+.partner-table td:nth-child(9) {
   text-align: left;
+  white-space: normal;
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .partner-table td b,
@@ -3342,6 +3391,12 @@ textarea {
   font-size: 13px;
   font-weight: 900;
   box-shadow: none;
+}
+
+.partner-expand-button-inline {
+  width: auto;
+  margin-top: 0;
+  white-space: nowrap;
 }
 
 .partner-expand-button:hover {
@@ -3934,9 +3989,39 @@ textarea {
 }
 
 .quote-ops-panel section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   color: #334155;
   font-weight: 900;
+}
+
+.quote-request-target-list {
+  margin-top: 0;
+}
+
+.quote-request-target-pill {
+  cursor: default;
+}
+
+.quote-request-empty {
+  display: grid;
+  gap: 5px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.quote-request-empty span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .quote-action-button {

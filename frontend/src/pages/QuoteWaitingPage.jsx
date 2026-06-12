@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -19,6 +19,10 @@ export default function QuoteWaitingPage({
   const [errorMessage, setErrorMessage] = useState("");
   const canCompare = selectedFiles.length > 0 && uploadState !== "uploading";
   const receivedCount = selectedFiles.length;
+  const requestTargets = useMemo(
+    () => resolveRequestTargets(projectData),
+    [projectData],
+  );
 
   const updateFiles = (files) => {
     setSelectedFiles(files);
@@ -202,6 +206,36 @@ export default function QuoteWaitingPage({
             </div>
 
             <section>
+              <h3>
+                견적 요청 발송 대상
+                {requestTargets.length > 0 ? (
+                  <Badge tone="blue">{requestTargets.length}</Badge>
+                ) : null}
+              </h3>
+              {requestTargets.length === 0 ? (
+                <div className="quote-request-empty">
+                  파트너 매칭 단계에서 선택한 견적 요청 대상이 없습니다.
+                  <span>이전 단계에서 발송 대상 업체를 선택해 주세요.</span>
+                </div>
+              ) : (
+                <div className="selected-partner-list quote-request-target-list">
+                  {requestTargets.map((partner) => (
+                    <div className="selected-partner-pill quote-request-target-pill" key={partner.id}>
+                      <span>
+                        <b>{partner.name}</b>
+                        <small>
+                          {partner.score != null ? `AI 추천 점수 ${partner.score}` : "점수 미확인"}
+                          {partner.response ? ` · 응답 ${partner.response}` : ""}
+                        </small>
+                      </span>
+                      {partner.caution ? <Badge tone="orange">주의</Badge> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
               <h3>업로드 안내</h3>
               <button
                 className="quote-action-button"
@@ -263,6 +297,46 @@ export default function QuoteWaitingPage({
       </footer>
     </div>
   );
+}
+
+function resolveRequestTargets(projectData) {
+  if (projectData.requestTargets?.length) {
+    return projectData.requestTargets;
+  }
+
+  const targetIds = projectData.requestTargetIds ?? [];
+  if (!targetIds.length) return [];
+
+  const candidates = projectData.candidateVendors ?? [];
+  return targetIds
+    .map((targetId) => {
+      const raw = candidates.find(
+        (candidate) =>
+          (candidate.vendor_id ??
+            candidate.vendor_name ??
+            candidate.partner_id ??
+            candidate.partner_name) === targetId,
+      );
+      if (!raw) {
+        return { id: targetId, name: String(targetId) };
+      }
+      return {
+        id: targetId,
+        name: raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
+        score:
+          typeof raw.semantic_similarity_score === "number"
+            ? raw.semantic_similarity_score <= 1
+              ? Math.round(raw.semantic_similarity_score * 100)
+              : Math.round(raw.semantic_similarity_score)
+            : null,
+        response:
+          typeof raw.response_speed === "number" ? `${raw.response_speed}h` : raw.response_speed ?? "미확인",
+        caution: (raw.filter_reasons ?? []).some(
+          (reason) => !/^상위 \d+개 추천 후보 외$/.test(String(reason ?? "").trim()),
+        ),
+      };
+    })
+    .filter(Boolean);
 }
 
 function mergeFiles(existingFiles, nextFiles) {
