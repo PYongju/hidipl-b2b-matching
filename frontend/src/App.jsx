@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -49,6 +49,7 @@ export default function App() {
       : "login";
   });
   const [projects, setProjects] = useState([]);
+  const [projectData, setProjectData] = useState(initialProjectData); //6/12 추가
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
@@ -102,7 +103,8 @@ export default function App() {
     });
   };
 
-  const goToProjects = async () => {
+  // 6/12 기존 goToProjects 교체
+  const loadProjects = async () => {
     try {
       const list = await fetchProjects();
       setProjects(
@@ -126,10 +128,19 @@ export default function App() {
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
     }
+  };
+
+  const goToProjects = async () => {
+    await loadProjects();
     setScreen("projects");
     localStorage.setItem("hidipl_screen", "projects");
   };
 
+  useEffect(() => {
+    if (localStorage.getItem("hidipl_screen") === "projects") {
+      loadProjects();
+    }
+  }, []);
   const startNewProject = () => {
     setEditingProjectId("");
     setProjectData({ ...initialProjectData });
@@ -429,9 +440,7 @@ export default function App() {
         onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
-        onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
-        onMount={goToProjects}
       />
     );
   }

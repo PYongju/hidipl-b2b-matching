@@ -14,7 +14,6 @@ export default function ProjectListPage({
   onEditProject,
   onDeleteProjects,
   onGoHome,
-  onMount, // 6/12 추가
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [openMenuId, setOpenMenuId] = useState("");
@@ -22,10 +21,6 @@ export default function ProjectListPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [draft, setDraft] = useState(() => getEmptyDraft());
-  //6/12 추가
-  useEffect(() => {
-    if (onMount) onMount();
-  }, []);
 
   const completedCount = projects.filter(
     (project) => normalizeStatus(project.status) === "완료",
@@ -281,7 +276,9 @@ export default function ProjectListPage({
                 <label>
                   <span>회사명 *</span>
                   <input
-                    onChange={(event) => updateDraft("companyName", event.target.value)}
+                    onChange={(event) =>
+                      updateDraft("companyName", event.target.value)
+                    }
                     placeholder="예: Microsoft"
                     value={draft.companyName}
                   />
@@ -371,7 +368,10 @@ export default function ProjectListPage({
                   <input
                     inputMode="numeric"
                     onChange={(event) =>
-                      updateDraft("budgetAmount", formatNumberInput(event.target.value))
+                      updateDraft(
+                        "budgetAmount",
+                        formatNumberInput(event.target.value),
+                      )
                     }
                     placeholder="예: 120,000,000"
                     value={draft.budgetAmount}
