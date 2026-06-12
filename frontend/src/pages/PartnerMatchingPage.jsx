@@ -55,6 +55,7 @@ export default function PartnerMatchingPage({
   onBack,
   onGoDashboard,
   onProjectDataChange,
+  onGoHome,
 }) {
   const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
   const [showAllPartners, setShowAllPartners] = useState(true);
@@ -155,6 +156,7 @@ export default function PartnerMatchingPage({
   return (
     <div className="flow-page partner-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 상세 > 파트너 매칭/견적 요청"
         action={
           <>

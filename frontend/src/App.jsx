@@ -162,10 +162,29 @@ export default function App() {
     }
   };
 
-  const editProject = (project) => {
+  const editProject = async (project) => {
+    const localProjectData = { ...initialProjectData, ...project.data };
     setEditingProjectId(project.id);
-    setProjectData({ ...initialProjectData, ...project.data });
-    setScreen("wizard");
+    setActiveProjectId(project.id);
+    setProjectData(localProjectData);
+
+    const apiProjectId =
+      localProjectData.projectApiId ?? localProjectData.project_id;
+    if (apiProjectId) {
+      try {
+        const serverProject = await fetchProject(apiProjectId);
+        const restoredProjectData = mergeServerProjectData(
+          localProjectData,
+          serverProject,
+        );
+        setProjectData(restoredProjectData);
+        syncProjectList(restoredProjectData);
+      } catch (error) {
+        console.error("프로젝트 수정 화면 진입 중 서버 상태 조회 실패:", error);
+      }
+    }
+
+    setScreen("requirements");
   };
 
   const openProjectFromList = async (projectId) => {
@@ -393,6 +412,10 @@ export default function App() {
     }
   };
 
+  const goHome = () => {
+    setScreen("projects");
+  };
+
   if (screen === "login") {
     return <LoginPage onLogin={goToProjects} />;
   }
@@ -406,6 +429,7 @@ export default function App() {
         onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
+        onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
         onMount={goToProjects}
       />
@@ -470,6 +494,7 @@ export default function App() {
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
           projectData={projectData}
           onBack={() => setScreen("projects")}
+          onGoHome={goHome}
           onNext={startPartnerMatchingFromRequirements}
           onProjectDataChange={updateProjectData}
           onSaveDraft={() =>
@@ -503,6 +528,7 @@ export default function App() {
         onProjectDataChange={setProjectData}
         onAnalyze={startAnalysisFlow}
         onBack={() => setScreen("projects")}
+        onGoHome={goHome}
       />
     );
   }
@@ -513,6 +539,7 @@ export default function App() {
         errorMessage={analysisErrorMessage}
         onBack={() => setScreen("wizard")}
         onDashboard={completeAnalysis}
+        onGoHome={goHome}
         onRetry={startAnalysisFlow}
         state={analysisState}
       />
@@ -525,6 +552,7 @@ export default function App() {
         projectData={projectData}
         onBack={() => setScreen("requirements")}
         onGoDashboard={goQuoteWaitingFromPartner}
+        onGoHome={goHome}
         onProjectDataChange={updateProjectData}
       />
     );
@@ -536,6 +564,7 @@ export default function App() {
         projectData={projectData}
         onBack={() => setScreen("partnerMatching")}
         onGoDashboard={goQuoteReviewLoading}
+        onGoHome={goHome}
         onProjectDataChange={updateProjectData}
         onSaveDraft={() =>
           saveCurrentProjectScreen("quoteWaiting", {
@@ -553,6 +582,7 @@ export default function App() {
         projectData={projectData}
         onBack={() => setScreen("quoteWaiting")}
         onComplete={openDashboardAfterMatch}
+        onGoHome={goHome}
         onProjectDataChange={updateProjectData}
       />
     );

@@ -3,7 +3,13 @@ import Badge from '../components/Badge';
 import FlowTopbar from '../components/FlowTopbar';
 import { formatNumberInput } from '../utils/formatters';
 
-export default function ProjectCreatePage({ projectData, onProjectDataChange, onBack, onAnalyze }) {
+export default function ProjectCreatePage({
+  projectData,
+  onProjectDataChange,
+  onBack,
+  onAnalyze,
+  onGoHome,
+}) {
   const [step, setStep] = useState(1);
   const uploadedFiles = projectData.quoteFiles ?? [];
   const steps = [
@@ -67,6 +73,7 @@ export default function ProjectCreatePage({ projectData, onProjectDataChange, on
   return (
     <div className="flow-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 목록 > 새 프로젝트 생성"
         action={<button className="button" onClick={onBack} type="button">취소</button>}
       />

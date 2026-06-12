@@ -12,6 +12,7 @@ export default function QuoteWaitingPage({
   onGoDashboard,
   onProjectDataChange,
   onSaveDraft,
+  onGoHome,
 }) {
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [uploadState, setUploadState] = useState("idle");
@@ -79,6 +80,7 @@ export default function QuoteWaitingPage({
   return (
     <div className="flow-page quote-waiting-page">
       <FlowTopbar
+        onHome={onGoHome}
         trail="프로젝트 상세 > 견적 수신"
         action={
           <>
