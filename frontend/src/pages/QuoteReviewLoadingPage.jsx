@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
-import { runProjectMatch } from "../api/apiClient";
+import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 
 const REVIEW_STEPS = [
@@ -39,11 +39,8 @@ export default function QuoteReviewLoadingPage({
   const [timerDone, setTimerDone] = useState(false);
   const [analysisState, setAnalysisState] = useState("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const [redirectCountdown, setRedirectCountdown] = useState(null);
   const isComplete = timerDone && analysisState === "ready";
-  const progress = useMemo(() => {
-    if (isComplete) return 100;
-    return Math.min(96, Math.round(((activeStep + 1) / REVIEW_STEPS.length) * 92));
-  }, [activeStep, isComplete]);
 
   const runQuoteReviewAnalysis = async () => {
     setAnalysisState("loading");
@@ -54,7 +51,29 @@ export default function QuoteReviewLoadingPage({
       if (!projectApiId) {
         throw new Error("프로젝트 API ID가 없어 견적 비교 분석을 실행할 수 없습니다.");
       }
-      if (!projectData.quoteIds?.length) {
+
+      let quoteIds = projectData.quoteIds ?? [];
+      if (!quoteIds.length) {
+        const quoteFiles = projectData.quoteFiles ?? [];
+        if (!quoteFiles.length) {
+          throw new Error("업로드할 견적서가 없습니다. 견적 수신 화면에서 파일을 선택해 주세요.");
+        }
+
+        const uploadResult = await uploadProjectQuotes(projectApiId, quoteFiles);
+        quoteIds =
+          uploadResult.quote_ids ??
+          uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
+          [];
+
+        onProjectDataChange((current) => ({
+          ...current,
+          quoteFiles,
+          quoteIds,
+          quoteUploadResult: uploadResult,
+        }));
+      }
+
+      if (!quoteIds.length) {
         throw new Error("업로드된 견적서 ID가 없어 견적 비교 분석을 실행할 수 없습니다.");
       }
 
@@ -94,23 +113,57 @@ export default function QuoteReviewLoadingPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!isComplete) return undefined;
+
+    setRedirectCountdown(3);
+    let remaining = 3;
+
+    const interval = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        window.clearInterval(interval);
+        onComplete();
+        return;
+      }
+      setRedirectCountdown(remaining);
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isComplete, onComplete]);
+
   return (
     <div className="flow-page matching-loading-page">
       <FlowTopbar
         onHome={onGoHome}
         trail="프로젝트 상세 > 견적 비교 분석"
         action={
-          <button className="button action-secondary" onClick={onBack} type="button">
-            견적 수신으로 돌아가기
-          </button>
+          <>
+            <div className="avatar" />
+            <div className="user-name">
+              <b>김담당자</b>
+              <small>구매팀</small>
+            </div>
+          </>
         }
       />
 
       <main className="matching-loading-main">
         <section className="matching-loading-card">
           <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onBack} />
-          <div className="matching-loading-symbol" aria-hidden="true">
-            <span />
+          <div
+            className={`matching-loading-symbol${
+              analysisState === "error" ? " is-error" : isComplete ? " is-complete" : ""
+            }`}
+            aria-hidden="true"
+          >
+            {analysisState === "error" ? (
+              <span>!</span>
+            ) : isComplete ? (
+              <span>✓</span>
+            ) : (
+              <span />
+            )}
           </div>
           <Badge tone={isComplete ? "green" : analysisState === "error" ? "red" : "blue"}>
             {analysisState === "error"
@@ -123,17 +176,19 @@ export default function QuoteReviewLoadingPage({
             {analysisState === "error"
               ? "견적 비교 분석을 완료하지 못했습니다"
               : isComplete
-                ? "견적 검토 화면을 볼 준비가 완료되었습니다"
+                ? "모든 분석을 마쳤어요."
                 : "수신한 견적서를 비교 분석하고 있습니다"}
           </h1>
           <p>
-            {projectData.projectName || projectData.companyName || "프로젝트"}의 업로드된 견적서를
-            기준으로 비교표와 추천 사유를 준비합니다.
+            {isComplete ? (
+              <span aria-live="polite">{redirectCountdown ?? 3}초 후 검토 화면으로 이동합니다.</span>
+            ) : (
+              <>
+                {projectData.projectName || projectData.companyName || "프로젝트"}의 업로드된 견적서를
+                기준으로 비교표와 추천 사유를 준비합니다.
+              </>
+            )}
           </p>
-
-          <div className="matching-loading-progress" aria-label={`진행률 ${progress}%`}>
-            <div style={{ width: `${progress}%` }} />
-          </div>
 
           {errorMessage ? (
             <div className="analysis-error-box">{errorMessage}</div>

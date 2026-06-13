@@ -99,7 +99,7 @@ function createCompareViewModel(response, options = {}) {
       cells: rows.reduce((cells, row, index) => {
         const isUnconfirmed = row.total?.is_confirmed === false;
         cells[getSupplierId(row, index)] = {
-          value: row.total?.display_text ?? formatWon(row.total_with_vat),
+          value: formatTotalDisplayText(row.total?.display_text ?? formatWon(row.total_with_vat)),
           status: isUnconfirmed ? "needsReview" : undefined,
           highlight: !isUnconfirmed && row.highlights?.is_lowest_total_price ? "bestPrice" : undefined,
         };
@@ -196,6 +196,11 @@ function formatCostValue(item) {
 function formatWon(value) {
   if (typeof value !== "number") return "-";
   return `₩${moneyFormatter.format(value)}`;
+}
+
+function formatTotalDisplayText(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  return String(value).replace(/VAT 포함/g, "VAT 미포함");
 }
 
 function formatNotes(value) {

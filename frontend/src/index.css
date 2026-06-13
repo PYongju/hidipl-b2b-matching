@@ -1162,14 +1162,63 @@ button {
 
 .pros-item {
   display: grid;
-  grid-template-columns: 128px 1fr 14px;
+  grid-template-columns: 128px 1fr;
   gap: 12px;
-  align-items: center;
+  align-items: start;
   min-height: 54px;
   padding: 9px 12px;
   border-bottom: 1px solid #e2e8f0;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.pros-detail {
+  display: grid;
+  gap: 6px;
+}
+
+.pros-detail-group {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.pros-detail-label {
+  color: #64748b;
+  font-weight: 600;
+  align-self: start;
+  padding-top: 1px;
+}
+
+.pros-detail-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pros-detail-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.45;
+}
+
+.pros-detail-marker {
+  flex-shrink: 0;
+  width: 0.75em;
+  color: #64748b;
+  text-align: center;
+}
+
+.pros-detail-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.pros-detail-empty {
+  color: #94a3b8;
 }
 
 .pros-item:last-child {
@@ -2431,6 +2480,38 @@ textarea {
   animation: spin 0.9s linear infinite;
 }
 
+.matching-loading-symbol.is-error {
+  background: #fef2f2;
+}
+
+.matching-loading-symbol.is-error span {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  animation: none;
+  color: #dc2626;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.matching-loading-symbol.is-complete {
+  background: #ecfdf5;
+}
+
+.matching-loading-symbol.is-complete span {
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  animation: none;
+  color: #16a34a;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .matching-loading-card h1 {
   max-width: 540px;
   margin: 14px 0 8px;
@@ -2445,6 +2526,11 @@ textarea {
   color: #64748b;
   font-size: 14px;
   line-height: 1.55;
+}
+
+.matching-loading-card > p + .matching-loading-steps,
+.analysis-error-box + .matching-loading-steps {
+  margin-top: 28px;
 }
 
 .matching-loading-progress {
@@ -2889,14 +2975,17 @@ textarea {
   left: 50%;
   z-index: 130;
   display: grid;
-  gap: 8px;
-  width: min(430px, calc(100vw - 40px));
+  align-content: center;
+  gap: 10px;
+  width: min(390px, calc(100vw - 40px));
+  min-height: 190px;
   transform: translate(-50%, -50%);
   border: 1px solid #bfdbfe;
   border-radius: 12px;
   background: #eff6ff;
-  padding: 22px 18px 18px;
+  padding: 28px 24px 24px;
   color: #0f172a;
+  text-align: center;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
 }
 
@@ -2921,20 +3010,23 @@ textarea {
 }
 
 .selection-followup b {
+  display: block;
+  padding-inline: 24px;
   font-size: 15px;
-  padding-right: 22px;
 }
 
 .selection-followup span {
+  display: block;
+  padding-inline: 24px;
   color: #475569;
   font-size: 13px;
 }
 
 .selection-followup div {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: center;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .selection-complete-button {
@@ -3979,6 +4071,12 @@ textarea {
   display: grid;
   gap: 14px;
   padding: 16px;
+  min-width: 0;
+}
+
+.quote-ops-panel-title {
+  display: block;
+  margin-bottom: 0;
 }
 
 .quote-ops-panel section {
@@ -3986,15 +4084,19 @@ textarea {
   gap: 8px;
   border-top: 1px solid #e2e8f0;
   padding-top: 14px;
+  min-width: 0;
 }
 
 .quote-ops-panel section h3 {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
   color: #334155;
+  font-size: 13px;
   font-weight: 900;
+  line-height: 1.4;
 }
 
 .quote-request-target-list {
@@ -4003,6 +4105,17 @@ textarea {
 
 .quote-request-target-pill {
   cursor: default;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.quote-request-target-pill > span {
+  min-width: 0;
+}
+
+.quote-request-target-pill small {
+  overflow-wrap: anywhere;
 }
 
 .quote-request-empty {
@@ -4028,14 +4141,19 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
   min-height: 40px;
   border: 1px solid #cfd9e7;
   border-radius: 7px;
   background: #fff;
-  padding: 0 12px;
+  padding: 10px 12px;
   color: #334155;
   font-size: 13px;
   font-weight: 850;
+  line-height: 1.4;
+  text-align: left;
   box-shadow: none;
 }
 

@@ -200,6 +200,11 @@ export default function PartnerMatchingPage({
     onGoDashboard();
   };
 
+  const handleGoBack = () => {
+    persistRequestTargets(targetIds);
+    onBack();
+  };
+
   return (
     <div className="flow-page partner-page">
       <FlowTopbar
@@ -207,8 +212,8 @@ export default function PartnerMatchingPage({
         trail="프로젝트 상세 > 파트너 매칭/견적 요청"
         action={
           <>
-            <button className="button action-secondary" onClick={savePartnerDraft} type="button">
-              임시 저장
+            <button className="button action-secondary" onClick={handleGoBack} type="button">
+              이전
             </button>
             <div className="avatar" />
             <div className="user-name">
@@ -222,7 +227,7 @@ export default function PartnerMatchingPage({
       <main className="partner-main">
         <section className="partner-head">
           <div>
-            <button className="partner-back" onClick={onBack} type="button">
+            <button className="partner-back" onClick={handleGoBack} type="button">
               ‹
             </button>
             <span>프로젝트 상세</span>
@@ -231,7 +236,7 @@ export default function PartnerMatchingPage({
 
         <ProjectStepTabs
           activeStep={2}
-          onGoRequirements={onBack}
+          onGoRequirements={handleGoBack}
           onGoQuoteWaiting={handleGoQuoteWaiting}
         />
 
@@ -240,7 +245,7 @@ export default function PartnerMatchingPage({
           <SummaryItem label="위치" value={projectData.location || "미입력"} />
           <SummaryItem label="일정" value={projectData.projectDate || "일정 미정"} />
           <SummaryItem label="발주처 유형" value={projectData.clientType || "미입력"} />
-          <SummaryItem label="카테고리" value={projectData.category || "디스플레이"} />
+          <SummaryItem label="솔루션" value={projectData.category || "디스플레이"} />
           <SummaryItem label="상태" value="요청 대상 검토중" />
         </section>
 

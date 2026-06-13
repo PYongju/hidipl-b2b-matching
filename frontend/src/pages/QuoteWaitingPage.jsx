@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
-import { uploadProjectQuotes } from "../api/apiClient";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
 
@@ -15,9 +14,9 @@ export default function QuoteWaitingPage({
   onGoHome,
 }) {
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
-  const [uploadState, setUploadState] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const canCompare = selectedFiles.length > 0 && uploadState !== "uploading";
+  const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
+  const canCompare = selectedFiles.length > 0;
   const receivedCount = selectedFiles.length;
   const requestTargets = useMemo(
     () => resolveRequestTargets(projectData),
@@ -50,35 +49,14 @@ export default function QuoteWaitingPage({
     );
   };
 
-  const uploadQuotes = async () => {
-    if (!canCompare) return;
-    setUploadState("uploading");
-    setErrorMessage("");
+  const goToQuoteReview = () => {
+    if (!canCompare && !hasUploadedQuotes) return;
 
-    try {
-      const projectApiId = projectData.projectApiId;
-      if (!projectApiId) {
-        throw new Error("프로젝트 API ID가 없어 견적서를 업로드할 수 없습니다.");
-      }
-
-      const uploadResult = await uploadProjectQuotes(projectApiId, selectedFiles);
-      const quoteIds =
-        uploadResult.quote_ids ??
-        uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
-        [];
-
-      onProjectDataChange((current) => ({
-        ...current,
-        quoteFiles: selectedFiles,
-        quoteIds,
-        quoteUploadResult: uploadResult,
-      }));
-      setUploadState("done");
-      onGoDashboard();
-    } catch (error) {
-      setUploadState("error");
-      setErrorMessage(error.message || "견적서 업로드 중 오류가 발생했습니다.");
-    }
+    onProjectDataChange((current) => ({
+      ...current,
+      ...(selectedFiles.length ? { quoteFiles: selectedFiles } : {}),
+    }));
+    onGoDashboard();
   };
 
   return (
@@ -113,13 +91,13 @@ export default function QuoteWaitingPage({
         <ProjectStepTabs
           activeStep={3}
           onGoPartnerMatching={onBack}
-          onGoQuoteReview={uploadState === "done" ? onGoDashboard : undefined}
+          onGoQuoteReview={canCompare || hasUploadedQuotes ? goToQuoteReview : undefined}
         />
 
         <section className="quote-status-bar">
           <article>
             <span>현재 상태</span>
-            <strong>{uploadState === "done" ? "견적서 업로드 완료" : uploadState === "uploading" ? "견적서 업로드 중" : "견적서 업로드 대기"}</strong>
+            <strong>{hasUploadedQuotes ? "견적서 업로드 완료" : "견적서 업로드 대기"}</strong>
           </article>
           <article>
             <span>견적서 업로드</span>
@@ -131,7 +109,7 @@ export default function QuoteWaitingPage({
           </article>
           <article>
             <span>마지막 업데이트</span>
-            <strong>{uploadState === "done" ? "업로드 완료" : "업로드 전"}</strong>
+            <strong>{hasUploadedQuotes ? "업로드 완료" : "업로드 전"}</strong>
           </article>
         </section>
 
@@ -147,13 +125,6 @@ export default function QuoteWaitingPage({
                 <div><i style={{ width: selectedFiles.length ? "100%" : "0%" }} /></div>
               </div>
             </div>
-
-            {uploadState === "uploading" ? (
-              <div className="quote-upload-progress-box" aria-live="polite">
-                <b>견적서를 업로드하고 OCR/파싱을 준비하고 있습니다.</b>
-                <span>파일 수와 용량에 따라 잠시 시간이 걸릴 수 있습니다. 완료되면 자동으로 비교 분석 단계로 이동합니다.</span>
-              </div>
-            ) : null}
 
             <label className="drop-zone upload-drop-zone quote-bulk-drop-zone">
               <input
@@ -200,9 +171,11 @@ export default function QuoteWaitingPage({
           </div>
 
           <aside className="quote-ops-panel">
-            <div className="quote-panel-title">
-              <h2>운영 액션</h2>
-              <p>수신 대기 단계에서 필요한 후속 조치를 수행합니다.</p>
+            <div className="quote-panel-title quote-ops-panel-title">
+              <div>
+                <h2>운영 액션</h2>
+                <p>수신 대기 단계에서 필요한 후속 조치를 수행합니다.</p>
+              </div>
             </div>
 
             <section>
@@ -277,7 +250,7 @@ export default function QuoteWaitingPage({
 
       <footer className="quote-waiting-bottom-actions">
         <span>
-          {uploadState === "done"
+          {hasUploadedQuotes
             ? "견적서 업로드 완료"
             : selectedFiles.length
               ? `견적서 ${receivedCount}개 선택됨`
@@ -288,10 +261,10 @@ export default function QuoteWaitingPage({
           <button
             className="button action-primary"
             disabled={!canCompare}
-            onClick={uploadQuotes}
+            onClick={goToQuoteReview}
             type="button"
           >
-            {uploadState === "uploading" ? "업로드 중..." : "업로드 후 비교 분석"}
+            업로드 후 비교 분석
           </button>
         </div>
       </footer>
