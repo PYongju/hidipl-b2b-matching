@@ -511,7 +511,7 @@ export default function DashboardPage({
                               <div className="required-label">
                                 <span>{row.label}</span>
                                 {row.label === "견적 총액" && (
-                                  <span className="vat-note">VAT 별도</span>
+                                  <span className="vat-note">VAT 미포함</span>
                                 )}
                               </div>
                             </td>
@@ -551,11 +551,10 @@ export default function DashboardPage({
                         <span className={`supplier-logo ${supplier.logoClass}`}>{supplier.logo}</span>
                         <b>{supplier.vendorName}</b>
                       </div>
-                      <div>
-                        <div>장점: {supplier.strengths}</div>
-                        <div>단점: {supplier.weaknesses}</div>
+                      <div className="pros-detail">
+                        <ProsConsGroup label="장점" value={supplier.strengths} />
+                        <ProsConsGroup label="단점" value={supplier.weaknesses} />
                       </div>
-                      <span>›</span>
                     </div>
                   ))}
                 </div>
@@ -697,6 +696,41 @@ export default function DashboardPage({
             <button className="button" onClick={onGoProjects} type="button">프로젝트 목록으로 이동</button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function splitProsConsItems(value) {
+  const text = String(value ?? "").trim();
+  if (!text || text === "-") return [];
+
+  return text
+    .split(/,\s*/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function ProsConsGroup({ label, value }) {
+  const items = splitProsConsItems(value);
+  const hasMultiple = items.length > 1;
+
+  return (
+    <div className="pros-detail-group">
+      <span className="pros-detail-label">{label}</span>
+      {items.length === 0 ? (
+        <span className="pros-detail-empty">-</span>
+      ) : hasMultiple ? (
+        <ul className="pros-detail-list">
+          {items.map((item) => (
+            <li key={`${label}-${item}`}>
+              <span className="pros-detail-marker">•</span>
+              <span className="pros-detail-text">{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <span>{items[0]}</span>
       )}
     </div>
   );
