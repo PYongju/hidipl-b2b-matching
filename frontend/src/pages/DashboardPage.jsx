@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import * as XLSX from 'xlsx-js-style';
 import Badge from '../components/Badge';
 import BrandHomeButton from '../components/BrandHomeButton';
 import useCompareResult from '../hooks/useCompareResult';
@@ -245,6 +246,19 @@ export default function DashboardPage({
     }));
     window.setTimeout(() => setToastVisible(false), 3200);
   };
+
+  const handleExportToExcel = () => {
+    exportToExcel({
+      projectName: projectData.projectName || projectData.companyName || projectId,
+      overallSummary,
+      supplierExplanations,
+      suppliers,
+      comparisonSections,
+      totalRows,
+    });
+  };
+
+  const canExportReport = explanationState === "ready";
 
   return (
     <div className="app-shell">
@@ -643,8 +657,13 @@ export default function DashboardPage({
         </button>
         <button
           className="button action-secondary"
-          disabled
-          title="고객 보고서 기능은 이번 통합 범위 밖이라 아직 사용할 수 없습니다."
+          disabled={!canExportReport}
+          onClick={handleExportToExcel}
+          title={
+            canExportReport
+              ? "AI 근거 요약을 고객 보고서(엑셀)로 내보냅니다"
+              : "AI 근거 요약을 불러온 후 내보낼 수 있습니다"
+          }
           type="button"
         >
           고객 보고서로 내보내기
@@ -699,6 +718,383 @@ export default function DashboardPage({
       )}
     </div>
   );
+}
+
+const EXCEL_ROW_KIND = {
+  TITLE: "title",
+  SECTION: "section",
+  HEADER: "header",
+  DATA: "data",
+  SUMMARY: "summary",
+  SPACER: "spacer",
+};
+
+const EXCEL_BORDER = {
+  top: { style: "thin", color: { rgb: "CBD5E1" } },
+  bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+  left: { style: "thin", color: { rgb: "CBD5E1" } },
+  right: { style: "thin", color: { rgb: "CBD5E1" } },
+};
+
+const EXCEL_STYLES = {
+  title: {
+    font: { bold: true, sz: 14, color: { rgb: "0F172A" } },
+    fill: { fgColor: { rgb: "F1F5F9" } },
+    alignment: { vertical: "center" },
+  },
+  section: {
+    font: { bold: true, sz: 11, color: { rgb: "1E3A8A" } },
+    fill: { fgColor: { rgb: "E2E8F0" } },
+    alignment: { vertical: "center" },
+  },
+  header: {
+    font: { bold: true, sz: 10, color: { rgb: "0F172A" } },
+    fill: { fgColor: { rgb: "DBEAFE" } },
+    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+    border: EXCEL_BORDER,
+  },
+  dataLabel: {
+    font: { bold: true, sz: 10, color: { rgb: "475569" } },
+    fill: { fgColor: { rgb: "F8FAFC" } },
+    alignment: { vertical: "top", wrapText: true },
+    border: EXCEL_BORDER,
+  },
+  dataValue: {
+    font: { sz: 10, color: { rgb: "0F172A" } },
+    alignment: { vertical: "top", wrapText: true },
+    border: EXCEL_BORDER,
+  },
+  summary: {
+    font: { sz: 10, color: { rgb: "0F172A" } },
+    fill: { fgColor: { rgb: "F8FAFC" } },
+    alignment: { vertical: "top", wrapText: true },
+    border: EXCEL_BORDER,
+  },
+};
+
+function wrapSingleLine(text, maxWidth) {
+  if (getCellDisplayWidth(text) <= maxWidth) return [text];
+
+  const lines = [];
+  let current = "";
+
+  for (const char of text) {
+    const next = current + char;
+    if (current && getCellDisplayWidth(next) > maxWidth) {
+      lines.push(current);
+      current = char;
+    } else {
+      current = next;
+    }
+  }
+
+  if (current) lines.push(current);
+  return lines.length > 0 ? lines : [text];
+}
+
+function formatWrappedTextForExcel(value, maxWidth = 52) {
+  const text = String(value ?? "-").trim();
+  if (!text || text === "-") return text;
+
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .flatMap((sentence) => wrapSingleLine(sentence.trim(), maxWidth))
+    .filter(Boolean)
+    .join("\n");
+}
+
+function formatExplanationListForExcel(value, maxWidth = 36) {
+  const text = String(value ?? "-").trim();
+  if (!text || text === "-") return text;
+
+  const parts = text.includes(", ")
+    ? text.split(/,\s+/).map((part) => part.trim()).filter(Boolean)
+    : [text];
+
+  return parts.flatMap((part) => wrapSingleLine(part, maxWidth)).join("\n");
+}
+
+function formatSpecialNotesForExcel(value) {
+  const text = String(value ?? "—").trim();
+  if (!text || text === "—" || text === "-") return text;
+
+  const parts = text.includes(", ")
+    ? text.split(/,\s+/).map((part) => part.trim()).filter(Boolean)
+    : [text];
+
+  return parts.flatMap((part) => wrapSingleLine(part, 44)).join("\n");
+}
+
+function formatCompareCellValue(cell, rowLabel) {
+  const rawValue = cell?.value || "—";
+  const value = rowLabel === "특이사항"
+    ? formatSpecialNotesForExcel(rawValue)
+    : rawValue;
+  const badges = [];
+  const statusUi = cell?.status ? getStatusUi(cell.status) : null;
+  const highlightUi = cell?.highlight ? getStatusUi(cell.highlight) : null;
+
+  if (statusUi?.badge) badges.push(statusUi.badge);
+  if (highlightUi?.badge) badges.push(highlightUi.badge);
+
+  if (badges.length === 0) return value;
+  if (rowLabel === "특이사항" && value.includes("\n")) {
+    return `${value}\n(${badges.join(", ")})`;
+  }
+  return `${value} (${badges.join(", ")})`;
+}
+
+function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
+  const header = ["항목(요구사항)", ...suppliers.map((supplier) => supplier.name)];
+  const rows = [["견적 비교표", ...Array(Math.max(header.length - 1, 0)).fill("")]];
+  const rowKinds = [EXCEL_ROW_KIND.TITLE];
+
+  const appendSpacer = () => {
+    rows.push([]);
+    rowKinds.push(EXCEL_ROW_KIND.SPACER);
+  };
+
+  appendSpacer();
+
+  comparisonSections.forEach((section) => {
+    rows.push([section.title, ...Array(Math.max(header.length - 1, 0)).fill("")]);
+    rowKinds.push(EXCEL_ROW_KIND.SECTION);
+    rows.push([...header]);
+    rowKinds.push(EXCEL_ROW_KIND.HEADER);
+
+    section.rows.forEach((row) => {
+      rows.push([
+        row.label,
+        ...suppliers.map((supplier) => formatCompareCellValue(row.cells?.[supplier.id], row.label)),
+      ]);
+      rowKinds.push(EXCEL_ROW_KIND.DATA);
+    });
+
+    appendSpacer();
+  });
+
+  if (totalRows.length > 0) {
+    rows.push(["합계", ...Array(Math.max(header.length - 1, 0)).fill("")]);
+    rowKinds.push(EXCEL_ROW_KIND.SECTION);
+    rows.push([...header]);
+    rowKinds.push(EXCEL_ROW_KIND.HEADER);
+
+    totalRows.forEach((row) => {
+      rows.push([
+        row.label,
+        ...suppliers.map((supplier) => formatCompareCellValue(row.cells?.[supplier.id], row.label)),
+      ]);
+      rowKinds.push(EXCEL_ROW_KIND.DATA);
+    });
+  }
+
+  return { rows, rowKinds };
+}
+
+function getCellDisplayWidth(value) {
+  const text = String(value ?? "");
+  const lines = text.split("\n");
+  return Math.max(...lines.map((line) => {
+    let width = 0;
+    for (const char of line) {
+      width += char.charCodeAt(0) > 255 ? 2 : 1;
+    }
+    return width;
+  }), 0);
+}
+
+function applyWrapRowHeights(worksheet, rows, rowKinds) {
+  if (!worksheet["!rows"]) worksheet["!rows"] = [];
+
+  rows.forEach((row, rowIndex) => {
+    const kind = rowKinds?.[rowIndex];
+    const isSpecialNotesRow = row[0] === "특이사항";
+    const shouldAdjust =
+      isSpecialNotesRow || kind === EXCEL_ROW_KIND.SUMMARY || kind === EXCEL_ROW_KIND.DATA;
+
+    if (!shouldAdjust) return;
+
+    const maxLineCount = row.reduce((max, cellValue) => {
+      const lineCount = String(cellValue ?? "").split("\n").length;
+      return Math.max(max, lineCount);
+    }, 1);
+
+    if (maxLineCount <= 1 && kind === EXCEL_ROW_KIND.DATA && !isSpecialNotesRow) return;
+
+    worksheet["!rows"][rowIndex] = {
+      hpt: Math.min(
+        Math.max(18 * maxLineCount + 6, kind === EXCEL_ROW_KIND.SUMMARY ? 36 : 24),
+        240,
+      ),
+    };
+  });
+}
+
+function getRowColumnCount(rows) {
+  return rows.reduce((max, row) => Math.max(max, row.length), 1);
+}
+
+function applySheetVisualStyles(worksheet, rows, rowKinds) {
+  const columnCount = getRowColumnCount(rows);
+  const merges = [];
+
+  if (!worksheet["!rows"]) worksheet["!rows"] = [];
+
+  rows.forEach((row, rowIndex) => {
+    const rowKind = rowKinds[rowIndex] ?? EXCEL_ROW_KIND.DATA;
+
+    if (rowKind === EXCEL_ROW_KIND.SPACER) {
+      worksheet["!rows"][rowIndex] = { hpt: 8 };
+      return;
+    }
+
+    if (rowKind === EXCEL_ROW_KIND.SECTION || rowKind === EXCEL_ROW_KIND.TITLE || rowKind === EXCEL_ROW_KIND.SUMMARY) {
+      merges.push({
+        s: { r: rowIndex, c: 0 },
+        e: { r: rowIndex, c: columnCount - 1 },
+      });
+    }
+
+    for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+      if (!worksheet[cellRef]) {
+        worksheet[cellRef] = { t: "s", v: "" };
+      }
+
+      const cell = worksheet[cellRef];
+      if (rowKind === EXCEL_ROW_KIND.TITLE) {
+        cell.s = EXCEL_STYLES.title;
+        continue;
+      }
+      if (rowKind === EXCEL_ROW_KIND.SECTION) {
+        cell.s = EXCEL_STYLES.section;
+        continue;
+      }
+      if (rowKind === EXCEL_ROW_KIND.HEADER) {
+        cell.s = EXCEL_STYLES.header;
+        continue;
+      }
+      if (rowKind === EXCEL_ROW_KIND.SUMMARY) {
+        cell.s = EXCEL_STYLES.summary;
+        continue;
+      }
+      if (rowKind === EXCEL_ROW_KIND.DATA) {
+        cell.s = columnIndex === 0 ? EXCEL_STYLES.dataLabel : EXCEL_STYLES.dataValue;
+      }
+    }
+  });
+
+  if (merges.length > 0) {
+    worksheet["!merges"] = merges;
+  }
+}
+
+function applySheetColumnWidths(worksheet, rows, options = {}) {
+  const {
+    rowKinds = null,
+    columnMaxWidths = null,
+    skipRowKinds = new Set([
+      EXCEL_ROW_KIND.TITLE,
+      EXCEL_ROW_KIND.SUMMARY,
+      EXCEL_ROW_KIND.SECTION,
+      EXCEL_ROW_KIND.SPACER,
+    ]),
+  } = options;
+  const columnWidths = [];
+
+  rows.forEach((row, rowIndex) => {
+    const kind = rowKinds?.[rowIndex];
+    if (kind && skipRowKinds.has(kind)) return;
+
+    row.forEach((cell, columnIndex) => {
+      const cellWidth = getCellDisplayWidth(cell) + 2;
+      columnWidths[columnIndex] = Math.max(columnWidths[columnIndex] ?? 8, cellWidth);
+    });
+  });
+
+  const maxColumnIndex = Math.max(
+    columnWidths.length - 1,
+    (columnMaxWidths?.length ?? 0) - 1,
+    0,
+  );
+
+  worksheet["!cols"] = Array.from({ length: maxColumnIndex + 1 }, (_, index) => {
+    const width = columnWidths[index] ?? 10;
+    const max = columnMaxWidths?.[index] ?? 72;
+    return { wch: Math.min(Math.max(width, 10), max) };
+  });
+}
+
+function buildExplanationSheetRows(overallSummary, supplierExplanations) {
+  const detailHeader = ["업체명", "순위", "요약", "장점", "단점", "확인 필요"];
+  const rows = [
+    ["AI 근거 요약", ...Array(detailHeader.length - 1).fill("")],
+    [formatWrappedTextForExcel(overallSummary, 56), ...Array(detailHeader.length - 1).fill("")],
+    [],
+    ["공급사별 상세", ...Array(detailHeader.length - 1).fill("")],
+    [...detailHeader],
+    ...supplierExplanations.map((item) => [
+      item.vendorName || "-",
+      item.rank ?? "-",
+      formatWrappedTextForExcel(item.cardSummary, 34),
+      formatExplanationListForExcel(item.strengths, 32),
+      formatExplanationListForExcel(item.weaknesses, 32),
+      formatExplanationListForExcel(
+        Array.isArray(item.checkRequired) && item.checkRequired.length > 0
+          ? item.checkRequired.join(", ")
+          : "-",
+        28,
+      ),
+    ]),
+  ];
+  const rowKinds = [
+    EXCEL_ROW_KIND.TITLE,
+    EXCEL_ROW_KIND.SUMMARY,
+    EXCEL_ROW_KIND.SPACER,
+    EXCEL_ROW_KIND.SECTION,
+    EXCEL_ROW_KIND.HEADER,
+    ...supplierExplanations.map(() => EXCEL_ROW_KIND.DATA),
+  ];
+
+  return { rows, rowKinds };
+}
+
+function exportToExcel({
+  projectName,
+  overallSummary,
+  supplierExplanations,
+  suppliers,
+  comparisonSections,
+  totalRows,
+}) {
+  const workbook = XLSX.utils.book_new();
+
+  const { rows: compareRows, rowKinds: compareRowKinds } = buildCompareSheetRows(
+    suppliers,
+    comparisonSections,
+    totalRows,
+  );
+  const compareSheet = XLSX.utils.aoa_to_sheet(compareRows);
+  applySheetVisualStyles(compareSheet, compareRows, compareRowKinds);
+  applySheetColumnWidths(compareSheet, compareRows, { rowKinds: compareRowKinds });
+  applyWrapRowHeights(compareSheet, compareRows, compareRowKinds);
+  XLSX.utils.book_append_sheet(workbook, compareSheet, "견적 비교");
+
+  const { rows: explanationRows, rowKinds: explanationRowKinds } = buildExplanationSheetRows(
+    overallSummary,
+    supplierExplanations,
+  );
+  const explanationSheet = XLSX.utils.aoa_to_sheet(explanationRows);
+  applySheetVisualStyles(explanationSheet, explanationRows, explanationRowKinds);
+  applySheetColumnWidths(explanationSheet, explanationRows, {
+    rowKinds: explanationRowKinds,
+    columnMaxWidths: [18, 6, 38, 38, 38, 30],
+  });
+  applyWrapRowHeights(explanationSheet, explanationRows, explanationRowKinds);
+  XLSX.utils.book_append_sheet(workbook, explanationSheet, "AI 근거 요약");
+
+  const safeName = String(projectName || "프로젝트").replace(/[\\/:*?"<>|]/g, "_");
+  XLSX.writeFile(workbook, `${safeName}_고객보고서.xlsx`);
 }
 
 function splitProsConsItems(value) {
