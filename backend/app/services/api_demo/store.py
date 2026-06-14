@@ -1,7 +1,14 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+import logging
+import os
+from typing import Any, TYPE_CHECKING
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from services.api_demo.store_persistence import ApiDemoPersistence
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -54,7 +61,8 @@ class CandidateVendorRecord:
 
 
 class ApiDemoStore:
-    def __init__(self) -> None:
+    def __init__(self, persistence: "ApiDemoPersistence | None" = None) -> None:
+        self.persistence = persistence
         self.projects: dict[str, ProjectRecord] = {}
         self.quote_pools: dict[str, QuotePoolRecord] = {}
         self.matches: dict[str, MatchRecord] = {}
@@ -89,6 +97,8 @@ class ApiDemoStore:
             requirement_source=requirement_source,
         )
         self.projects[project_id] = record
+        if self.persistence is not None:
+            self.persistence.save_project_record(record)
         return record
 
     def save_quote_pool(
@@ -110,6 +120,8 @@ class ApiDemoStore:
         )
         self.quote_pools[quote_pool_id] = record
         self.project_quote_pool_index[project_id] = quote_pool_id
+        if self.persistence is not None:
+            self.persistence.save_quote_pool_record(record)
         return record
 
     def save_match(
@@ -128,6 +140,8 @@ class ApiDemoStore:
         )
         self.matches[match_id] = record
         self.project_match_index.setdefault(project_id, []).append(match_id)
+        if self.persistence is not None:
+            self.persistence.save_match_record(record)
         return record
 
     def save_candidate_vendors(
@@ -162,30 +176,109 @@ class ApiDemoStore:
         )
         self.candidate_vendors[candidate_vendor_id] = record
         self.project_candidate_vendor_index[project_id] = candidate_vendor_id
+        if self.persistence is not None:
+            self.persistence.save_candidate_vendor_record(record)
         return record
 
     def get_project(self, project_id: str) -> ProjectRecord | None:
-        return self.projects.get(project_id)
+        record = self.projects.get(project_id)
+        if record is not None:
+            return record
+        if self.persistence is None:
+            return None
+        record = self.persistence.load_project_record(project_id)
+        if record is not None:
+            self.projects[record.project_id] = record
+        return record
 
     def get_quote_pool(self, project_id: str) -> QuotePoolRecord | None:
         quote_pool_id = self.project_quote_pool_index.get(project_id)
-        return self.quote_pools.get(quote_pool_id or "")
+        record = self.quote_pools.get(quote_pool_id or "")
+        if record is not None:
+            return record
+        if self.persistence is None:
+            return None
+        record = self.persistence.load_quote_pool_record(project_id)
+        if record is not None:
+            self.quote_pools[record.quote_pool_id] = record
+            self.project_quote_pool_index[record.project_id] = record.quote_pool_id
+        return record
 
     def get_latest_match(self, project_id: str) -> MatchRecord | None:
         match_ids = self.project_match_index.get(project_id) or []
-        if not match_ids:
+        if match_ids:
+            record = self.matches.get(match_ids[-1])
+            if record is not None:
+                return record
+        if self.persistence is None:
             return None
-        return self.matches.get(match_ids[-1])
+        record = self.persistence.load_latest_match_record(project_id)
+        if record is not None:
+            self.matches[record.match_id] = record
+            match_ids = self.project_match_index.setdefault(record.project_id, [])
+            if record.match_id not in match_ids:
+                match_ids.append(record.match_id)
+        return record
 
     def get_match(self, project_id: str, match_id: str) -> MatchRecord | None:
         match = self.matches.get(match_id)
-        if match is None or match.project_id != project_id:
+        if match is not None and match.project_id == project_id:
+            return match
+        if self.persistence is None:
             return None
+        match = self.persistence.load_match_record(project_id, match_id)
+        if match is not None:
+            self.matches[match.match_id] = match
+            match_ids = self.project_match_index.setdefault(match.project_id, [])
+            if match.match_id not in match_ids:
+                match_ids.append(match.match_id)
         return match
+
+    def update_match_explanation(
+        self,
+        *,
+        project_id: str,
+        match_id: str,
+        explanation_result: Any,
+    ) -> None:
+        match = self.matches.get(match_id)
+        if match is not None and match.project_id == project_id:
+            match.explanation_result = explanation_result
+        if self.persistence is not None:
+            self.persistence.update_match_explanation(
+                project_id=project_id,
+                match_id=match_id,
+                explanation_result=explanation_result,
+            )
 
     def get_candidate_vendors(self, project_id: str) -> CandidateVendorRecord | None:
         candidate_vendor_id = self.project_candidate_vendor_index.get(project_id)
-        return self.candidate_vendors.get(candidate_vendor_id or "")
+        record = self.candidate_vendors.get(candidate_vendor_id or "")
+        if record is not None:
+            return record
+        if self.persistence is None:
+            return None
+        record = self.persistence.load_candidate_vendor_record(project_id)
+        if record is not None:
+            self.candidate_vendors[record.candidate_vendor_id] = record
+            self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
+        return record
 
 
-store = ApiDemoStore()
+def _create_default_persistence():
+    mode = os.getenv("API_DEMO_STORE_PERSISTENCE", "memory").strip().lower()
+    if mode not in {"mysql", "mysql_json", "sql"}:
+        return None
+    try:
+        from services.api_demo.store_persistence import SqlJsonApiDemoPersistence
+
+        persistence = SqlJsonApiDemoPersistence(enabled=True)
+        if persistence.is_schema_ready():
+            return persistence
+        logger.warning("API demo MySQL persistence schema not ready; falling back to memory store.")
+    except Exception as exc:
+        logger.warning("API demo MySQL persistence unavailable; falling back to memory store: %s", exc)
+    return None
+
+
+store = ApiDemoStore(persistence=_create_default_persistence())

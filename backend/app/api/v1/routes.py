@@ -45,7 +45,18 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
     )
     try:
         db.execute(
-            text("INSERT INTO projects (project_id, created_at, status, company_name, location, deadline, request_text) VALUES (:project_id, :created_at, :status, :company_name, :location, :deadline, :request_text)"),
+            text("""
+                INSERT INTO projects (
+                    project_id, created_at, status, company_name, location, deadline, request_text
+                ) VALUES (
+                    :project_id, :created_at, :status, :company_name, :location, :deadline, :request_text
+                )
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    location = VALUES(location),
+                    deadline = VALUES(deadline),
+                    request_text = VALUES(request_text)
+            """),
             {
                 "project_id": result["project_id"],
                 "created_at": datetime.now(),
@@ -102,6 +113,15 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
                             :delivery_weeks, :delivery_basis_raw,
                             :warranty_months, :created_at
                         )
+                        ON DUPLICATE KEY UPDATE
+                            vendor_name = VALUES(vendor_name),
+                            vendor_id = VALUES(vendor_id),
+                            project_name = VALUES(project_name),
+                            total_supply_price = VALUES(total_supply_price),
+                            total_with_vat = VALUES(total_with_vat),
+                            delivery_weeks = VALUES(delivery_weeks),
+                            delivery_basis_raw = VALUES(delivery_basis_raw),
+                            warranty_months = VALUES(warranty_months)
                     """),
                     {
                         "quote_id": quote["quote_id"],
@@ -169,7 +189,12 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
         try:
             match_id = result["match_id"]
             db.execute(
-                text("INSERT INTO match_results (match_id, project_id, created_at) VALUES (:match_id, :project_id, :created_at)"),
+                text("""
+                    INSERT INTO match_results (match_id, project_id, created_at)
+                    VALUES (:match_id, :project_id, :created_at)
+                    ON DUPLICATE KEY UPDATE
+                        project_id = VALUES(project_id)
+                """),
                 {"match_id": match_id, "project_id": project_id, "created_at": datetime.now()}
             )
             for item in result.get("recommendation", {}).get("items", []):
@@ -186,6 +211,18 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
                             :warranty_score, :installation_score,
                             :matched_rules, :filter_reasons, :check_required, :rule_warnings
                         )
+                        ON DUPLICATE KEY UPDATE
+                            quote_id = VALUES(quote_id),
+                            final_score = VALUES(final_score),
+                            spec_score = VALUES(spec_score),
+                            price_score = VALUES(price_score),
+                            delivery_score = VALUES(delivery_score),
+                            warranty_score = VALUES(warranty_score),
+                            installation_score = VALUES(installation_score),
+                            matched_rules = VALUES(matched_rules),
+                            filter_reasons = VALUES(filter_reasons),
+                            check_required = VALUES(check_required),
+                            rule_warnings = VALUES(rule_warnings)
                     """),
                     {
                         "match_id": match_id,
