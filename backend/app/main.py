@@ -14,6 +14,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +28,9 @@ app.include_router(router)
 @app.on_event("startup")
 async def bootstrap_api_demo_store_on_startup() -> None:
     from services.api_demo.store import store
-    from services.api_demo.store_bootstrap import bootstrap_api_demo_store_from_persistence
+    from services.api_demo.store_bootstrap import (
+        bootstrap_api_demo_store_from_persistence,
+    )
 
     if not getattr(store, "persistence", None):
         return

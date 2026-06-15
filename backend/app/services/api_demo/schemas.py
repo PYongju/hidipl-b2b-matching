@@ -4,10 +4,10 @@ from pydantic import BaseModel, Field
 
 
 class ProjectCreateRequest(BaseModel):
-    company_name: str
+    company_name: str = ""
     location: str | None = None
     deadline: str | None = None
-    request_text: str
+    request_text: str = ""
 
 
 class ProjectCreateResponse(BaseModel):

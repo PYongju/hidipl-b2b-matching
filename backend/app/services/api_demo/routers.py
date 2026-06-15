@@ -1,3 +1,6 @@
+import ast
+import json
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -8,10 +11,13 @@ from config.paths import UPLOAD_DIR
 from services.api_demo.project_requirement_adapter import (
     build_requirement_info_from_project_payload,
     build_requirement_info_from_project_payload_dict,
+    has_meaningful_request_text,
     is_frontend_project_payload,
+    normalize_empty,
 )
 from services.api_demo.response_builders import (
     build_candidate_vendors_not_found_response,
+    build_candidate_vendors_requirement_required_response,
     build_candidate_vendors_response,
     build_compare_response,
     build_explanation_response,
@@ -36,12 +42,13 @@ from services.requirement_ingestion.factory import create_requirement_ingestion_
 
 
 SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".xlsx", ".xls"}
+logger = logging.getLogger(__name__)
 
 
 def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
     request_id = f"request_{uuid4().hex[:8]}"
-    pipeline = create_requirement_ingestion_pipeline()
     if is_frontend_project_payload(payload):
+        pipeline = create_requirement_ingestion_pipeline()
         requirement_info = build_requirement_info_from_project_payload(
             payload,
             request_id=request_id,
@@ -51,10 +58,15 @@ def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
             request_id=request_id,
         )
     else:
-        requirement_result = pipeline.process_text(
-            payload.request_text,
-            request_id=request_id,
-        )
+        if has_meaningful_request_text(payload):
+            request_text = (payload.request_text or "").strip()
+            pipeline = create_requirement_ingestion_pipeline()
+            requirement_result = pipeline.process_text(
+                request_text,
+                request_id=request_id,
+            )
+        else:
+            requirement_result = None
     record = store.create_project(
         company_name=payload.company_name,
         location=payload.location,
@@ -62,7 +74,11 @@ def create_project(payload: ProjectCreateRequest) -> dict[str, Any]:
         request_text=payload.request_text,
         requirement_result=requirement_result,
         original_request_text=payload.request_text,
-        requirement_source=requirement_result.metadata.get("requirement_source"),
+        requirement_source=(
+            requirement_result.metadata.get("requirement_source")
+            if requirement_result is not None
+            else "empty_project_shell"
+        ),
     )
     return build_project_response(record)
 
@@ -111,6 +127,11 @@ def upload_quote_paths(project_id: str, file_paths: list[Path]) -> dict[str, Any
 
 def run_match(project_id: str, payload: MatchRunRequest) -> dict[str, Any]:
     project = _require_project(project_id)
+    requirement_result = (
+        project.requirement_result
+        if getattr(project, "requirement_result", None) is not None
+        else hydrate_project_requirement_result_if_missing(project)
+    )
     quote_pool = _require_quote_pool(project_id)
     candidate_vendor_record = store.get_candidate_vendors(project_id)
     selected_vendor_names = (
@@ -121,12 +142,12 @@ def run_match(project_id: str, payload: MatchRunRequest) -> dict[str, Any]:
 
     pipeline = create_recommendation_pipeline("rule")
     grouped_results = pipeline.recommend_grouped_by_product_group(
-        project.requirement_result,
+        requirement_result,
         quote_pool.quote_ingestion_results,
         top_n=payload.quote_top_n,
     )
     recommendation_result = pipeline.combine_grouped_results(
-        project.requirement_result,
+        requirement_result,
         grouped_results,
         top_n=payload.quote_top_n,
     )
@@ -401,6 +422,33 @@ def run_candidate_vendors(
     payload = payload or CandidateVendorsRequest()
     top_n = payload.top_n or 10
     similarity_threshold = payload.similarity_threshold
+    payload_has_requirement = _has_candidate_requirement_override(payload)
+    if not payload_has_requirement and not getattr(project, "requirement_result", None):
+        _refresh_project_scalar_from_persistence_if_needed(project)
+    project_has_requirement_source = _project_has_hydratable_requirement_fields(project)
+    logger.info(
+        "[candidate-vendors] project_id=%s has_requirement_result=%s "
+        "payload_has_requirement=%s project_has_scalar_requirement=%s "
+        "lazy_hydration_candidate=%s",
+        project_id,
+        bool(getattr(project, "requirement_result", None)),
+        payload_has_requirement,
+        project_has_requirement_source,
+        bool(
+            not getattr(project, "requirement_result", None)
+            and (payload_has_requirement or project_has_requirement_source)
+        ),
+    )
+    if (
+        not payload_has_requirement
+        and not getattr(project, "requirement_result", None)
+        and not project_has_requirement_source
+    ):
+        return build_candidate_vendors_requirement_required_response(
+            project_id,
+            top_n=top_n,
+            similarity_threshold=similarity_threshold,
+        )
     requirement_result = _resolve_candidate_requirement_result(project, payload)
     if not getattr(requirement_result, "embedding_vector", None):
         raise ValueError("requirement embedding_vector is required for candidate-vendors.")
@@ -463,12 +511,13 @@ def hydrate_project_requirement_result_if_missing(project):
     if getattr(project, "requirement_result", None) is not None:
         return project.requirement_result
 
-    payload_dict = {
-        "company_name": project.company_name,
-        "location": project.location,
-        "deadline": project.deadline,
-        "request_text": project.request_text or project.original_request_text or "",
-    }
+    _refresh_project_scalar_from_persistence_if_needed(project)
+    if not _project_has_hydratable_requirement_fields(project):
+        raise ValueError(
+            "candidate-vendors 실행을 위해 프로젝트 요구사항 입력이 필요합니다."
+        )
+
+    payload_dict = _build_project_record_payload_dict(project)
     requirement_info = build_requirement_info_from_project_payload_dict(
         payload_dict,
         request_id=project.request_id,
@@ -493,13 +542,188 @@ def hydrate_project_requirement_result_if_missing(project):
     return requirement_result
 
 
+def _refresh_project_scalar_from_persistence_if_needed(project) -> None:
+    if getattr(project, "requirement_result", None) is not None:
+        return
+    snapshot = store.load_project_scalar_snapshot(project.project_id)
+    if not snapshot:
+        return
+
+    requirement_result = snapshot.get("requirement_result")
+    if requirement_result is not None:
+        loaded = (
+            store.persistence.load_project_record(project.project_id)
+            if getattr(store, "persistence", None) is not None
+            else None
+        )
+        if loaded is not None and getattr(loaded, "requirement_result", None) is not None:
+            store.restore_project_record(loaded)
+            project.requirement_result = loaded.requirement_result
+            project.request_id = loaded.request_id
+            project.requirement_source = loaded.requirement_source
+        return
+
+    for field in ["company_name", "location", "deadline", "request_text"]:
+        value = snapshot.get(field)
+        if normalize_empty(value):
+            setattr(project, field, value)
+    if normalize_empty(snapshot.get("request_text")):
+        project.original_request_text = snapshot.get("request_text")
+    internal_notes = snapshot.get("internal_notes")
+    if _has_meaningful_internal_notes(internal_notes):
+        setattr(project, "internal_notes", internal_notes)
+
+
+def _project_has_hydratable_requirement_fields(project) -> bool:
+    request_text = project.request_text or project.original_request_text or ""
+    request_payload = ProjectCreateRequest(
+        company_name="",
+        location=None,
+        deadline=None,
+        request_text=request_text,
+    )
+    return any(
+        [
+            normalize_empty(getattr(project, "company_name", None)),
+            normalize_empty(getattr(project, "location", None)),
+            normalize_empty(getattr(project, "deadline", None)),
+            has_meaningful_request_text(request_payload),
+            _has_meaningful_internal_notes(getattr(project, "internal_notes", None)),
+        ]
+    )
+
+
+def _build_project_record_payload_dict(project) -> dict[str, Any]:
+    internal_fields = _extract_frontend_fields_from_internal_notes(
+        getattr(project, "internal_notes", None)
+    )
+    company_name = (
+        normalize_empty(getattr(project, "company_name", None))
+        or normalize_empty(internal_fields.get("company_name"))
+        or normalize_empty(internal_fields.get("companyName"))
+    )
+    location = (
+        normalize_empty(getattr(project, "location", None))
+        or normalize_empty(internal_fields.get("location"))
+    )
+    deadline = (
+        normalize_empty(getattr(project, "deadline", None))
+        or normalize_empty(internal_fields.get("deadline"))
+        or normalize_empty(internal_fields.get("projectDate"))
+    )
+    request_text = project.request_text or project.original_request_text or ""
+    if not has_meaningful_request_text(
+        ProjectCreateRequest(
+            company_name="",
+            location=None,
+            deadline=None,
+            request_text=request_text,
+        )
+    ):
+        request_text = _frontend_request_text_from_internal_fields(internal_fields)
+
+    return {
+        "company_name": company_name or "",
+        "location": location,
+        "deadline": deadline,
+        "request_text": request_text or "",
+        "products": internal_fields.get("products") or [],
+    }
+
+
+def _has_meaningful_internal_notes(value: Any) -> bool:
+    fields = _extract_frontend_fields_from_internal_notes(value)
+    if not fields:
+        return False
+    return any(normalize_empty(item) for item in fields.values() if not isinstance(item, (dict, list)))
+
+
+def _extract_frontend_fields_from_internal_notes(value: Any) -> dict[str, Any]:
+    parsed = _parse_internal_notes(value)
+    if parsed is None:
+        return {}
+    result: dict[str, Any] = {}
+    aliases = {
+        "companyName",
+        "company_name",
+        "location",
+        "projectDate",
+        "deadline",
+        "projectName",
+        "usage",
+        "displaySize",
+        "quantity",
+        "category",
+        "budgetAmount",
+        "currentStage",
+        "reviewPreset",
+        "otherConditions",
+        "attachmentMemo",
+        "operationTime",
+        "products",
+    }
+
+    def visit(item: Any) -> None:
+        if isinstance(item, dict):
+            for key, child in item.items():
+                if key in aliases:
+                    result[key] = child
+                visit(child)
+        elif isinstance(item, list):
+            for child in item:
+                visit(child)
+
+    visit(parsed)
+    return result
+
+
+def _parse_internal_notes(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    try:
+        return ast.literal_eval(text)
+    except Exception:
+        return {"note": text}
+
+
+def _frontend_request_text_from_internal_fields(fields: dict[str, Any]) -> str:
+    label_values = [
+        ("프로젝트명", fields.get("projectName")),
+        ("활용 용도", fields.get("usage")),
+        ("디스플레이 크기", fields.get("displaySize")),
+        ("수량", fields.get("quantity")),
+        ("운영 시간", fields.get("operationTime")),
+        ("카테고리", fields.get("category")),
+        ("예산 상한", fields.get("budgetAmount")),
+        ("현재 단계", fields.get("currentStage")),
+        ("우선 검토 기준", fields.get("reviewPreset")),
+        ("추가 요청사항", fields.get("otherConditions")),
+        ("첨부 메모", fields.get("attachmentMemo")),
+    ]
+    lines = [
+        f"{label}: {value}"
+        for label, value in label_values
+        if normalize_empty(value)
+    ]
+    return "\n".join(lines)
+
+
 def _has_candidate_requirement_override(payload: CandidateVendorsRequest) -> bool:
     return any(
         [
-            bool((payload.request_text or "").strip()),
-            bool((payload.customer_name or "").strip()),
-            bool((payload.region or "").strip()),
-            bool((payload.install_schedule_text or "").strip()),
+            bool(normalize_empty(payload.request_text)),
+            bool(normalize_empty(payload.customer_name)),
+            bool(normalize_empty(payload.region)),
+            bool(normalize_empty(payload.install_schedule_text)),
             bool(payload.products),
         ]
     )

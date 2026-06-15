@@ -27,22 +27,25 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1")
 
 class ProjectCreateRequest(BaseModel):
-    company_name: str
+    company_name: str = ""
     location: str | None = None
     deadline: str | None = None
-    request_text: str
+    request_text: str = ""
 
 # [P1] 프로젝트 등록
 @router.post("/projects")
 async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_db)):
-    result = demo_routers.create_project(
-        DemoProjectCreateRequest(
-            company_name=body.company_name,
-            location=body.location,
-            deadline=body.deadline,
-            request_text=body.request_text,
+    try:
+        result = demo_routers.create_project(
+            DemoProjectCreateRequest(
+                company_name=body.company_name,
+                location=body.location,
+                deadline=body.deadline,
+                request_text=body.request_text,
+            )
         )
-    )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     try:
         db.execute(
             text("""
@@ -172,6 +175,8 @@ async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, d
         return result.get("data", result)
     except KeyError as e:
         raise HTTPException(status_code=404, detail="잘못된 요청입니다.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # [P3] 매칭 실행
