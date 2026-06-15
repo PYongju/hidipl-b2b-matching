@@ -7,6 +7,8 @@ except ImportError:
     UploadFile = None
 
 from typing import Any
+import logging
+import os
 
 from config.paths import UPLOAD_DIR
 from services.api_demo.routers import (
@@ -26,6 +28,9 @@ from services.api_demo.schemas import (
     MatchRunRequest,
     ProjectCreateRequest,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def coerce_candidate_vendors_payload(payload: Any) -> CandidateVendorsRequest | None:
@@ -48,6 +53,32 @@ def coerce_candidate_vendors_payload(payload: Any) -> CandidateVendorsRequest | 
 
 if FastAPI is not None:
     app = FastAPI(title="Quote Recommendation API Demo", version="0.1.0")
+
+    @app.on_event("startup")
+    async def bootstrap_api_demo_store_on_startup() -> None:
+        from services.api_demo.store import store
+        from services.api_demo.store_bootstrap import bootstrap_api_demo_store_from_persistence
+
+        if not getattr(store, "persistence", None):
+            return
+        enabled = os.getenv("API_DEMO_STORE_BOOTSTRAP_ON_STARTUP", "true").strip().lower()
+        if enabled in {"0", "false", "no", "off"}:
+            return
+        limit_text = os.getenv("API_DEMO_STORE_BOOTSTRAP_LIMIT", "").strip()
+        limit = int(limit_text) if limit_text.isdigit() else None
+        result = bootstrap_api_demo_store_from_persistence(store, limit=limit)
+        logger.info(
+            "API demo store bootstrap complete: persistence=%s loaded_projects=%s "
+            "lazy_hydration_projects=%s loaded_quote_pools=%s loaded_matches=%s "
+            "loaded_candidate_vendors=%s azure_calls=%s",
+            result.get("persistence"),
+            result.get("loaded_projects"),
+            result.get("lazy_hydration_projects"),
+            result.get("loaded_quote_pools"),
+            result.get("loaded_matches"),
+            result.get("loaded_candidate_vendors"),
+            result.get("azure_calls"),
+        )
 
     @app.post("/api/v1/projects")
     def post_project(payload: ProjectCreateRequest):
