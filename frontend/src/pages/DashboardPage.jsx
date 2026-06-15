@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import * as XLSX from 'xlsx-js-style';
-import Badge from '../components/Badge';
-import BrandHomeButton from '../components/BrandHomeButton';
-import useCompareResult from '../hooks/useCompareResult';
-import useExplanationResult from '../hooks/useExplanationResult';
-import { getStatusUi } from '../utils/statusMap';
+import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
+import Badge from "../components/Badge";
+import BrandHomeButton from "../components/BrandHomeButton";
+import useCompareResult from "../hooks/useCompareResult";
+import useExplanationResult from "../hooks/useExplanationResult";
+import { getStatusUi } from "../utils/statusMap";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
 
@@ -53,9 +53,12 @@ export default function DashboardPage({
   onGoProjects,
   onProjectDataChange,
 }) {
-  const [selectedSupplierId, setSelectedSupplierId] = useState(projectData.selectedSupplierId ?? "");
+  const [selectedSupplierId, setSelectedSupplierId] = useState(
+    projectData.selectedSupplierId ?? "",
+  );
   const isFailureScenario = Boolean(projectData.failureScenario);
-  const projectId = projectData.projectId || projectData.projectApiId || "프로젝트";
+  const projectId =
+    projectData.projectId || projectData.projectApiId || "프로젝트";
   const {
     compareErrorMessage,
     compareState,
@@ -71,18 +74,24 @@ export default function DashboardPage({
   } = useExplanationResult(projectData, suppliers);
   const explanationByVendor = useMemo(
     () => new Map(supplierExplanations.map((item) => [item.vendorName, item])),
-    [supplierExplanations]
+    [supplierExplanations],
   );
   const defaultOpenSections = useMemo(
-    () => comparisonSections.reduce((sections, section) => ({
-      ...sections,
-      [section.id]: isFailureScenario ? true : section.defaultOpen,
-    }), { total: true }),
-    [comparisonSections, isFailureScenario]
+    () =>
+      comparisonSections.reduce(
+        (sections, section) => ({
+          ...sections,
+          [section.id]: isFailureScenario ? true : section.defaultOpen,
+        }),
+        { total: true },
+      ),
+    [comparisonSections, isFailureScenario],
   );
   const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selectionFinalized, setSelectionFinalized] = useState(projectData.workflowStatus === "완료");
+  const [selectionFinalized, setSelectionFinalized] = useState(
+    projectData.workflowStatus === "완료",
+  );
   const [toastVisible, setToastVisible] = useState(false);
   const [followupVisible, setFollowupVisible] = useState(false);
   const [prosOpen, setProsOpen] = useState(true);
@@ -96,18 +105,27 @@ export default function DashboardPage({
   const maxSupplierStartIndex =
     supplierCount <= VISIBLE_SUPPLIER_COUNT
       ? 0
-      : Math.floor((supplierCount - 1) / VISIBLE_SUPPLIER_COUNT) * VISIBLE_SUPPLIER_COUNT;
+      : Math.floor((supplierCount - 1) / VISIBLE_SUPPLIER_COUNT) *
+        VISIBLE_SUPPLIER_COUNT;
   const visibleSuppliers = useMemo(
-    () => suppliers.slice(supplierStartIndex, supplierStartIndex + VISIBLE_SUPPLIER_COUNT),
-    [suppliers, supplierStartIndex]
+    () =>
+      suppliers.slice(
+        supplierStartIndex,
+        supplierStartIndex + VISIBLE_SUPPLIER_COUNT,
+      ),
+    [suppliers, supplierStartIndex],
   );
   const selectableSuppliers = suppliers;
   const selectedSupplier = useMemo(
-    () => selectableSuppliers.find((supplier) => supplier.id === selectedSupplierId) ?? null,
+    () =>
+      selectableSuppliers.find(
+        (supplier) => supplier.id === selectedSupplierId,
+      ) ?? null,
     [selectableSuppliers, selectedSupplierId],
   );
   const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
-  const canGoNextSuppliers = canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
+  const canGoNextSuppliers =
+    canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
 
   useEffect(() => {
     setSupplierStartIndex(0);
@@ -118,9 +136,12 @@ export default function DashboardPage({
     setSelectedSupplierId((current) =>
       current && selectableSuppliers.some((supplier) => supplier.id === current)
         ? current
-        : projectData.selectedSupplierId && selectableSuppliers.some((supplier) => supplier.id === projectData.selectedSupplierId)
+        : projectData.selectedSupplierId &&
+            selectableSuppliers.some(
+              (supplier) => supplier.id === projectData.selectedSupplierId,
+            )
           ? projectData.selectedSupplierId
-        : selectableSuppliers[0].id,
+          : selectableSuppliers[0].id,
     );
   }, [projectData.selectedSupplierId, selectableSuppliers]);
 
@@ -136,7 +157,9 @@ export default function DashboardPage({
   }, [projectId, projectData.reviewMemo]);
 
   const goPrevSuppliers = () => {
-    setSupplierStartIndex((current) => Math.max(0, current - VISIBLE_SUPPLIER_COUNT));
+    setSupplierStartIndex((current) =>
+      Math.max(0, current - VISIBLE_SUPPLIER_COUNT),
+    );
   };
 
   const goNextSuppliers = () => {
@@ -160,13 +183,20 @@ export default function DashboardPage({
       return "AI 근거 요약을 불러오는 중입니다.";
     }
 
-    return explanationByVendor.get(supplier.vendorName ?? supplier.name)?.cardSummary ?? "";
+    return (
+      explanationByVendor.get(supplier.vendorName ?? supplier.name)
+        ?.cardSummary ?? ""
+    );
   };
 
   const toggleSection = (sectionId) => {
     setOpenSections((current) => ({
       ...current,
-      [sectionId]: !(current[sectionId] ?? defaultOpenSections[sectionId] ?? false),
+      [sectionId]: !(
+        current[sectionId] ??
+        defaultOpenSections[sectionId] ??
+        false
+      ),
     }));
   };
 
@@ -185,16 +215,36 @@ export default function DashboardPage({
     const value = cell?.value || "";
 
     if (status === "included" || value.includes("포함")) {
-      return <Badge tone="green" key={key}>{label} 포함</Badge>;
+      return (
+        <Badge tone="green" key={key}>
+          {label} 포함
+        </Badge>
+      );
     }
     if (status === "separate" || value.includes("별도")) {
-      return <Badge tone="gray" key={key}>{label} 별도</Badge>;
+      return (
+        <Badge tone="gray" key={key}>
+          {label} 별도
+        </Badge>
+      );
     }
     if (status === "parseFail") {
-      return <Badge tone="red" key={key}>{label} OCR 분석 실패</Badge>;
+      return (
+        <Badge tone="red" key={key}>
+          {label} OCR 분석 실패
+        </Badge>
+      );
     }
-    if (status === "toBeDiscussed" || value.includes("검토") || value.includes("확인")) {
-      return <Badge tone="orange" key={key}>{label} 검토 필요</Badge>;
+    if (
+      status === "toBeDiscussed" ||
+      value.includes("검토") ||
+      value.includes("확인")
+    ) {
+      return (
+        <Badge tone="orange" key={key}>
+          {label} 검토 필요
+        </Badge>
+      );
     }
     return null;
   };
@@ -208,11 +258,15 @@ export default function DashboardPage({
       "compare-cell",
       status ? `cell-${status}` : "",
       highlight ? `cell-${highlight}` : "",
-    ].filter(Boolean).join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     return (
       <div className={cellClasses}>
-        <span className={highlight === "bestPrice" ? "price-best" : ""}>{value}</span>
+        <span className={highlight === "bestPrice" ? "price-best" : ""}>
+          {value}
+        </span>
         {getStatusBadge(status)}
         {getStatusBadge(highlight)}
       </div>
@@ -249,7 +303,8 @@ export default function DashboardPage({
 
   const handleExportToExcel = () => {
     exportToExcel({
-      projectName: projectData.projectName || projectData.companyName || projectId,
+      projectName:
+        projectData.projectName || projectData.companyName || projectId,
       overallSummary,
       supplierExplanations,
       suppliers,
@@ -297,11 +352,19 @@ export default function DashboardPage({
             <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
           <div className="project-actions">
-            <button className="button action-secondary" onClick={onGoProjects} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onGoProjects}
+              type="button"
+            >
               프로젝트 목록
             </button>
             <button
-              className={selectionFinalized ? "button button-green" : "button button-blue"}
+              className={
+                selectionFinalized
+                  ? "button button-green"
+                  : "button button-blue"
+              }
               disabled
               title="상태는 현재 화면 진행에 따라 자동 반영됩니다."
               type="button"
@@ -314,39 +377,43 @@ export default function DashboardPage({
         <section className="panel meta-panel">
           <div className="panel-title">프로젝트 정보</div>
           <div className="meta-grid">
-          <div className="meta-item">
-            <span>회사명</span>
-            <strong>{projectData.companyName}</strong>
-          </div>
-          <div className="meta-item">
-            <span>설치 위치</span>
-            <strong>{projectData.location}</strong>
-          </div>
-          <div className="meta-item">
-            <span>프로젝트 일정</span>
-            <input
-              aria-label="프로젝트 일정"
-              className="meta-date-input"
-              readOnly
-              type="date"
-              value={projectData.projectDate}
-            />
-          </div>
-          <div className="meta-item">
-            <span>활용 용도</span>
-            <strong>{projectData.usage}</strong>
-          </div>
-          <div className="meta-item">
-            <span>현재 단계</span>
-            <strong>{selectionFinalized ? "검토 완료" : projectData.currentStage}</strong>
-          </div>
-          <div className="meta-item">
-            <span>예산/프리셋</span>
-            <strong>
-              {projectData.budgetAmount ? `${projectData.budgetAmount}원` : "예산 미정"} ·{" "}
-              {projectData.reviewPreset}
-            </strong>
-          </div>
+            <div className="meta-item">
+              <span>회사명</span>
+              <strong>{projectData.companyName}</strong>
+            </div>
+            <div className="meta-item">
+              <span>설치 위치</span>
+              <strong>{projectData.location}</strong>
+            </div>
+            <div className="meta-item">
+              <span>프로젝트 일정</span>
+              <input
+                aria-label="프로젝트 일정"
+                className="meta-date-input"
+                readOnly
+                type="date"
+                value={projectData.projectDate}
+              />
+            </div>
+            <div className="meta-item">
+              <span>활용 용도</span>
+              <strong>{projectData.usage}</strong>
+            </div>
+            <div className="meta-item">
+              <span>현재 단계</span>
+              <strong>
+                {selectionFinalized ? "검토 완료" : projectData.currentStage}
+              </strong>
+            </div>
+            <div className="meta-item">
+              <span>예산/프리셋</span>
+              <strong>
+                {projectData.budgetAmount
+                  ? `${projectData.budgetAmount}원`
+                  : "예산 미정"}{" "}
+                · {projectData.reviewPreset}
+              </strong>
+            </div>
           </div>
         </section>
 
@@ -364,7 +431,10 @@ export default function DashboardPage({
           <section className="failure-scenario-panel">
             <div>
               <b>실패 상태 UI 점검용 mock 데이터</b>
-              <span>업로드 실패, OCR 일부 실패, 파싱 실패, 총액 미확정, LLM fallback이 어떻게 보이는지 확인하는 프로젝트입니다.</span>
+              <span>
+                업로드 실패, OCR 일부 실패, 파싱 실패, 총액 미확정, LLM
+                fallback이 어떻게 보이는지 확인하는 프로젝트입니다.
+              </span>
             </div>
             <div className="failure-state-row">
               <Badge tone="red">업로드 실패</Badge>
@@ -377,122 +447,194 @@ export default function DashboardPage({
         )}
 
         {compareState === "ready" && (
-        <div className="content-grid">
-          <div className="main-column">
-            <section className="panel supplier-panel">
-              <div className="panel-title-row">
-                <div className="panel-title">
-                  공급사 매칭 현황 ({supplierCount}/{supplierCount}) <span>ⓘ</span>
-                </div>
-                <SupplierPager {...supplierPagerProps} />
-              </div>
-              <div className="supplier-grid">
-                {visibleSuppliers.map((supplier) => {
-                  const cardSummary = getSupplierCardSummary(supplier);
-
-                  return (
-                  <article
-                    className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
-                    key={supplier.id}
-                  >
-                    <div className="supplier-row">
-                      <div className="supplier-name">
-                        <span className="rank">{supplier.rank}</span>
-                        <span className={`supplier-logo ${supplier.logoClass}`}>{supplier.logo}</span>
-                        <b>{supplier.name}</b>
-                        {supplier.recommended && <Badge>AI 추천</Badge>}
-                      </div>
-                      <div className="fit">
-                        적합도 <b className={supplier.fitClass}>{supplier.fit}%</b>
-                      </div>
-                    </div>
-                    <div className="supplier-cost-badges">
-                      <small>비용 조건</small>
-                      <div className="badge-row">
-                        {getSupplierCostBadge(supplier, "설치 공사비", "설치 공사비")}
-                        {getSupplierCostBadge(supplier, "출장비", "출장비")}
-                      </div>
-                    </div>
-                    <p className="supplier-card-summary">{cardSummary}</p>
-                    <div className="supplier-foot">
-                      <div>
-                        <small>제출 상태</small>
-                        <span className={isFailureScenario && supplier.id === "c" ? "submitted submitted-warning" : "submitted"}>
-                          {isFailureScenario && supplier.id === "c"
-                            ? "△ OCR 일부 실패 · 2개 항목 수정 필요"
-                            : `○ ${supplier.submitted}`}
-                        </span>
-                      </div>
-                      <div>
-                        <small>과거 성과</small>
-                        <div className="badge-row">
-                          {isFailureScenario && supplier.id === "b" && <Badge tone="orange">파싱 신뢰도 낮음</Badge>}
-                          {isFailureScenario && supplier.id === "c" && <Badge tone="gray">총액 미확정</Badge>}
-                          {supplier.badges
-                            .filter((badge) => badge !== "프리미엄 파트너")
-                            .map((badge, index) => (
-                            <Badge tone={index === 0 ? "orange" : "green"} key={badge}>
-                              {badge}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="panel compare-panel">
-              <div className="compare-header">
-                <div>
-                  <b>견적 비교</b>
-                  <span>업로드된 견적서 기준</span>
-                </div>
-                <div className="compare-header-actions">
+          <div className="content-grid">
+            <div className="main-column">
+              <section className="panel supplier-panel">
+                <div className="panel-title-row">
+                  <div className="panel-title">
+                    공급사 매칭 현황 ({supplierCount}/{supplierCount}){" "}
+                    <span>ⓘ</span>
+                  </div>
                   <SupplierPager {...supplierPagerProps} />
                 </div>
-              </div>
-              <div className="legend">
-                <Badge>AI 추천</Badge>
-                <Badge tone="green">최저가</Badge>
-                <Badge tone="gray">검토 필요</Badge>
-                <Badge tone="red">수정 필요</Badge>
-                <Badge tone="orange">확인 필요</Badge>
-              </div>
-              <div className="table-wrap accordion-wrap">
-                <table className="compare-table">
-                  <thead>
-                    <tr>
-                      <th>항목(요구사항)</th>
-                      {visibleSuppliers.map((supplier) => (
-                        <th className={supplier.recommended ? "ai-col" : ""} key={supplier.id}>
-                          {supplier.name}
-                          {supplier.recommended && <Badge>AI 추천</Badge>}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                </table>
+                <div className="supplier-grid">
+                  {visibleSuppliers.map((supplier) => {
+                    const cardSummary = getSupplierCardSummary(supplier);
 
-                {comparisonSections.map((section) => (
-                  <div className="compare-section" key={section.id}>
+                    return (
+                      <article
+                        className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
+                        key={supplier.id}
+                      >
+                        <div className="supplier-row">
+                          <div className="supplier-name">
+                            <span className="rank">{supplier.rank}</span>
+                            <span
+                              className={`supplier-logo ${supplier.logoClass}`}
+                            >
+                              {supplier.logo}
+                            </span>
+                            <b>{supplier.name}</b>
+                            {supplier.recommended && <Badge>AI 추천</Badge>}
+                          </div>
+                          <div className="fit">
+                            적합도{" "}
+                            <b className={supplier.fitClass}>{supplier.fit}%</b>
+                          </div>
+                        </div>
+                        <div className="supplier-cost-badges">
+                          <small>비용 조건</small>
+                          <div className="badge-row">
+                            {getSupplierCostBadge(
+                              supplier,
+                              "설치 공사비",
+                              "설치 공사비",
+                            )}
+                            {getSupplierCostBadge(supplier, "출장비", "출장비")}
+                          </div>
+                        </div>
+                        <p className="supplier-card-summary">{cardSummary}</p>
+                        <div className="supplier-foot">
+                          <div>
+                            <small>제출 상태</small>
+                            <span
+                              className={
+                                isFailureScenario && supplier.id === "c"
+                                  ? "submitted submitted-warning"
+                                  : "submitted"
+                              }
+                            >
+                              {isFailureScenario && supplier.id === "c"
+                                ? "△ OCR 일부 실패 · 2개 항목 수정 필요"
+                                : `○ ${supplier.submitted}`}
+                            </span>
+                          </div>
+                          <div>
+                            <small>과거 성과</small>
+                            <div className="badge-row">
+                              {isFailureScenario && supplier.id === "b" && (
+                                <Badge tone="orange">파싱 신뢰도 낮음</Badge>
+                              )}
+                              {isFailureScenario && supplier.id === "c" && (
+                                <Badge tone="gray">총액 미확정</Badge>
+                              )}
+                              {supplier.badges
+                                .filter((badge) => badge !== "프리미엄 파트너")
+                                .map((badge, index) => (
+                                  <Badge
+                                    tone={index === 0 ? "orange" : "green"}
+                                    key={badge}
+                                  >
+                                    {badge}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="panel compare-panel">
+                <div className="compare-header">
+                  <div>
+                    <b>견적 비교</b>
+                    <span>업로드된 견적서 기준</span>
+                  </div>
+                  <div className="compare-header-actions">
+                    <SupplierPager {...supplierPagerProps} />
+                  </div>
+                </div>
+                <div className="legend">
+                  <Badge>AI 추천</Badge>
+                  <Badge tone="green">최저가</Badge>
+                  <Badge tone="gray">검토 필요</Badge>
+                  <Badge tone="red">수정 필요</Badge>
+                  <Badge tone="orange">확인 필요</Badge>
+                </div>
+                <div className="table-wrap accordion-wrap">
+                  <table className="compare-table">
+                    <thead>
+                      <tr>
+                        <th>항목(요구사항)</th>
+                        {visibleSuppliers.map((supplier) => (
+                          <th
+                            className={supplier.recommended ? "ai-col" : ""}
+                            key={supplier.id}
+                          >
+                            {supplier.name}
+                            {supplier.recommended && <Badge>AI 추천</Badge>}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                  </table>
+
+                  {comparisonSections.map((section) => (
+                    <div className="compare-section" key={section.id}>
+                      <button
+                        className="compare-section-toggle"
+                        onClick={() => toggleSection(section.id)}
+                        type="button"
+                      >
+                        <span>{section.title}</span>
+                        <b>
+                          {(openSections[section.id] ??
+                          defaultOpenSections[section.id])
+                            ? "⌃"
+                            : "›"}
+                        </b>
+                      </button>
+
+                      {(openSections[section.id] ??
+                        defaultOpenSections[section.id]) && (
+                        <table className="compare-table compare-section-table">
+                          <tbody>
+                            {section.rows.map((row) => (
+                              <tr key={row.label}>
+                                <td>{row.label}</td>
+                                {visibleSuppliers.map((supplier) => (
+                                  <td key={`${supplier.id}-${row.label}`}>
+                                    {renderCompareCell(supplier, row)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  ))}
+
+                  <div className="compare-section total-section">
                     <button
                       className="compare-section-toggle"
-                      onClick={() => toggleSection(section.id)}
+                      onClick={() => toggleSection("total")}
                       type="button"
                     >
-                      <span>{section.title}</span>
-                      <b>{(openSections[section.id] ?? defaultOpenSections[section.id]) ? "⌃" : "›"}</b>
+                      <span>합계 행</span>
+                      <b>
+                        {(openSections.total ?? defaultOpenSections.total)
+                          ? "⌃"
+                          : "›"}
+                      </b>
                     </button>
 
-                    {(openSections[section.id] ?? defaultOpenSections[section.id]) && (
-                      <table className="compare-table compare-section-table">
+                    {(openSections.total ?? defaultOpenSections.total) && (
+                      <table className="compare-table compare-section-table compare-total-table">
                         <tbody>
-                          {section.rows.map((row) => (
-                            <tr key={row.label}>
-                              <td>{row.label}</td>
+                          {totalRows.map((row) => (
+                            <tr className="required-amount-row" key={row.label}>
+                              <td>
+                                <div className="required-label">
+                                  <span>{row.label}</span>
+                                  {row.label === "견적 총액" && (
+                                    <span className="vat-note">VAT 미포함</span>
+                                  )}
+                                </div>
+                              </td>
                               {visibleSuppliers.map((supplier) => (
                                 <td key={`${supplier.id}-${row.label}`}>
                                   {renderCompareCell(supplier, row)}
@@ -504,190 +646,197 @@ export default function DashboardPage({
                       </table>
                     )}
                   </div>
-                ))}
-
-                <div className="compare-section total-section">
-                  <button
-                    className="compare-section-toggle"
-                    onClick={() => toggleSection("total")}
-                    type="button"
-                  >
-                    <span>합계 행</span>
-                    <b>{(openSections.total ?? defaultOpenSections.total) ? "⌃" : "›"}</b>
-                  </button>
-
-                  {(openSections.total ?? defaultOpenSections.total) && (
-                    <table className="compare-table compare-section-table compare-total-table">
-                      <tbody>
-                        {totalRows.map((row) => (
-                          <tr className="required-amount-row" key={row.label}>
-                            <td>
-                              <div className="required-label">
-                                <span>{row.label}</span>
-                                {row.label === "견적 총액" && (
-                                  <span className="vat-note">VAT 미포함</span>
-                                )}
-                              </div>
-                            </td>
-                            {visibleSuppliers.map((supplier) => (
-                              <td key={`${supplier.id}-${row.label}`}>
-                                {renderCompareCell(supplier, row)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <aside className="side-column">
-            <section className="panel ai-panel">
-              <h2>✦ AI 근거 요약</h2>
-              {explanationIsFallback && (
-                <div className="fallback-notice">
-                  AI 설명 생성이 일시적으로 실패해 기본 규칙 기반 요약을 표시합니다.
-                </div>
-              )}
-              <p>{overallSummary}</p>
-              <button className="side-title side-title-button" onClick={() => setProsOpen((open) => !open)} type="button">
-                <span>공급사 장단점</span>
-                <b>{prosOpen ? "⌃" : "›"}</b>
-              </button>
-              {prosOpen && (
-                <div className="pros-list">
-                  {supplierExplanations.map((supplier) => (
-                    <div className="pros-item" key={supplier.quoteId ?? supplier.vendorName}>
-                      <div className="pros-brand">
-                        <span className={`supplier-logo ${supplier.logoClass}`}>{supplier.logo}</span>
-                        <b>{supplier.vendorName}</b>
-                      </div>
-                      <div className="pros-detail">
-                        <ProsConsGroup label="장점" value={supplier.strengths} />
-                        <ProsConsGroup label="단점" value={supplier.weaknesses} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <div className="side-split">
-              <section className="panel compact-panel">
-                <h3>검토 메모 <small>(내부용)</small></h3>
-                <div className="compact-panel-body">
-                  <textarea
-                    className={isMemoEditing ? "" : "memo-readonly"}
-                    onChange={(event) =>
-                      setDraftMemo(event.target.value.slice(0, maxMemoLength))
-                    }
-                    placeholder="검토 메모를 입력하세요...&#10;(내부 공유용입니다.)"
-                    readOnly={!isMemoEditing}
-                    value={memoValue}
-                  />
-                  <div className="counter">
-                    {memoValue.length} / {maxMemoLength.toLocaleString()}
-                  </div>
-                </div>
-                <div className="memo-actions">
-                  <button className="button" onClick={startMemoEdit} type="button">
-                    수정하기
-                  </button>
-                  <button
-                    className="button action-primary"
-                    disabled={!isMemoEditing}
-                    onClick={saveMemo}
-                    type="button"
-                  >
-                    저장하기
-                  </button>
                 </div>
               </section>
             </div>
 
-            <section className="panel final-panel">
-              <h3>최종 선정 <small>(담당자 선택)</small></h3>
-              <div className="choice-grid">
-                {selectableSuppliers.map((supplier) => (
-                  <label
-                    className={`choice-card ${selectedSupplierId === supplier.id ? "selected" : ""}`}
-                    key={supplier.id}
-                  >
-                    <input
-                      checked={selectedSupplierId === supplier.id}
-                      onChange={() => setSelectedSupplierId(supplier.id)}
-                      type="radio"
-                    />
-                    <b>{supplier.name}</b>
-                    {supplier.recommended && (
-                      <div>
-                        <Badge>추천</Badge>
-                        <Badge>AI 추천</Badge>
+            <aside className="side-column">
+              <section className="panel ai-panel">
+                <h2>✦ AI 근거 요약</h2>
+                {explanationIsFallback && (
+                  <div className="fallback-notice">
+                    AI 설명 생성이 일시적으로 실패해 기본 규칙 기반 요약을
+                    표시합니다.
+                  </div>
+                )}
+                <p>{overallSummary}</p>
+                <button
+                  className="side-title side-title-button"
+                  onClick={() => setProsOpen((open) => !open)}
+                  type="button"
+                >
+                  <span>공급사 장단점</span>
+                  <b>{prosOpen ? "⌃" : "›"}</b>
+                </button>
+                {prosOpen && (
+                  <div className="pros-list">
+                    {supplierExplanations.map((supplier) => (
+                      <div
+                        className="pros-item"
+                        key={supplier.quoteId ?? supplier.vendorName}
+                      >
+                        <div className="pros-brand">
+                          <span
+                            className={`supplier-logo ${supplier.logoClass}`}
+                          >
+                            {supplier.logo}
+                          </span>
+                          <b>{supplier.vendorName}</b>
+                        </div>
+                        <div className="pros-detail">
+                          <ProsConsGroup
+                            label="장점"
+                            value={supplier.strengths}
+                          />
+                          <ProsConsGroup
+                            label="단점"
+                            value={supplier.weaknesses}
+                          />
+                        </div>
                       </div>
-                    )}
-                  </label>
-                ))}
-              </div>
-              <div className="notice">
-                <b>유의 사항</b>
-                <span>
-                  본 비교는 AI가 추출한 정보 기반입니다. 최종 선정 전 모든 항목을 반드시 확인하고,
-                  필요 시 공급사에 추가 확인하시기 바랍니다.
-                </span>
-              </div>
-            </section>
+                    ))}
+                  </div>
+                )}
+              </section>
 
-          </aside>
-        </div>
+              <div className="side-split">
+                <section className="panel compact-panel">
+                  <h3>
+                    검토 메모 <small>(내부용)</small>
+                  </h3>
+                  <div className="compact-panel-body">
+                    <textarea
+                      className={isMemoEditing ? "" : "memo-readonly"}
+                      onChange={(event) =>
+                        setDraftMemo(event.target.value.slice(0, maxMemoLength))
+                      }
+                      placeholder="검토 메모를 입력하세요...&#10;(내부 공유용입니다.)"
+                      readOnly={!isMemoEditing}
+                      value={memoValue}
+                    />
+                    <div className="counter">
+                      {memoValue.length} / {maxMemoLength.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="memo-actions">
+                    <button
+                      className="button"
+                      onClick={startMemoEdit}
+                      type="button"
+                    >
+                      수정하기
+                    </button>
+                    <button
+                      className="button action-primary"
+                      disabled={!isMemoEditing}
+                      onClick={saveMemo}
+                      type="button"
+                    >
+                      저장하기
+                    </button>
+                  </div>
+                </section>
+              </div>
+
+              <section className="panel final-panel">
+                <h3>
+                  최종 선정 <small>(담당자 선택)</small>
+                </h3>
+                <div className="choice-grid">
+                  {selectableSuppliers.map((supplier) => (
+                    <label
+                      className={`choice-card ${selectedSupplierId === supplier.id ? "selected" : ""}`}
+                      key={supplier.id}
+                    >
+                      <input
+                        checked={selectedSupplierId === supplier.id}
+                        onChange={() => setSelectedSupplierId(supplier.id)}
+                        type="radio"
+                      />
+                      <b>{supplier.name}</b>
+                      {supplier.recommended && (
+                        <div>
+                          <Badge>추천</Badge>
+                          <Badge>AI 추천</Badge>
+                        </div>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                <div className="notice">
+                  <b>유의 사항</b>
+                  <span>
+                    본 비교는 AI가 추출한 정보 기반입니다. 최종 선정 전 모든
+                    항목을 반드시 확인하고, 필요 시 공급사에 추가 확인하시기
+                    바랍니다.
+                  </span>
+                </div>
+              </section>
+            </aside>
+          </div>
         )}
       </main>
 
       {compareState === "ready" && (
-      <footer className="bottom-actions">
-        <button
-          className="button action-secondary"
-          disabled
-          title="검토 메모 저장은 우측 메모 영역에서만 가능합니다."
-          type="button"
-        >
-          ▣ 임시 저장
-        </button>
-        <button
-          className="button action-secondary"
-          disabled={!canExportReport}
-          onClick={handleExportToExcel}
-          title={
-            canExportReport
-              ? "AI 근거 요약을 고객 보고서(엑셀)로 내보냅니다"
-              : "AI 근거 요약을 불러온 후 내보낼 수 있습니다"
-          }
-          type="button"
-        >
-          고객 보고서로 내보내기
-        </button>
-        <button
-          className={selectionFinalized ? "button selection-complete-button" : "button action-primary"}
-          disabled={selectionFinalized || !selectedSupplier}
-          onClick={() => setConfirmOpen(true)}
-          type="button"
-        >
-          {selectionFinalized ? "선정 완료" : "◎ 최종 선정 확정"}
-        </button>
-      </footer>
+        <footer className="bottom-actions">
+          <button
+            className="button action-secondary"
+            disabled
+            title="검토 메모 저장은 우측 메모 영역에서만 가능합니다."
+            type="button"
+          >
+            ▣ 임시 저장
+          </button>
+          <button
+            className="button action-secondary"
+            disabled={!canExportReport}
+            onClick={handleExportToExcel}
+            title={
+              canExportReport
+                ? "AI 근거 요약을 고객 보고서(엑셀)로 내보냅니다"
+                : "AI 근거 요약을 불러온 후 내보낼 수 있습니다"
+            }
+            type="button"
+          >
+            고객 보고서로 내보내기
+          </button>
+          <button
+            className={
+              selectionFinalized
+                ? "button selection-complete-button"
+                : "button action-primary"
+            }
+            disabled={selectionFinalized || !selectedSupplier}
+            onClick={() => setConfirmOpen(true)}
+            type="button"
+          >
+            {selectionFinalized ? "선정 완료" : "◎ 최종 선정 확정"}
+          </button>
+        </footer>
       )}
       {confirmOpen && (
         <div className="confirm-layer" role="presentation">
-          <div className="confirm-dialog" role="dialog" aria-modal="true" aria-label="최종 선정 확인">
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="최종 선정 확인"
+          >
             <h2>최종 선정 업체 확정</h2>
             <p>{selectedSupplier?.name}를 최종 선정 업체로 확정하시겠습니까?</p>
             <div className="confirm-actions">
-              <button className="button" onClick={() => setConfirmOpen(false)} type="button">
+              <button
+                className="button"
+                onClick={() => setConfirmOpen(false)}
+                type="button"
+              >
                 취소
               </button>
-              <button className="button action-primary" onClick={confirmSelection} type="button">
+              <button
+                className="button action-primary"
+                onClick={confirmSelection}
+                type="button"
+              >
                 확정
               </button>
             </div>
@@ -712,7 +861,9 @@ export default function DashboardPage({
           <b>{selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.</b>
           <span>프로젝트 상태가 검토 완료로 변경되었습니다.</span>
           <div>
-            <button className="button" onClick={onGoProjects} type="button">프로젝트 목록으로 이동</button>
+            <button className="button" onClick={onGoProjects} type="button">
+              프로젝트 목록으로 이동
+            </button>
           </div>
         </div>
       )}
@@ -778,7 +929,9 @@ const EXCEL_STYLES = {
 };
 
 function wrapSingleLine(text, maxWidth) {
-  const normalized = String(text ?? "").replace(/\s+/g, " ").trim();
+  const normalized = String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (getCellDisplayWidth(normalized) <= maxWidth) return [normalized];
 
   const lines = [];
@@ -799,7 +952,9 @@ function wrapSingleLine(text, maxWidth) {
 }
 
 function formatWrappedTextForExcel(value, maxWidth = 52) {
-  const text = String(value ?? "-").trim().replace(/\s+/g, " ");
+  const text = String(value ?? "-")
+    .trim()
+    .replace(/\s+/g, " ");
   if (!text || text === "-") return text;
 
   return text
@@ -810,11 +965,16 @@ function formatWrappedTextForExcel(value, maxWidth = 52) {
 }
 
 function formatExplanationListForExcel(value, maxWidth = 36) {
-  const text = String(value ?? "-").trim().replace(/\s+/g, " ");
+  const text = String(value ?? "-")
+    .trim()
+    .replace(/\s+/g, " ");
   if (!text || text === "-") return text;
 
   const parts = text.includes(", ")
-    ? text.split(/,\s+/).map((part) => part.trim()).filter(Boolean)
+    ? text
+        .split(/,\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
     : [text];
 
   return parts.flatMap((part) => wrapSingleLine(part, maxWidth)).join("\n");
@@ -825,7 +985,10 @@ function formatSpecialNotesForExcel(value) {
   if (!text || text === "—" || text === "-") return text;
 
   const parts = text.includes(", ")
-    ? text.split(/,\s+/).map((part) => part.trim()).filter(Boolean)
+    ? text
+        .split(/,\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
     : [text];
 
   return parts.flatMap((part) => wrapSingleLine(part, 44)).join("\n");
@@ -857,8 +1020,13 @@ function formatCompareCellValue(cell, rowLabel) {
 }
 
 function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
-  const header = ["항목(요구사항)", ...suppliers.map((supplier) => supplier.name)];
-  const rows = [["견적 비교표", ...Array(Math.max(header.length - 1, 0)).fill("")]];
+  const header = [
+    "항목(요구사항)",
+    ...suppliers.map((supplier) => supplier.name),
+  ];
+  const rows = [
+    ["견적 비교표", ...Array(Math.max(header.length - 1, 0)).fill("")],
+  ];
   const rowKinds = [EXCEL_ROW_KIND.TITLE];
 
   const appendSpacer = () => {
@@ -869,7 +1037,10 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
   appendSpacer();
 
   comparisonSections.forEach((section) => {
-    rows.push([section.title, ...Array(Math.max(header.length - 1, 0)).fill("")]);
+    rows.push([
+      section.title,
+      ...Array(Math.max(header.length - 1, 0)).fill(""),
+    ]);
     rowKinds.push(EXCEL_ROW_KIND.SECTION);
     rows.push([...header]);
     rowKinds.push(EXCEL_ROW_KIND.HEADER);
@@ -877,7 +1048,9 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
     section.rows.forEach((row) => {
       rows.push([
         row.label,
-        ...suppliers.map((supplier) => formatCompareCellValue(row.cells?.[supplier.id], row.label)),
+        ...suppliers.map((supplier) =>
+          formatCompareCellValue(row.cells?.[supplier.id], row.label),
+        ),
       ]);
       rowKinds.push(EXCEL_ROW_KIND.DATA);
     });
@@ -894,7 +1067,9 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
     totalRows.forEach((row) => {
       rows.push([
         row.label,
-        ...suppliers.map((supplier) => formatCompareCellValue(row.cells?.[supplier.id], row.label)),
+        ...suppliers.map((supplier) =>
+          formatCompareCellValue(row.cells?.[supplier.id], row.label),
+        ),
       ]);
       rowKinds.push(EXCEL_ROW_KIND.DATA);
     });
@@ -906,13 +1081,16 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
 function getCellDisplayWidth(value) {
   const text = String(value ?? "");
   const lines = text.split("\n");
-  return Math.max(...lines.map((line) => {
-    let width = 0;
-    for (const char of line) {
-      width += char.charCodeAt(0) > 255 ? 2 : 1;
-    }
-    return width;
-  }), 0);
+  return Math.max(
+    ...lines.map((line) => {
+      let width = 0;
+      for (const char of line) {
+        width += char.charCodeAt(0) > 255 ? 2 : 1;
+      }
+      return width;
+    }),
+    0,
+  );
 }
 
 function applyWrapRowHeights(worksheet, rows, rowKinds) {
@@ -922,10 +1100,10 @@ function applyWrapRowHeights(worksheet, rows, rowKinds) {
     const kind = rowKinds?.[rowIndex];
     const isSpecialNotesRow = row[0] === "특이사항";
     const shouldAdjust =
-      isSpecialNotesRow
-      || kind === EXCEL_ROW_KIND.SUMMARY
-      || kind === EXCEL_ROW_KIND.DATA
-      || kind === EXCEL_ROW_KIND.EXPLANATION_FIELD;
+      isSpecialNotesRow ||
+      kind === EXCEL_ROW_KIND.SUMMARY ||
+      kind === EXCEL_ROW_KIND.DATA ||
+      kind === EXCEL_ROW_KIND.EXPLANATION_FIELD;
 
     if (!shouldAdjust) return;
 
@@ -934,15 +1112,21 @@ function applyWrapRowHeights(worksheet, rows, rowKinds) {
       return Math.max(max, lineCount);
     }, 1);
 
-    if (maxLineCount <= 1
-      && (kind === EXCEL_ROW_KIND.DATA || kind === EXCEL_ROW_KIND.EXPLANATION_FIELD)
-      && !isSpecialNotesRow) {
+    if (
+      maxLineCount <= 1 &&
+      (kind === EXCEL_ROW_KIND.DATA ||
+        kind === EXCEL_ROW_KIND.EXPLANATION_FIELD) &&
+      !isSpecialNotesRow
+    ) {
       return;
     }
 
     worksheet["!rows"][rowIndex] = {
       hpt: Math.min(
-        Math.max(20 * maxLineCount + 8, kind === EXCEL_ROW_KIND.SUMMARY ? 40 : 28),
+        Math.max(
+          20 * maxLineCount + 8,
+          kind === EXCEL_ROW_KIND.SUMMARY ? 40 : 28,
+        ),
         260,
       ),
     };
@@ -976,10 +1160,10 @@ function applySheetVisualStyles(worksheet, rows, rowKinds) {
     }
 
     if (
-      rowKind === EXCEL_ROW_KIND.SECTION
-      || rowKind === EXCEL_ROW_KIND.TITLE
-      || rowKind === EXCEL_ROW_KIND.SUMMARY
-      || rowKind === EXCEL_ROW_KIND.EXPLANATION_VENDOR
+      rowKind === EXCEL_ROW_KIND.SECTION ||
+      rowKind === EXCEL_ROW_KIND.TITLE ||
+      rowKind === EXCEL_ROW_KIND.SUMMARY ||
+      rowKind === EXCEL_ROW_KIND.EXPLANATION_VENDOR
     ) {
       merges.push({
         s: { r: rowIndex, c: 0 },
@@ -1014,8 +1198,12 @@ function applySheetVisualStyles(worksheet, rows, rowKinds) {
         cell.s = EXCEL_STYLES.summary;
         continue;
       }
-      if (rowKind === EXCEL_ROW_KIND.DATA || rowKind === EXCEL_ROW_KIND.EXPLANATION_FIELD) {
-        cell.s = columnIndex === 0 ? EXCEL_STYLES.dataLabel : EXCEL_STYLES.dataValue;
+      if (
+        rowKind === EXCEL_ROW_KIND.DATA ||
+        rowKind === EXCEL_ROW_KIND.EXPLANATION_FIELD
+      ) {
+        cell.s =
+          columnIndex === 0 ? EXCEL_STYLES.dataLabel : EXCEL_STYLES.dataValue;
       }
     }
   });
@@ -1050,31 +1238,46 @@ function applySheetColumnWidths(worksheet, rows, options = {}) {
       } else if (kind === EXCEL_ROW_KIND.EXPLANATION_FIELD) {
         cellWidth = Math.min(cellWidth, EXCEL_VALUE_COLUMN_MAX);
       }
-      columnWidths[columnIndex] = Math.max(columnWidths[columnIndex] ?? 8, cellWidth);
+      columnWidths[columnIndex] = Math.max(
+        columnWidths[columnIndex] ?? 8,
+        cellWidth,
+      );
     });
   });
 
   const maxColumnIndex = Math.max(columnWidths.length - 1, 0);
 
   if (maxColumnIndex >= 1) {
-    const supplierWidths = Array.from({ length: maxColumnIndex }, (_, index) => (
-      columnWidths[index + 1] ?? 14
-    ));
+    const supplierWidths = Array.from(
+      { length: maxColumnIndex },
+      (_, index) => columnWidths[index + 1] ?? 14,
+    );
     const uniformWidth = Math.min(
       EXCEL_VALUE_COLUMN_MAX,
-      Math.max(16, Math.round(supplierWidths.reduce((sum, width) => sum + width, 0) / supplierWidths.length)),
+      Math.max(
+        16,
+        Math.round(
+          supplierWidths.reduce((sum, width) => sum + width, 0) /
+            supplierWidths.length,
+        ),
+      ),
     );
     for (let index = 1; index <= maxColumnIndex; index += 1) {
       columnWidths[index] = uniformWidth;
     }
   }
 
-  worksheet["!cols"] = Array.from({ length: maxColumnIndex + 1 }, (_, index) => {
-    const width = columnWidths[index] ?? 10;
-    const max = columnMaxWidths?.[index] ?? (index === 0 ? EXCEL_LABEL_COLUMN_MAX : EXCEL_VALUE_COLUMN_MAX);
-    const min = index === 0 ? 12 : 14;
-    return { wch: Math.min(Math.max(width, min), max) };
-  });
+  worksheet["!cols"] = Array.from(
+    { length: maxColumnIndex + 1 },
+    (_, index) => {
+      const width = columnWidths[index] ?? 10;
+      const max =
+        columnMaxWidths?.[index] ??
+        (index === 0 ? EXCEL_LABEL_COLUMN_MAX : EXCEL_VALUE_COLUMN_MAX);
+      const min = index === 0 ? 12 : 14;
+      return { wch: Math.min(Math.max(width, min), max) };
+    },
+  );
 }
 
 function buildExplanationSheetRows(overallSummary, supplierExplanations) {
@@ -1113,20 +1316,18 @@ function buildExplanationSheetRows(overallSummary, supplierExplanations) {
     },
     {
       label: "확인 필요",
-      getValue: (item) => formatExplanationListForExcel(
-        Array.isArray(item.checkRequired) && item.checkRequired.length > 0
-          ? item.checkRequired.join(", ")
-          : "-",
-        44,
-      ),
+      getValue: (item) =>
+        formatExplanationListForExcel(
+          Array.isArray(item.checkRequired) && item.checkRequired.length > 0
+            ? item.checkRequired.join(", ")
+            : "-",
+          44,
+        ),
     },
   ];
 
   fieldDefs.forEach(({ label, getValue }) => {
-    rows.push([
-      label,
-      ...supplierExplanations.map((item) => getValue(item)),
-    ]);
+    rows.push([label, ...supplierExplanations.map((item) => getValue(item))]);
     rowKinds.push(EXCEL_ROW_KIND.EXPLANATION_FIELD);
   });
 
@@ -1174,9 +1375,19 @@ function exportToExcel({
 }) {
   const workbook = XLSX.utils.book_new();
 
-  const explanationSection = buildExplanationSheetRows(overallSummary, supplierExplanations);
-  const compareSection = buildCompareSheetRows(suppliers, comparisonSections, totalRows);
-  const { rows, rowKinds } = mergeSheetSections(explanationSection, compareSection);
+  const explanationSection = buildExplanationSheetRows(
+    overallSummary,
+    supplierExplanations,
+  );
+  const compareSection = buildCompareSheetRows(
+    suppliers,
+    comparisonSections,
+    totalRows,
+  );
+  const { rows, rowKinds } = mergeSheetSections(
+    explanationSection,
+    compareSection,
+  );
 
   const reportSheet = XLSX.utils.aoa_to_sheet(rows);
   applySheetVisualStyles(reportSheet, rows, rowKinds);
@@ -1184,7 +1395,10 @@ function exportToExcel({
   applyWrapRowHeights(reportSheet, rows, rowKinds);
   XLSX.utils.book_append_sheet(workbook, reportSheet, "고객 보고서");
 
-  const safeName = String(projectName || "프로젝트").replace(/[\\/:*?"<>|]/g, "_");
+  const safeName = String(projectName || "프로젝트").replace(
+    /[\\/:*?"<>|]/g,
+    "_",
+  );
   XLSX.writeFile(workbook, `${safeName}_고객보고서.xlsx`);
 }
 
@@ -1268,10 +1482,18 @@ function CompareErrorState({ message, onGoProjects, onRetry }) {
           <h2>견적 비교 데이터를 불러오지 못했습니다</h2>
           <p>{message}</p>
           <div className="state-actions">
-            <button className="button action-primary" onClick={onRetry} type="button">
+            <button
+              className="button action-primary"
+              onClick={onRetry}
+              type="button"
+            >
               다시 시도
             </button>
-            <button className="button action-secondary" onClick={onGoProjects} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onGoProjects}
+              type="button"
+            >
               프로젝트 목록으로 이동
             </button>
           </div>
@@ -1279,7 +1501,10 @@ function CompareErrorState({ message, onGoProjects, onRetry }) {
       </div>
       <div className="error-guide">
         <b>확인할 항목</b>
-        <span>API 응답 형식, 프로젝트 ID, 업로드된 견적서 상태, 네트워크 연결을 확인해주세요.</span>
+        <span>
+          API 응답 형식, 프로젝트 ID, 업로드된 견적서 상태, 네트워크 연결을
+          확인해주세요.
+        </span>
       </div>
     </section>
   );

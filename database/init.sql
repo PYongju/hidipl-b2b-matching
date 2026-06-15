@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS quote_pools (
     failed_files_json           JSON           NULL,
     created_at                  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (quote_pool_id),
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+    CONSTRAINT `quote_pools_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `projects` (`project_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_quote_pools_project_id ON quote_pools(project_id);
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS candidate_vendors (
     executed_at                 DATETIME       NULL,
     created_at                  DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (candidate_vendor_id),
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+    CONSTRAINT `candidate_vendors_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `projects` (`project_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX IF NOT EXISTS idx_candidate_vendors_project_id ON candidate_vendors(project_id);
