@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import { fetchCandidateVendors } from "../api/apiClient";
+import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const MATCHING_STEPS = [
   {
@@ -190,7 +191,7 @@ export default function PartnerMatchingLoadingPage({
             </article>
             <article>
               <span>카테고리</span>
-              <strong>{projectData.category || "디스플레이"}</strong>
+              <strong>{formatProjectSolutions(projectData, "미선택")}</strong>
             </article>
             <article>
               <span>예산</span>

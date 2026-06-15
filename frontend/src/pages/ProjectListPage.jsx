@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import { formatNumberInput } from "../utils/formatters";
+import SolutionTagPicker from "../components/SolutionTagPicker";
+import { normalizeProjectSolutions } from "../utils/projectRequestText";
 
 const filterOptions = ["전체", "진행 중", "검토 중", "완료"];
 
@@ -367,21 +369,13 @@ export default function ProjectListPage({
                     <option>리테일/상업공간</option>
                   </select>
                 </label>
-                <label>
+                <div className="quick-create-solution-field">
                   <span>솔루션</span>
-                  <select
-                    onChange={(event) =>
-                      updateDraft("category", event.target.value)
-                    }
-                    value={draft.category}
-                  >
-                    <option>디스플레이</option>
-                    <option>사이니지</option>
-                    <option>키오스크</option>
-                    <option>화상회의/회의실</option>
-                    <option>기타</option>
-                  </select>
-                </label>
+                  <SolutionTagPicker
+                    onChange={(solutions) => updateDraft("solutions", solutions)}
+                    value={normalizeProjectSolutions(draft)}
+                  />
+                </div>
                 <label>
                   <span>예산 범위</span>
                   <input
@@ -461,7 +455,7 @@ function getEmptyDraft() {
     usage: "",
     currentStage: "요구사항",
     clientType: "기업",
-    category: "디스플레이",
+    solutions: [],
     budgetAmount: "",
     reviewPreset: "균형 추천",
   };

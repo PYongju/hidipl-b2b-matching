@@ -326,6 +326,7 @@ const initialProjectData = {
   budgetAmount: "",
   operationTime: "24/7",
   reviewPreset: "균형 추천",
+  solutions: [],
   quoteFiles: [],
 };
 
