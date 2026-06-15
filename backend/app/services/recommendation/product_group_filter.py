@@ -8,6 +8,8 @@ from services.quote_ingestion.schemas import QuoteIngestionResult
 from services.requirement.schemas import RequirementInfo
 
 
+UNCATEGORIZED_PRODUCT_GROUP = "미분류"
+
 PRODUCT_GROUP_SYNONYMS = {
     "LED전광판": {
         "LED전광판",
@@ -248,6 +250,41 @@ def filter_quotes_by_product_group_scope(
     return included, excluded, metadata
 
 
+def canonicalize_product_group(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text == UNCATEGORIZED_PRODUCT_GROUP:
+        return UNCATEGORIZED_PRODUCT_GROUP
+    return _canonical_product_group(text, include_generic_display=True) or text
+
+
+def group_quotes_by_product_group(
+    quote_documents: list[QuoteIngestionResult],
+) -> dict[str, list[QuoteIngestionResult]]:
+    split_parent_quote_ids = _split_parent_quote_ids(quote_documents)
+    groups: dict[str, list[QuoteIngestionResult]] = {}
+
+    for quote_result in quote_documents:
+        quote_id = quote_result.quote_id or quote_result.quote.quote_id
+        if quote_id in split_parent_quote_ids and not _is_split_child(quote_result):
+            continue
+
+        quote_groups = resolve_quote_product_groups(quote_result)
+        if not quote_groups:
+            quote_groups = {UNCATEGORIZED_PRODUCT_GROUP}
+
+        for product_group in sorted(quote_groups, key=_group_sort_key):
+            groups.setdefault(product_group, []).append(quote_result)
+
+    return {
+        product_group: groups[product_group]
+        for product_group in sorted(groups, key=_group_sort_key)
+    }
+
+
 def _quote_product_group_map(
     quote_documents: list[QuoteIngestionResult],
 ) -> dict[str, set[str]]:
@@ -256,6 +293,40 @@ def _quote_product_group_map(
         quote_id = quote_result.quote_id or quote_result.quote.quote_id
         result[quote_id] = resolve_quote_product_groups(quote_result)
     return result
+
+
+def _split_parent_quote_ids(quote_documents: list[QuoteIngestionResult]) -> set[str]:
+    parent_quote_ids: set[str] = set()
+    for quote_result in quote_documents:
+        metadata = getattr(quote_result, "metadata", {}) or {}
+        parent_quote_id = metadata.get("parent_quote_id")
+        if parent_quote_id:
+            parent_quote_ids.add(str(parent_quote_id))
+            continue
+        raw_matches = getattr(quote_result, "parser_raw_matches", {}) or {}
+        split_meta = raw_matches.get("multi_option_split") or {}
+        parent_quote_id = split_meta.get("parent_quote_id")
+        if parent_quote_id:
+            parent_quote_ids.add(str(parent_quote_id))
+    return parent_quote_ids
+
+
+def _is_split_child(quote_result: QuoteIngestionResult) -> bool:
+    metadata = getattr(quote_result, "metadata", {}) or {}
+    if metadata.get("split_from_multi_option") or metadata.get("parent_quote_id"):
+        return True
+    raw_matches = getattr(quote_result, "parser_raw_matches", {}) or {}
+    split_meta = raw_matches.get("multi_option_split") or {}
+    return bool(split_meta.get("parent_quote_id") or split_meta.get("option_label"))
+
+
+def _group_sort_key(product_group: str) -> tuple[int, str]:
+    if product_group == UNCATEGORIZED_PRODUCT_GROUP:
+        return (len(PRODUCT_GROUP_ORDER) + 1, product_group)
+    try:
+        return (PRODUCT_GROUP_ORDER.index(product_group), product_group)
+    except ValueError:
+        return (len(PRODUCT_GROUP_ORDER), product_group)
 
 
 def _build_excluded_candidate(

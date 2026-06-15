@@ -261,9 +261,9 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
 
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
-async def get_matches(project_id: str):
+async def get_matches(project_id: str, product_group: str | None = None):
     try:
-        result = demo_routers.get_matches(project_id)
+        result = demo_routers.get_matches(project_id, product_group=product_group)
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -283,7 +283,11 @@ async def get_explanation(project_id: str, match_id: str):
 # 프론트는 status -> 라벨 매핑만 담당한다.
 # rows 배열은 rank 순 고정
 @router.post("/projects/{project_id}/compare")
-async def compare_quotes(project_id: str, body: CompareRequest):
+async def compare_quotes(
+    project_id: str,
+    body: CompareRequest,
+    product_group: str | None = None,
+):
     try:
         result = demo_routers.compare_quotes(
             project_id,
@@ -291,6 +295,7 @@ async def compare_quotes(project_id: str, body: CompareRequest):
                 quote_ids=body.quote_ids,
                 top_n=body.top_n,
             ),
+            product_group=product_group,
         )
         return {"ok": True, "data": result, "error": None}
     except KeyError as e:
