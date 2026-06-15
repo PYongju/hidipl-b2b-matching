@@ -2,12 +2,19 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from enum import Enum
 import re
+from types import SimpleNamespace
 from typing import Any
 
 from services.api_demo.enums import CellStatus
 from services.parser.schemas import LineItemCategory
 from services.parser.rule_note_extractor import clean_special_notes
 from services.explanation.explanation_text_policy import split_comparison_risks
+from services.recommendation.product_group_filter import (
+    UNCATEGORIZED_PRODUCT_GROUP,
+    canonicalize_product_group,
+    group_quotes_by_product_group,
+    resolve_quote_product_groups,
+)
 
 
 def build_project_response(project_record) -> dict[str, Any]:
@@ -175,6 +182,23 @@ def build_filtered_vendor_item(candidate) -> dict[str, Any]:
 
 
 def build_recommendation_response(recommendation_result) -> dict[str, Any]:
+    if isinstance(recommendation_result, dict):
+        return strip_heavy_fields(
+            {
+                "top_n": recommendation_result.get("top_n"),
+                "items": [
+                    build_recommendation_item(item)
+                    for item in recommendation_result.get("items", []) or []
+                ],
+                "all_items": [
+                    build_recommendation_item(item)
+                    for item in recommendation_result.get("all_items", []) or []
+                ],
+                "failed_candidates": recommendation_result.get("failed_candidates", []) or [],
+                "filtered_candidates": recommendation_result.get("filtered_candidates", []) or [],
+                "metadata": recommendation_result.get("metadata", {}) or {},
+            }
+        )
     return {
         "top_n": recommendation_result.top_n,
         "items": [
@@ -192,6 +216,43 @@ def build_recommendation_response(recommendation_result) -> dict[str, Any]:
 
 
 def build_recommendation_item(item) -> dict[str, Any]:
+    if isinstance(item, dict):
+        return strip_heavy_fields(
+            {
+                "rank": item.get("rank"),
+                "quote_id": item.get("quote_id"),
+                "vendor_name": item.get("vendor_name"),
+                "project_name": item.get("project_name"),
+                "partner_name": item.get("partner_name"),
+                "final_score": item.get("final_score"),
+                "spec_score": item.get("spec_score"),
+                "price_score": item.get("price_score"),
+                "delivery_score": item.get("delivery_score"),
+                "warranty_score": item.get("warranty_score"),
+                "installation_score": item.get("installation_score"),
+                "cosine_similarity": item.get("cosine_similarity"),
+                "total_supply_price": item.get("total_supply_price"),
+                "total_with_vat": item.get("total_with_vat"),
+                "delivery_weeks": item.get("delivery_weeks"),
+                "delivery_basis_raw": item.get("delivery_basis_raw"),
+                "warranty_months": item.get("warranty_months"),
+                "installation_included": bool(
+                    (item.get("installation_score") or 0) >= 80
+                ),
+                "check_required": item.get("check_required", []) or [],
+                "comparison_risks": item.get("comparison_risks", []) or [],
+                "rule_warnings": item.get("rule_warnings", []) or [],
+                "matched_rules": item.get("matched_rules", []) or [],
+                "partner_found": item.get("partner_found"),
+                "business_rule_passed": item.get("business_rule_passed"),
+                "business_stage": item.get("business_stage"),
+                "filter_reasons": item.get("filter_reasons", []) or [],
+                "vendor_snapshot_source": item.get("vendor_snapshot_source"),
+                "vendor_snapshot": item.get("vendor_snapshot_summary")
+                or item.get("vendor_snapshot"),
+                "score_breakdown": item.get("score_breakdown", {}) or {},
+            }
+        )
     return {
         "rank": item.rank,
         "quote_id": item.quote_id,
@@ -298,6 +359,139 @@ def build_compare_response(
     }
 
 
+def build_grouped_compare_response(
+    project_id: str,
+    quote_results: list[Any],
+    recommendation_result,
+    *,
+    grouped_explanations: dict[str, Any] | None = None,
+    product_group: str | None = None,
+    quote_ids: list[str] | None = None,
+    top_n: int | None = None,
+    project_install_location: str | None = None,
+) -> dict[str, Any]:
+    quote_groups = group_quotes_by_product_group(quote_results)
+    selected_product_group = canonicalize_product_group(product_group)
+    if selected_product_group:
+        quote_groups = {
+            key: value
+            for key, value in quote_groups.items()
+            if canonicalize_product_group(key) == selected_product_group
+        }
+
+    score_items = list(getattr(recommendation_result, "all_items", []) or [])
+    top_items = list(getattr(recommendation_result, "items", []) or [])
+    score_map = {item.quote_id: item for item in score_items}
+    top_item_map = {item.quote_id: item for item in top_items}
+    stored_group_results = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get("product_group_results", {})
+        if recommendation_result
+        else {}
+    )
+    stored_group_explanations = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get("product_group_explanations", {})
+        if recommendation_result
+        else {}
+    )
+
+    flat_rows: list[dict[str, Any]] = []
+    groups: list[dict[str, Any]] = []
+    product_group_counts: dict[str, int] = {}
+    for group_name, group_quote_results in quote_groups.items():
+        group_quote_ids = {
+            result.quote_id or result.quote.quote_id
+            for result in group_quote_results
+        }
+        group_score_items = [
+            item
+            for item in score_items
+            if item.quote_id in group_quote_ids
+        ]
+        group_top_items = [
+            item
+            for item in top_items
+            if item.quote_id in group_quote_ids
+        ]
+        if not group_top_items:
+            group_top_items = [
+                item
+                for item in top_items
+                if item.quote_id in group_quote_ids
+            ]
+
+        group_recommendation = _recommendation_view(
+            recommendation_result,
+            group_score_items,
+            group_top_items,
+            product_group=group_name,
+            top_n=top_n,
+        )
+        group_response = build_compare_response(
+            project_id=project_id,
+            quote_results=group_quote_results,
+            recommendation_result=group_recommendation,
+            quote_ids=quote_ids,
+            top_n=top_n,
+            project_install_location=project_install_location,
+        )
+        rows = group_response["rows"]
+        flat_rows.extend(rows)
+        product_group_counts[group_name] = len(group_quote_results)
+        groups.append(
+            {
+                "product_group": group_name,
+                "quote_count": len(group_quote_results),
+                "row_count": len(rows),
+                "top_n": top_n,
+                "rows": rows,
+                "recommendation": stored_group_results.get(group_name)
+                or build_recommendation_response(group_recommendation),
+                "explanation": (
+                    (grouped_explanations or {}).get(group_name)
+                    or stored_group_explanations.get(group_name)
+                ),
+            }
+        )
+
+    _apply_compare_highlights(flat_rows)
+
+    return {
+        "project_id": project_id,
+        "rows": flat_rows,
+        "groups": groups,
+        "metadata": {
+            "grouped_by_product_group": len(groups) > 1,
+            "product_group_counts": product_group_counts,
+            "row_count": len(flat_rows),
+            "group_count": len(groups),
+            "quote_ids": quote_ids or [],
+            "top_n": top_n,
+            "selected_product_group": selected_product_group,
+        },
+    }
+
+
+def _recommendation_view(
+    recommendation_result,
+    all_items: list[Any],
+    items: list[Any],
+    *,
+    product_group: str,
+    top_n: int | None,
+):
+    metadata = dict(getattr(recommendation_result, "metadata", {}) or {})
+    metadata["product_group"] = product_group
+    metadata["grouped_compare_view"] = True
+    return SimpleNamespace(
+        top_n=top_n or getattr(recommendation_result, "top_n", None) or 3,
+        items=items,
+        all_items=all_items,
+        failed_candidates=[],
+        filtered_candidates=[],
+        metadata=metadata,
+    )
+
+
 def build_vendor_snapshot_summary(vendor_snapshot) -> dict[str, Any] | None:
     if vendor_snapshot is None:
         return None
@@ -352,10 +546,17 @@ def _build_compare_row(
         result,
         project_install_location=project_install_location,
     )
+    product_groups = resolve_quote_product_groups(result)
+    product_group = (
+        sorted(product_groups)[0]
+        if product_groups
+        else UNCATEGORIZED_PRODUCT_GROUP
+    )
 
     row = {
         "quote_id": result.quote_id,
         "vendor_name": quote.vendor_name,
+        "product_group": product_group,
         "candidate_vendor_link": (getattr(result, "metadata", {}) or {}).get(
             "candidate_vendor_link"
         ),
