@@ -79,6 +79,9 @@ class ApiDemoPersistence(ABC):
     ) -> None:
         raise NotImplementedError
 
+    def load_project_scalar_snapshot(self, project_id: str) -> dict[str, Any] | None:
+        return None
+
     @abstractmethod
     def save_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         raise NotImplementedError
@@ -176,6 +179,20 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
             or data.get("requirement_source")
         )
 
+    def load_project_scalar_snapshot(self, project_id: str) -> dict[str, Any] | None:
+        data = self.projects.get(project_id)
+        if not data:
+            return None
+        return {
+            "project_id": data.get("project_id"),
+            "company_name": data.get("company_name"),
+            "location": data.get("location"),
+            "deadline": data.get("deadline"),
+            "request_text": data.get("request_text"),
+            "internal_notes": data.get("internal_notes"),
+            "requirement_result": deepcopy(data.get("requirement_result")),
+        }
+
     def save_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         self.candidate_vendors[record.candidate_vendor_id] = deepcopy(
             serialize_candidate_vendor_record(record)
@@ -264,7 +281,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 "location": record.location,
                 "deadline": record.deadline,
                 "request_text": record.request_text,
-                "requirement_result_json": _json_dumps(data.get("requirement_result")),
+                "requirement_result_json": _json_dumps_or_none(
+                    data.get("requirement_result")
+                ),
                 "created_at": _to_db_datetime(record.created_at),
             },
             "save_project_record",
@@ -292,6 +311,53 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
         if row is None:
             return None
         return self._row_to_project_record(row)
+
+    def load_project_scalar_snapshot(self, project_id: str) -> dict[str, Any] | None:
+        if not self.enabled:
+            return None
+        row = self._fetch_one(
+            """
+            SELECT
+                project_id,
+                company_name,
+                location,
+                deadline,
+                request_text,
+                internal_notes,
+                requirement_result_json
+            FROM projects
+            WHERE project_id = :project_id
+            """,
+            {"project_id": project_id},
+            "load_project_scalar_snapshot",
+        )
+        if row is None:
+            row = self._fetch_one(
+                """
+                SELECT
+                    project_id,
+                    company_name,
+                    location,
+                    deadline,
+                    request_text,
+                    requirement_result_json
+                FROM projects
+                WHERE project_id = :project_id
+                """,
+                {"project_id": project_id},
+                "load_project_scalar_snapshot_without_internal_notes",
+            )
+        if row is None:
+            return None
+        return {
+            "project_id": row.project_id,
+            "company_name": row.company_name,
+            "location": row.location,
+            "deadline": row.deadline,
+            "request_text": row.request_text,
+            "internal_notes": getattr(row, "internal_notes", None),
+            "requirement_result": _json_loads(row.requirement_result_json),
+        }
 
     def save_quote_pool_record(self, record: QuotePoolRecord) -> None:
         if not self.enabled:

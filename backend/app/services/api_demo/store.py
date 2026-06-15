@@ -105,7 +105,10 @@ class ApiDemoStore:
         requirement_source: str | None = None,
     ) -> ProjectRecord:
         project_id = f"project_{uuid4().hex[:8]}"
-        request_id = requirement_result.request_id or f"request_{uuid4().hex[:8]}"
+        request_id = (
+            getattr(requirement_result, "request_id", None)
+            or f"request_{uuid4().hex[:8]}"
+        )
         record = ProjectRecord(
             project_id=project_id,
             request_id=request_id,
@@ -119,6 +122,7 @@ class ApiDemoStore:
             requirement_source=requirement_source,
         )
         self.projects[project_id] = record
+        self._sync_lazy_hydration_marker(record)
         if self.persistence is not None:
             self.persistence.save_project_record(record)
         return record
@@ -213,6 +217,11 @@ class ApiDemoStore:
             self.projects[record.project_id] = record
             self._sync_lazy_hydration_marker(record)
         return record
+
+    def load_project_scalar_snapshot(self, project_id: str) -> dict[str, Any] | None:
+        if self.persistence is None:
+            return None
+        return self.persistence.load_project_scalar_snapshot(project_id)
 
     def get_quote_pool(self, project_id: str) -> QuotePoolRecord | None:
         quote_pool_id = self.project_quote_pool_index.get(project_id)
