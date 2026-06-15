@@ -179,6 +179,8 @@ def get_matches(project_id: str) -> dict[str, Any]:
         raise KeyError("match 결과가 없습니다.")
 
     return {
+        "project_id": project_id,
+        "match_id": match.match_id,
         "project": {
             "project_id": project.project_id,
             "company_name": project.company_name,
