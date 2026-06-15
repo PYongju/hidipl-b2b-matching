@@ -16,6 +16,7 @@ import {
   fetchProject,
   fetchProjects, // 6/12 백엔드 작업에서 추가
   runProjectMatch,
+  updateProject,
   uploadProjectQuotes,
 } from "./api/apiClient";
 import { initialProjectData, makeProjectFromData } from "./data/mockProjects";
@@ -147,12 +148,26 @@ export default function App() {
     setScreen("wizard");
   };
 
-  const createDraftProject = (draftData, shouldContinue = false) => {
-    const projectId = `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+  const createDraftProject = async (draftData, shouldContinue = false) => {
+    let projectApiId = null;
+    try {
+      const created = await createProject({
+        company_name: draftData.companyName || "미입력",
+        location: draftData.location || null,
+        deadline: draftData.projectDate || null,
+        request_text: draftData.usage || "",
+      });
+      projectApiId = created.project_id;
+    } catch (error) {
+      console.error("프로젝트 생성 실패:", error);
+    }
+
+    const projectId = projectApiId || `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
     const nextData = {
       ...initialProjectData,
       ...draftData,
       projectId,
+      projectApiId,
       currentStage: draftData.currentStage || "요구사항",
       workflowStatus: "진행 중",
       lastScreen: "requirements",
@@ -512,6 +527,14 @@ export default function App() {
               workflowStatus: "진행 중",
             })
           }
+          onAutoSave={async (data) => {
+            if (!projectData.projectApiId) return;
+            try {
+              await updateProject(projectData.projectApiId, data);
+            } catch (error) {
+              console.error("자동저장 실패:", error);
+            }
+          }}
         />
         <PartnerMatchingLoadingModal
           errorMessage={partnerMatchingError}
