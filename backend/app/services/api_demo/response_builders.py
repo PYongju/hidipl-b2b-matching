@@ -2,12 +2,19 @@ from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from enum import Enum
 import re
+from types import SimpleNamespace
 from typing import Any
 
 from services.api_demo.enums import CellStatus
 from services.parser.schemas import LineItemCategory
 from services.parser.rule_note_extractor import clean_special_notes
 from services.explanation.explanation_text_policy import split_comparison_risks
+from services.recommendation.product_group_filter import (
+    UNCATEGORIZED_PRODUCT_GROUP,
+    canonicalize_product_group,
+    group_quotes_by_product_group,
+    resolve_quote_product_groups,
+)
 
 
 def build_project_response(project_record) -> dict[str, Any]:
@@ -18,7 +25,9 @@ def build_project_response(project_record) -> dict[str, Any]:
         "request_id": project_record.request_id,
         "customer_name": requirement.customer_name,
         "request_summary": requirement.request_summary,
-        "products": [safe_dataclass_to_dict(product) for product in requirement.products],
+        "products": [
+            safe_dataclass_to_dict(product) for product in requirement.products
+        ],
         "region": requirement.region,
         "install_schedule_text": requirement.install_schedule_text,
         "embedding_dim": result.embedding_dim,
@@ -65,15 +74,23 @@ def build_quote_summary(result) -> dict[str, Any]:
     return summary
 
 
-def build_candidate_vendors_response(project_id: str, candidate_vendor_record) -> dict[str, Any]:
+def build_candidate_vendors_response(
+    project_id: str, candidate_vendor_record
+) -> dict[str, Any]:
     result = candidate_vendor_record.candidate_vendor_result
-    requirement = getattr(candidate_vendor_record.requirement_result, "requirement", None)
+    requirement = getattr(
+        candidate_vendor_record.requirement_result, "requirement", None
+    )
     all_candidates = list(getattr(result, "all_candidates", []) or [])
     selected_candidates = [
-        candidate for candidate in all_candidates if getattr(candidate, "business_rule_passed", False)
+        candidate
+        for candidate in all_candidates
+        if getattr(candidate, "business_rule_passed", False)
     ]
     filtered_candidates = [
-        candidate for candidate in all_candidates if not getattr(candidate, "business_rule_passed", False)
+        candidate
+        for candidate in all_candidates
+        if not getattr(candidate, "business_rule_passed", False)
     ]
     metadata = dict(getattr(result, "metadata", {}) or {})
     metadata.update(
@@ -96,8 +113,12 @@ def build_candidate_vendors_response(project_id: str, candidate_vendor_record) -
             or getattr(requirement, "customer_name", None),
             "top_n": candidate_vendor_record.top_n,
             "similarity_threshold": candidate_vendor_record.similarity_threshold,
-            "selected_vendor_names": list(candidate_vendor_record.selected_vendor_names),
-            "requested_vendor_names": list(candidate_vendor_record.requested_vendor_names),
+            "selected_vendor_names": list(
+                candidate_vendor_record.selected_vendor_names
+            ),
+            "requested_vendor_names": list(
+                candidate_vendor_record.requested_vendor_names
+            ),
             "candidate_vendors": [
                 build_candidate_vendor_item(candidate, rank=index + 1)
                 for index, candidate in enumerate(all_candidates)
@@ -138,19 +159,25 @@ def build_candidate_vendor_item(candidate, *, rank: int) -> dict[str, Any]:
         "vendor_name": candidate.partner_name,
         "specialty_tags": list(candidate.specialty_tags),
         "semantic_similarity_score": candidate.semantic_similarity_score,
-        "semantic_score_calibrated": getattr(candidate, "semantic_score_calibrated", None),
+        "semantic_score_calibrated": getattr(
+            candidate, "semantic_score_calibrated", None
+        ),
         "cosine_similarity": candidate.cosine_similarity,
         "final_score": getattr(candidate, "final_score", None),
-        "score_breakdown": strip_heavy_fields(getattr(candidate, "score_breakdown", {}) or {}),
+        "score_breakdown": strip_heavy_fields(
+            getattr(candidate, "score_breakdown", {}) or {}
+        ),
         "is_premium": candidate.is_premium,
         "success_rate": candidate.success_rate,
         "response_speed": candidate.response_speed,
         "financial_status": candidate.financial_status,
         "company_location": getattr(candidate, "company_location", None)
         or metadata.get("company_location"),
-        "installation_count": getattr(candidate, "installation_count", None)
-        if getattr(candidate, "installation_count", None) is not None
-        else metadata.get("installation_count"),
+        "installation_count": (
+            getattr(candidate, "installation_count", None)
+            if getattr(candidate, "installation_count", None) is not None
+            else metadata.get("installation_count")
+        ),
         "business_rule_passed": candidate.business_rule_passed,
         "business_stage": candidate.business_stage,
         "filter_reasons": list(candidate.filter_reasons),
@@ -168,22 +195,43 @@ def build_filtered_vendor_item(candidate) -> dict[str, Any]:
         "filter_reasons": list(candidate.filter_reasons),
         "company_location": getattr(candidate, "company_location", None)
         or metadata.get("company_location"),
-        "installation_count": getattr(candidate, "installation_count", None)
-        if getattr(candidate, "installation_count", None) is not None
-        else metadata.get("installation_count"),
+        "installation_count": (
+            getattr(candidate, "installation_count", None)
+            if getattr(candidate, "installation_count", None) is not None
+            else metadata.get("installation_count")
+        ),
     }
 
 
 def build_recommendation_response(recommendation_result) -> dict[str, Any]:
+    if isinstance(recommendation_result, dict):
+        return strip_heavy_fields(
+            {
+                "top_n": recommendation_result.get("top_n"),
+                "items": [
+                    build_recommendation_item(item)
+                    for item in recommendation_result.get("items", []) or []
+                ],
+                "all_items": [
+                    build_recommendation_item(item)
+                    for item in recommendation_result.get("all_items", []) or []
+                ],
+                "failed_candidates": recommendation_result.get("failed_candidates", [])
+                or [],
+                "filtered_candidates": recommendation_result.get(
+                    "filtered_candidates", []
+                )
+                or [],
+                "metadata": recommendation_result.get("metadata", {}) or {},
+            }
+        )
     return {
         "top_n": recommendation_result.top_n,
         "items": [
-            build_recommendation_item(item)
-            for item in recommendation_result.items
+            build_recommendation_item(item) for item in recommendation_result.items
         ],
         "all_items": [
-            build_recommendation_item(item)
-            for item in recommendation_result.all_items
+            build_recommendation_item(item) for item in recommendation_result.all_items
         ],
         "failed_candidates": recommendation_result.failed_candidates,
         "filtered_candidates": recommendation_result.filtered_candidates,
@@ -192,6 +240,43 @@ def build_recommendation_response(recommendation_result) -> dict[str, Any]:
 
 
 def build_recommendation_item(item) -> dict[str, Any]:
+    if isinstance(item, dict):
+        return strip_heavy_fields(
+            {
+                "rank": item.get("rank"),
+                "quote_id": item.get("quote_id"),
+                "vendor_name": item.get("vendor_name"),
+                "project_name": item.get("project_name"),
+                "partner_name": item.get("partner_name"),
+                "final_score": item.get("final_score"),
+                "spec_score": item.get("spec_score"),
+                "price_score": item.get("price_score"),
+                "delivery_score": item.get("delivery_score"),
+                "warranty_score": item.get("warranty_score"),
+                "installation_score": item.get("installation_score"),
+                "cosine_similarity": item.get("cosine_similarity"),
+                "total_supply_price": item.get("total_supply_price"),
+                "total_with_vat": item.get("total_with_vat"),
+                "delivery_weeks": item.get("delivery_weeks"),
+                "delivery_basis_raw": item.get("delivery_basis_raw"),
+                "warranty_months": item.get("warranty_months"),
+                "installation_included": bool(
+                    (item.get("installation_score") or 0) >= 80
+                ),
+                "check_required": item.get("check_required", []) or [],
+                "comparison_risks": item.get("comparison_risks", []) or [],
+                "rule_warnings": item.get("rule_warnings", []) or [],
+                "matched_rules": item.get("matched_rules", []) or [],
+                "partner_found": item.get("partner_found"),
+                "business_rule_passed": item.get("business_rule_passed"),
+                "business_stage": item.get("business_stage"),
+                "filter_reasons": item.get("filter_reasons", []) or [],
+                "vendor_snapshot_source": item.get("vendor_snapshot_source"),
+                "vendor_snapshot": item.get("vendor_snapshot_summary")
+                or item.get("vendor_snapshot"),
+                "score_breakdown": item.get("score_breakdown", {}) or {},
+            }
+        )
     return {
         "rank": item.rank,
         "quote_id": item.quote_id,
@@ -244,15 +329,9 @@ def build_compare_response(
     selected_ids = set(quote_ids or [])
 
     if not selected_ids and top_n and recommendation_result:
-        selected_ids = {
-            item.quote_id
-            for item in recommendation_result.items[:top_n]
-        }
+        selected_ids = {item.quote_id for item in recommendation_result.items[:top_n]}
     elif not selected_ids and recommendation_result:
-        selected_ids = {
-            item.quote_id
-            for item in recommendation_result.all_items
-        }
+        selected_ids = {item.quote_id for item in recommendation_result.all_items}
 
     rows = []
     for result in quote_results:
@@ -272,7 +351,9 @@ def build_compare_response(
     _apply_compare_highlights(rows)
 
     product_group_filter = (
-        (getattr(recommendation_result, "metadata", {}) or {}).get("product_group_filter")
+        (getattr(recommendation_result, "metadata", {}) or {}).get(
+            "product_group_filter"
+        )
         if recommendation_result
         else None
     )
@@ -296,6 +377,136 @@ def build_compare_response(
             "excluded_candidates": product_group_excluded_candidates,
         },
     }
+
+
+def build_grouped_compare_response(
+    project_id: str,
+    quote_results: list[Any],
+    recommendation_result,
+    *,
+    grouped_explanations: dict[str, Any] | None = None,
+    product_group: str | None = None,
+    quote_ids: list[str] | None = None,
+    top_n: int | None = None,
+    project_install_location: str | None = None,
+) -> dict[str, Any]:
+    quote_groups = group_quotes_by_product_group(quote_results)
+    selected_product_group = canonicalize_product_group(product_group)
+    if selected_product_group:
+        quote_groups = {
+            key: value
+            for key, value in quote_groups.items()
+            if canonicalize_product_group(key) == selected_product_group
+        }
+
+    score_items = list(getattr(recommendation_result, "all_items", []) or [])
+    top_items = list(getattr(recommendation_result, "items", []) or [])
+    score_map = {item.quote_id: item for item in score_items}
+    top_item_map = {item.quote_id: item for item in top_items}
+    stored_group_results = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get(
+            "product_group_results", {}
+        )
+        if recommendation_result
+        else {}
+    )
+    stored_group_explanations = (
+        (getattr(recommendation_result, "metadata", {}) or {}).get(
+            "product_group_explanations", {}
+        )
+        if recommendation_result
+        else {}
+    )
+
+    flat_rows: list[dict[str, Any]] = []
+    groups: list[dict[str, Any]] = []
+    product_group_counts: dict[str, int] = {}
+    for group_name, group_quote_results in quote_groups.items():
+        group_quote_ids = {
+            result.quote_id or result.quote.quote_id for result in group_quote_results
+        }
+        group_score_items = [
+            item for item in score_items if item.quote_id in group_quote_ids
+        ]
+        group_top_items = [
+            item for item in top_items if item.quote_id in group_quote_ids
+        ]
+        if not group_top_items:
+            group_top_items = [
+                item for item in top_items if item.quote_id in group_quote_ids
+            ]
+
+        group_recommendation = _recommendation_view(
+            recommendation_result,
+            group_score_items,
+            group_top_items,
+            product_group=group_name,
+            top_n=top_n,
+        )
+        group_response = build_compare_response(
+            project_id=project_id,
+            quote_results=group_quote_results,
+            recommendation_result=group_recommendation,
+            quote_ids=quote_ids,
+            top_n=top_n,
+            project_install_location=project_install_location,
+        )
+        rows = group_response["rows"]
+        flat_rows.extend(rows)
+        product_group_counts[group_name] = len(group_quote_results)
+        groups.append(
+            {
+                "product_group": group_name,
+                "quote_count": len(group_quote_results),
+                "row_count": len(rows),
+                "top_n": top_n,
+                "rows": rows,
+                "recommendation": stored_group_results.get(group_name)
+                or build_recommendation_response(group_recommendation),
+                "explanation": (
+                    (grouped_explanations or {}).get(group_name)
+                    or stored_group_explanations.get(group_name)
+                ),
+            }
+        )
+
+    _apply_compare_highlights(flat_rows)
+
+    return {
+        "project_id": project_id,
+        "rows": flat_rows,
+        "groups": groups,
+        "metadata": {
+            "grouped_by_product_group": len(groups) > 1,
+            "product_group_counts": product_group_counts,
+            "row_count": len(flat_rows),
+            "group_count": len(groups),
+            "quote_ids": quote_ids or [],
+            "top_n": top_n,
+            "selected_product_group": selected_product_group,
+        },
+    }
+
+
+def _recommendation_view(
+    recommendation_result,
+    all_items: list[Any],
+    items: list[Any],
+    *,
+    product_group: str,
+    top_n: int | None,
+):
+    metadata = dict(getattr(recommendation_result, "metadata", {}) or {})
+    metadata["product_group"] = product_group
+    metadata["grouped_compare_view"] = True
+    return SimpleNamespace(
+        top_n=top_n or getattr(recommendation_result, "top_n", None) or 3,
+        items=items,
+        all_items=all_items,
+        failed_candidates=[],
+        filtered_candidates=[],
+        metadata=metadata,
+    )
 
 
 def build_vendor_snapshot_summary(vendor_snapshot) -> dict[str, Any] | None:
@@ -352,10 +563,15 @@ def _build_compare_row(
         result,
         project_install_location=project_install_location,
     )
+    product_groups = resolve_quote_product_groups(result)
+    product_group = (
+        sorted(product_groups)[0] if product_groups else UNCATEGORIZED_PRODUCT_GROUP
+    )
 
     row = {
         "quote_id": result.quote_id,
         "vendor_name": quote.vendor_name,
+        "product_group": product_group,
         "candidate_vendor_link": (getattr(result, "metadata", {}) or {}).get(
             "candidate_vendor_link"
         ),
@@ -496,7 +712,10 @@ def _sanitize_hardware_section(
     if screen and (screen[0] < 1000 or screen[1] < 500):
         hardware["screen_size_mm"] = None
     if not evidence.get("screen_size_mm") and not evidence.get("full_screen_size_mm"):
-        if any(spec_parsed.get(key) == hardware.get("screen_size_mm") for key in ["panel_size_mm", "cabinet_size_mm", "module_size_mm"]):
+        if any(
+            spec_parsed.get(key) == hardware.get("screen_size_mm")
+            for key in ["panel_size_mm", "cabinet_size_mm", "module_size_mm"]
+        ):
             hardware["screen_size_mm"] = None
 
     resolution = _dimension_pair(hardware.get("resolution"))
@@ -506,17 +725,30 @@ def _sanitize_hardware_section(
         or resolution[1] < 480
     ):
         hardware["resolution"] = None
-    if any(spec_parsed.get(key) == hardware.get("resolution") for key in ["cabinet_resolution", "module_resolution", "panel_size_mm"]):
+    if any(
+        spec_parsed.get(key) == hardware.get("resolution")
+        for key in ["cabinet_resolution", "module_resolution", "panel_size_mm"]
+    ):
         hardware["resolution"] = None
 
     pitch = _as_float(hardware.get("pixel_pitch"))
-    hardware["pixel_pitch"] = pitch if pitch is not None and 0.5 <= pitch <= 20 else None
+    hardware["pixel_pitch"] = (
+        pitch if pitch is not None and 0.5 <= pitch <= 20 else None
+    )
     brightness = _as_float(hardware.get("brightness_cd_m2"))
-    hardware["brightness_cd_m2"] = int(brightness) if brightness is not None and 100 <= brightness <= 5000 else None
+    hardware["brightness_cd_m2"] = (
+        int(brightness)
+        if brightness is not None and 100 <= brightness <= 5000
+        else None
+    )
     refresh = _as_float(str(hardware.get("refresh_rate") or "").replace("Hz", ""))
-    hardware["refresh_rate"] = int(refresh) if refresh is not None and 30 <= refresh <= 10000 else None
+    hardware["refresh_rate"] = (
+        int(refresh) if refresh is not None and 30 <= refresh <= 10000 else None
+    )
     power = _as_float(hardware.get("power_consumption_kw"))
-    hardware["power_consumption_kw"] = power if power is not None and 0 < power <= 1000 else None
+    hardware["power_consumption_kw"] = (
+        power if power is not None and 0 < power <= 1000 else None
+    )
     return hardware
 
 
@@ -531,9 +763,7 @@ def _clean_spec_preview(value: str | None) -> str | None:
         line = _trim_preview_at_inline_row_marker(line)
         if "|" in line:
             segments = [
-                segment.strip()
-                for segment in line.split("|")
-                if segment.strip()
+                segment.strip() for segment in line.split("|") if segment.strip()
             ]
             kept = []
             for segment in segments:
@@ -546,7 +776,13 @@ def _clean_spec_preview(value: str | None) -> str | None:
         if not line:
             continue
         has_money = bool(re.search(r"(?:₩|￦|\\)\s*\d|(?:\d{1,3},){1,3}\d{3}", line))
-        has_summary = bool(re.search(r"(?:합계|소계|공급가|부가세|부가가치세|총금액|전체\s*합계|VAT)", line, re.IGNORECASE))
+        has_summary = bool(
+            re.search(
+                r"(?:합계|소계|공급가|부가세|부가가치세|총금액|전체\s*합계|VAT)",
+                line,
+                re.IGNORECASE,
+            )
+        )
         if has_money and has_summary:
             continue
         has_spec_hint = _has_spec_keyword(line) or _looks_like_model_preview(line)
@@ -574,7 +810,11 @@ def _find_spec_preview_source(quote, representative_item) -> str | None:
         spec = getattr(item, "spec_parsed", {}) or {}
         category = getattr(item, "category", None)
         normalized = str(spec.get("normalized_cost_type") or "").upper()
-        if category == LineItemCategory.DISPLAY or normalized == "DISPLAY" or _has_spec_keyword(spec_raw):
+        if (
+            category == LineItemCategory.DISPLAY
+            or normalized == "DISPLAY"
+            or _has_spec_keyword(spec_raw)
+        ):
             candidates.append(spec_raw)
     notes_raw = getattr(quote, "notes_raw", "") or ""
     if notes_raw and _has_spec_keyword(notes_raw):
@@ -648,7 +888,9 @@ def _has_spec_keyword(value: str | None) -> bool:
 def _dimension_pair(value: Any) -> tuple[float, float] | None:
     if not value:
         return None
-    match = re.search(r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)", str(value).replace(",", ""))
+    match = re.search(
+        r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)", str(value).replace(",", "")
+    )
     if not match:
         return None
     return float(match.group(1)), float(match.group(2))
@@ -665,27 +907,41 @@ def _select_representative_hardware_item(line_items):
     if not line_items:
         return None
     line_items = [
-        item for item in line_items
+        item
+        for item in line_items
         if not (getattr(item, "spec_parsed", {}) or {}).get("reconciliation_residual")
     ]
     if not line_items:
         return None
     display_items = [
-        item for item in line_items
-        if item.category == LineItemCategory.DISPLAY
+        item for item in line_items if item.category == LineItemCategory.DISPLAY
     ]
     if display_items:
-        filtered = [item for item in display_items if not _is_bad_hardware_candidate(item)]
+        filtered = [
+            item for item in display_items if not _is_bad_hardware_candidate(item)
+        ]
         if filtered:
             return max(filtered, key=_hardware_candidate_score)
         return None
-    hardware_keywords = ["led", "비디오월", "lcd", "display", "did", "모니터", "패널", "전광판"]
+    hardware_keywords = [
+        "led",
+        "비디오월",
+        "lcd",
+        "display",
+        "did",
+        "모니터",
+        "패널",
+        "전광판",
+    ]
     hardware_items = [
-        item for item in line_items
+        item
+        for item in line_items
         if any(keyword in (item.name or "").lower() for keyword in hardware_keywords)
     ]
     if hardware_items:
-        filtered = [item for item in hardware_items if not _is_bad_hardware_candidate(item)]
+        filtered = [
+            item for item in hardware_items if not _is_bad_hardware_candidate(item)
+        ]
         if filtered:
             return max(filtered, key=_hardware_candidate_score)
     return None
@@ -716,7 +972,14 @@ def _hardware_candidate_score(item) -> tuple[int, int, int]:
     spec = getattr(item, "spec_parsed", {}) or {}
     spec_score = sum(
         1
-        for key in ["screen_size_mm", "full_screen_size_mm", "resolution", "pixel_pitch_mm", "brightness_cd_m2", "brightness_nit"]
+        for key in [
+            "screen_size_mm",
+            "full_screen_size_mm",
+            "resolution",
+            "pixel_pitch_mm",
+            "brightness_cd_m2",
+            "brightness_nit",
+        ]
         if spec.get(key)
     )
     amount = getattr(item, "total_price", None) or 0
@@ -737,9 +1000,7 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
         "system_equipment": _empty_cost_bucket(),
         "installation": _empty_cost_bucket(),
         "materials": _empty_cost_bucket(),
-        "travel_expense": _empty_cost_bucket(
-            status=CellStatus.TO_BE_DISCUSSED.value
-        ),
+        "travel_expense": _empty_cost_bucket(status=CellStatus.TO_BE_DISCUSSED.value),
         "etc": _empty_cost_bucket(amount=0),
         "software": _empty_cost_bucket(amount=0),
         "content": _empty_cost_bucket(amount=0),
@@ -752,14 +1013,20 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
         bucket["source_items"].append(
             {
                 "name": item.name,
-                "category": item.category.value if hasattr(item.category, "value") else item.category,
+                "category": (
+                    item.category.value
+                    if hasattr(item.category, "value")
+                    else item.category
+                ),
                 "amount": amount,
             }
         )
         if amount is not None:
             bucket["amount"] = (bucket["amount"] or 0) + amount
 
-    context = " ".join([quote.notes_raw, " ".join(check_required), " ".join(rule_warnings)])
+    context = " ".join(
+        [quote.notes_raw, " ".join(check_required), " ".join(rule_warnings)]
+    )
     for name, bucket in breakdown.items():
         if bucket["amount"] and bucket["amount"] > 0:
             bucket["status"] = CellStatus.INCLUDED.value
@@ -782,7 +1049,9 @@ def _empty_cost_bucket(
 def _cost_bucket_name(item) -> str:
     text = f"{item.name} {item.spec_raw}".lower()
     name_text = (item.name or "").lower()
-    normalized_cost_type = str((item.spec_parsed or {}).get("normalized_cost_type") or "").upper()
+    normalized_cost_type = str(
+        (item.spec_parsed or {}).get("normalized_cost_type") or ""
+    ).upper()
     functional_bucket = _functional_cost_bucket_from_item_name(name_text)
     if functional_bucket:
         return functional_bucket
@@ -800,11 +1069,31 @@ def _cost_bucket_name(item) -> str:
         return "materials"
     if normalized_cost_type == "INSTALL":
         return "installation"
-    if any(keyword in text for keyword in ["출장", "운임", "화물운임", "배송비", "체류", "체류비", "교통", "숙박"]):
+    if any(
+        keyword in text
+        for keyword in [
+            "출장",
+            "운임",
+            "화물운임",
+            "배송비",
+            "체류",
+            "체류비",
+            "교통",
+            "숙박",
+        ]
+    ):
         return "travel_expense"
     if item.category == LineItemCategory.PLAYER or any(
         keyword in text
-        for keyword in ["processor", "controller", "scaler", "player", "송출", "제어기", "프로세서"]
+        for keyword in [
+            "processor",
+            "controller",
+            "scaler",
+            "player",
+            "송출",
+            "제어기",
+            "프로세서",
+        ]
     ):
         return "system_equipment"
     if item.category == LineItemCategory.INSTALL or any(
@@ -812,11 +1101,21 @@ def _cost_bucket_name(item) -> str:
     ):
         return "installation"
     if item.category in {LineItemCategory.CABLE, LineItemCategory.MOUNT} or any(
-        keyword in text for keyword in ["케이블", "브라켓", "잡자재", "마운트", "거치대", "스틸", "보강대"]
+        keyword in text
+        for keyword in [
+            "케이블",
+            "브라켓",
+            "잡자재",
+            "마운트",
+            "거치대",
+            "스틸",
+            "보강대",
+        ]
     ):
         return "materials"
     if item.category == LineItemCategory.SOFTWARE or any(
-        keyword in text for keyword in ["software", "소프트웨어", "license", "라이선스", "cms"]
+        keyword in text
+        for keyword in ["software", "소프트웨어", "license", "라이선스", "cms"]
     ):
         return "software"
     if any(keyword in text for keyword in ["콘텐츠", "content", "디자인", "영상제작"]):
@@ -826,15 +1125,58 @@ def _cost_bucket_name(item) -> str:
 
 def _functional_cost_bucket_from_item_name(name_text: str) -> str | None:
     compact = re.sub(r"\s+", "", name_text)
-    if any(token in compact for token in ["설치", "시공", "장비설치", "비디오월설치", "전광판장비설치", "system설치", "시운전", "인수인계"]):
+    if any(
+        token in compact
+        for token in [
+            "설치",
+            "시공",
+            "장비설치",
+            "비디오월설치",
+            "전광판장비설치",
+            "system설치",
+            "시운전",
+            "인수인계",
+        ]
+    ):
         return "installation"
-    if any(token in compact for token in ["배송비", "화물운임", "운송", "출장", "체류비"]):
+    if any(
+        token in compact for token in ["배송비", "화물운임", "운송", "출장", "체류비"]
+    ):
         return "travel_expense"
-    if any(token in compact for token in ["cms", "소프트웨어", "세팅", "콘텐츠제어", "스케줄", "해상도맞춤"]):
+    if any(
+        token in compact
+        for token in ["cms", "소프트웨어", "세팅", "콘텐츠제어", "스케줄", "해상도맞춤"]
+    ):
         return "software"
-    if any(token in compact for token in ["controller", "컨트롤러", "프로세서", "novastar", "colorlight", "vx400pro", "운영pc", "제어pc", "플레이어pc"]):
+    if any(
+        token in compact
+        for token in [
+            "controller",
+            "컨트롤러",
+            "프로세서",
+            "novastar",
+            "colorlight",
+            "vx400pro",
+            "운영pc",
+            "제어pc",
+            "플레이어pc",
+        ]
+    ):
         return "system_equipment"
-    if any(token in compact for token in ["브라켓", "bracket", "구조물", "wall_basement", "베이스", "잡자재", "케이블", "배관", "배선"]):
+    if any(
+        token in compact
+        for token in [
+            "브라켓",
+            "bracket",
+            "구조물",
+            "wall_basement",
+            "베이스",
+            "잡자재",
+            "케이블",
+            "배관",
+            "배선",
+        ]
+    ):
         return "materials"
     return None
 
@@ -852,7 +1194,16 @@ def _bucket_marked_separate(bucket_name: str, context: str) -> bool:
         return False
     keyword_map = {
         "installation": ["설치", "시공"],
-        "travel_expense": ["출장", "운임", "화물운임", "배송비", "체류", "체류비", "교통", "숙박"],
+        "travel_expense": [
+            "출장",
+            "운임",
+            "화물운임",
+            "배송비",
+            "체류",
+            "체류비",
+            "교통",
+            "숙박",
+        ],
         "software": ["소프트웨어", "라이선스", "cms"],
         "content": ["콘텐츠", "디자인", "영상"],
     }
@@ -874,7 +1225,9 @@ def _build_conditions_section(
     warranty_display = (
         f"{quote.warranty_months}개월" if quote.warranty_months else "미기재"
     )
-    if quote.warranty_months and "출장실비" in " ".join(check_required + [quote.notes_raw]):
+    if quote.warranty_months and "출장실비" in " ".join(
+        check_required + [quote.notes_raw]
+    ):
         warranty_display = f"{warranty_display}, 출장실비 별도"
 
     parser_raw_matches = parser_raw_matches or {}
@@ -976,7 +1329,8 @@ def _build_scores_section(score_item) -> dict[str, Any]:
 
 def _apply_compare_highlights(rows: list[dict[str, Any]]) -> None:
     confirmed_price_rows = [
-        row for row in rows
+        row
+        for row in rows
         if row["total"]["is_confirmed"] and row.get("total_with_vat") is not None
     ]
     if confirmed_price_rows:
@@ -1045,7 +1399,11 @@ def _extract_screen_size(text: str) -> str | None:
 
 
 def _extract_resolution(text: str) -> str | None:
-    for match in re.finditer(r"(?:전체화면\s*해상도|제안해상도|해상도|resolution)[^0-9]{0,80}(\d{3,5})\s*[xX×]\s*(\d{3,5})\s*(?:pixels?|px)?", text, re.IGNORECASE):
+    for match in re.finditer(
+        r"(?:전체화면\s*해상도|제안해상도|해상도|resolution)[^0-9]{0,80}(\d{3,5})\s*[xX×]\s*(\d{3,5})\s*(?:pixels?|px)?",
+        text,
+        re.IGNORECASE,
+    ):
         left = int(match.group(1).replace(",", ""))
         right = int(match.group(2).replace(",", ""))
         if left <= 10000 and right <= 10000:
@@ -1099,7 +1457,11 @@ def build_line_item_summaries(line_items) -> list[dict[str, Any]]:
         summaries.append(
             {
                 "name": item.name,
-                "category": item.category.value if hasattr(item.category, "value") else item.category,
+                "category": (
+                    item.category.value
+                    if hasattr(item.category, "value")
+                    else item.category
+                ),
                 "quantity": item.quantity,
                 "unit": item.unit,
                 "unit_price": item.unit_price,
@@ -1120,18 +1482,14 @@ def _quote_installation_included(item) -> bool:
 def safe_dataclass_to_dict(obj: Any) -> Any:
     if is_dataclass(obj):
         return {
-            key: safe_dataclass_to_dict(value)
-            for key, value in asdict(obj).items()
+            key: safe_dataclass_to_dict(value) for key, value in asdict(obj).items()
         }
     if isinstance(obj, Enum):
         return obj.value
     if isinstance(obj, datetime):
         return obj.isoformat()
     if isinstance(obj, dict):
-        return {
-            key: safe_dataclass_to_dict(value)
-            for key, value in obj.items()
-        }
+        return {key: safe_dataclass_to_dict(value) for key, value in obj.items()}
     if isinstance(obj, list):
         return [safe_dataclass_to_dict(value) for value in obj]
     return obj
