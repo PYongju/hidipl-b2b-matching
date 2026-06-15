@@ -135,6 +135,13 @@ function fetchExplanation(projectId, matchId) {
   );
 }
 
+function updateProject(projectId, data) {
+  return request(`/api/v1/projects/${projectId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 function fetchProjects() {
   return request("/api/v1/projects", {
     method: "GET",
@@ -159,5 +166,6 @@ export {
   fetchProjects, // 6/12 백엔드 작업에서 추가
   request,
   runProjectMatch,
+  updateProject,
   uploadProjectQuotes,
 };
