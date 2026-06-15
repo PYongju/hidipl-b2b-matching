@@ -207,6 +207,11 @@ def get_explanation(project_id: str, match_id: str, provider_type: str | None = 
             match.recommendation_result,
             provider_type,
         )
+        store.update_match_explanation(
+            project_id=project_id,
+            match_id=match_id,
+            explanation_result=match.explanation_result,
+        )
     return {
         "project_id": project_id,
         "match_id": match_id,
