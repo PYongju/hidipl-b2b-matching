@@ -79,6 +79,9 @@ def build_requirement_info_from_project_payload_dict(
         category=category,
         display_size=display_size,
         other_conditions=other_conditions,
+        customer_name=customer_name,
+        region=region,
+        install_schedule_text=install_schedule_text,
     )
     notes = [
         value
@@ -111,6 +114,9 @@ def build_requirement_info_from_project_payload_dict(
         "quantity_text": quantity_text,
         "display_size": display_size,
         "category": category,
+        "requirement_details_missing": not any(
+            [frontend_fields, products, required_keywords]
+        ),
     }
 
     return RequirementInfo(
@@ -138,10 +144,29 @@ def build_requirement_info_from_project_payload_dict(
 
 
 def is_frontend_project_payload(payload: ProjectCreateRequest) -> bool:
-    if normalize_empty(payload.company_name) or normalize_empty(payload.location) or normalize_empty(payload.deadline):
+    if (
+        normalize_empty(payload.company_name)
+        or normalize_empty(payload.location)
+        or normalize_empty(payload.deadline)
+    ):
         return True
     fields = parse_frontend_request_text(payload.request_text)
     return len(fields) >= 2
+
+
+def has_meaningful_request_text(payload: ProjectCreateRequest) -> bool:
+    request_text = getattr(payload, "request_text", None)
+    text = normalize_empty(request_text)
+    if not text:
+        return False
+
+    raw_frontend_fields = parse_frontend_request_text(
+        request_text,
+        normalize=False,
+    )
+    if len(raw_frontend_fields) >= 2:
+        return bool(parse_frontend_request_text(request_text))
+    return True
 
 
 def parse_frontend_request_text(
@@ -282,9 +307,21 @@ def _build_request_summary(
     category: str | None,
     display_size: str | None,
     other_conditions: str | None,
+    customer_name: str | None = None,
+    region: str | None = None,
+    install_schedule_text: str | None = None,
 ) -> str | None:
     parts = [value for value in [usage, category, display_size, other_conditions] if value]
-    return " / ".join(parts) if parts else None
+    if parts:
+        return " / ".join(parts)
+    fallback_parts = [
+        value
+        for value in [customer_name, region, install_schedule_text]
+        if value
+    ]
+    if fallback_parts:
+        return " / ".join(fallback_parts)
+    return "프로젝트 요구사항 미상"
 
 
 def _build_required_keywords(

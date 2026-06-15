@@ -19,6 +19,21 @@ from services.recommendation.product_group_filter import (
 
 def build_project_response(project_record) -> dict[str, Any]:
     result = project_record.requirement_result
+    if result is None:
+        return {
+            "project_id": project_record.project_id,
+            "request_id": project_record.request_id,
+            "customer_name": None,
+            "request_summary": None,
+            "products": [],
+            "region": None,
+            "install_schedule_text": None,
+            "embedding_dim": None,
+            "parser_warnings": [],
+            "ingestion_warnings": [
+                "프로젝트 요구사항이 아직 입력되지 않았습니다."
+            ],
+        }
     requirement = result.requirement
     return {
         "project_id": project_record.project_id,
@@ -143,6 +158,36 @@ def build_candidate_vendors_not_found_response(project_id: str) -> dict[str, Any
             "requested_vendor_names": [],
         },
         "error": "candidate vendors result not found",
+    }
+
+
+def build_candidate_vendors_requirement_required_response(
+    project_id: str,
+    *,
+    top_n: int,
+    similarity_threshold: float,
+) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "data": {
+            "project_id": project_id,
+            "status": "requirement_required",
+            "top_n": top_n,
+            "similarity_threshold": similarity_threshold,
+            "candidate_vendors": [],
+            "selected_vendor_names": [],
+            "requested_vendor_names": [],
+            "filtered_vendors": [],
+            "metadata": {
+                "candidate_vendors_skipped": True,
+                "reason": (
+                    "프로젝트 요구사항 입력 후 candidate-vendors를 실행할 수 있습니다."
+                ),
+                "embedding_executed": False,
+                "partner_matching_executed": False,
+            },
+        },
+        "error": None,
     }
 
 
