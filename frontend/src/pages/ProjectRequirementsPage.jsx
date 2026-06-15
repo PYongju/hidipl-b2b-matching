@@ -3,6 +3,7 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { formatNumberInput } from "../utils/formatters";
+import { buildProjectRequestPayload } from "../utils/projectRequestText";
 
 const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
 
@@ -33,12 +34,7 @@ export default function ProjectRequirementsPage({
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
-      onAutoSave({
-        company_name: projectData.companyName || null,
-        location: projectData.location || null,
-        deadline: projectData.projectDate || null,
-        request_text: projectData.requestText || null,
-      });
+      onAutoSave(buildProjectRequestPayload(projectData));
     }, 1500);
 
     return () => {
@@ -47,10 +43,26 @@ export default function ProjectRequirementsPage({
       }
     };
   }, [
+    onAutoSave,
+    projectData.projectApiId,
     projectData.companyName,
     projectData.location,
     projectData.projectDate,
-    projectData.requestText,
+    projectData.projectName,
+    projectData.usage,
+    projectData.displaySize,
+    projectData.displayUnit,
+    projectData.displayWidth,
+    projectData.displayHeight,
+    projectData.displayInch,
+    projectData.quantity,
+    projectData.operationTime,
+    projectData.category,
+    projectData.budgetAmount,
+    projectData.currentStage,
+    projectData.reviewPreset,
+    projectData.otherConditions,
+    projectData.attachmentMemo,
   ]);
 
   const checks = getMatchingChecks(projectData);
