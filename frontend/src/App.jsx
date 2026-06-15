@@ -14,6 +14,7 @@ import {
   deleteProjects as deleteProjectsApi, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
   fetchProject,
+  fetchProjectMatches,
   fetchProjects, // 6/12 백엔드 작업에서 추가
   runProjectMatch,
   updateProject,
@@ -21,13 +22,94 @@ import {
 } from "./api/apiClient";
 import { initialProjectData, makeProjectFromData } from "./data/mockProjects";
 import { createMatchViewModel } from "./utils/matchAdapter";
+import {
+  buildHydratedProjectFields,
+  shouldHydrateMatchData,
+} from "./utils/projectMatchHydration";
+import {
+  applyParsedRequestTextToProjectData,
+  buildProjectRequestPayload,
+} from "./utils/projectRequestText";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
+const SESSION_SCREEN_KEY = "hidipl_screen";
+const SESSION_PROJECT_KEY = "hidipl_active_project_id";
+const KNOWN_SERVER_STATUSES = new Set([
+  "matched",
+  "created",
+  "partner_matched",
+  "quote_uploaded",
+]);
+const PROJECT_FLOW_SCREENS = new Set([
+  "requirements",
+  "partnerMatching",
+  "quoteWaiting",
+  "quoteReviewLoading",
+  "dashboard",
+  "analysis",
+  "wizard",
+]);
+
+function readSavedSession() {
+  return {
+    screen: localStorage.getItem(SESSION_SCREEN_KEY),
+    projectApiId: localStorage.getItem(SESSION_PROJECT_KEY),
+  };
+}
+
+function shouldRestoreProjectSession(savedScreen, savedProjectApiId) {
+  return Boolean(
+    savedProjectApiId
+    && savedScreen
+    && savedScreen !== "projects"
+    && savedScreen !== "login",
+  );
+}
+
+function persistAppSession(screenName, projectApiId) {
+  localStorage.setItem(SESSION_SCREEN_KEY, screenName);
+  if (projectApiId && PROJECT_FLOW_SCREENS.has(screenName)) {
+    localStorage.setItem(SESSION_PROJECT_KEY, projectApiId);
+    return;
+  }
+  if (screenName === "projects" || screenName === "login") {
+    localStorage.removeItem(SESSION_PROJECT_KEY);
+  }
+}
+
+function resolveProjectListId(data, fallbackId = "") {
+  return data.projectApiId ?? data.projectId ?? fallbackId;
+}
+
+function matchesProjectEntry(project, targetId, data = {}) {
+  const projectApiId = data.projectApiId ?? targetId;
+  const projectId = data.projectId;
+
+  return (
+    project.id === targetId
+    || project.id === projectApiId
+    || project.id === projectId
+    || project.data?.projectApiId === projectApiId
+    || project.data?.projectApiId === targetId
+    || project.data?.projectId === projectId
+  );
+}
 
 function wait(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function normalizeProjectsResponse(list) {
+  if (Array.isArray(list)) return list;
+  if (Array.isArray(list?.projects)) return list.projects;
+  if (Array.isArray(list?.items)) return list.items;
+  return null;
+}
+
+function resolveServerProjectId(item) {
+  return item?.project_id ?? item?.projectId ?? item?.id ?? "";
 }
 
 async function runPartnerMatchingStep(step, setStep, action) {
@@ -43,11 +125,17 @@ async function runPartnerMatchingStep(step, setStep, action) {
 }
 
 export default function App() {
-  // 6/12 수정
+  const savedSession = readSavedSession();
+  const shouldRestoreSession = shouldRestoreProjectSession(
+    savedSession.screen,
+    savedSession.projectApiId,
+  );
+  const [restoring, setRestoring] = useState(shouldRestoreSession);
   const [screen, setScreen] = useState(() => {
-    return localStorage.getItem("hidipl_screen") === "projects"
-      ? "projects"
-      : "login";
+    if (shouldRestoreSession) {
+      return savedSession.screen;
+    }
+    return savedSession.screen === "projects" ? "projects" : "login";
   });
   const [projects, setProjects] = useState([]);
   const [projectData, setProjectData] = useState(initialProjectData); //6/12 추가
@@ -60,6 +148,7 @@ export default function App() {
   const [partnerMatchingStep, setPartnerMatchingStep] =
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
+  const [projectsLoadError, setProjectsLoadError] = useState("");
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
     id,
@@ -82,14 +171,15 @@ export default function App() {
   });
 
   const syncProjectList = (data, overrides = {}) => {
-    const id = editingProjectId || data.projectId;
+    const id = resolveProjectListId(data, editingProjectId);
     if (!id) return;
     const nextProject = buildProjectListItem(data, id, overrides);
     setProjects((current) => {
-      const exists = current.some((project) => project.id === id);
-      return exists
-        ? current.map((project) => (project.id === id ? nextProject : project))
-        : [nextProject, ...current];
+      const exists = current.some((project) => matchesProjectEntry(project, id, data));
+      if (!exists) return [nextProject, ...current];
+      return current.map((project) => (
+        matchesProjectEntry(project, id, data) ? nextProject : project
+      ));
     });
     setActiveProjectId(id);
     setEditingProjectId(id);
@@ -104,44 +194,230 @@ export default function App() {
     });
   };
 
-  // 6/12 기존 goToProjects 교체
+  const hydrateProjectMatchData = async (apiProjectId, baseData) => {
+    try {
+      const matchesResponse = await fetchProjectMatches(apiProjectId);
+      return {
+        ...baseData,
+        ...buildHydratedProjectFields(matchesResponse, baseData),
+        matchHydrationAttempted: true,
+      };
+    } catch (error) {
+      console.error("매칭 결과 조회 실패:", error);
+      return {
+        ...baseData,
+        matchHydrationAttempted: true,
+      };
+    }
+  };
+
   const loadProjects = async () => {
     try {
       const list = await fetchProjects();
-      setProjects(
-        (list ?? []).map((item) =>
-          buildProjectListItem(
+      const items = normalizeProjectsResponse(list);
+
+      if (!items) {
+        console.error("프로젝트 목록 응답 형식 오류:", list);
+        setProjectsLoadError("프로젝트 목록 응답 형식이 올바르지 않습니다.");
+        setProjects([]);
+        return [];
+      }
+
+      const mappedProjects = items
+        .map((item) => {
+          const projectId = resolveServerProjectId(item);
+          if (!projectId) return null;
+
+          const parsedFields = applyParsedRequestTextToProjectData(
+            {},
+            item.request_text,
+          );
+
+          return buildProjectListItem(
             {
-              ...initialProjectData,
-              projectApiId: item.project_id,
-              companyName: item.company_name,
-              location: item.location,
-              projectDate: item.deadline,
-              requestText: item.request_text,
+              projectApiId: projectId,
+              companyName: item.company_name ?? item.companyName ?? "",
+              location: item.location ?? "",
+              projectDate: item.deadline ?? item.projectDate ?? "",
+              requestText: item.request_text ?? item.requestText ?? "",
+              ...parsedFields,
+              category: item.category ?? parsedFields.category ?? "",
               serverStatus: item.status,
               workflowStatus: getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
-            item.project_id,
-          ),
-        ),
+            projectId,
+          );
+        })
+        .filter(Boolean);
+
+      setProjectsLoadError("");
+      setProjects((current) =>
+        mappedProjects.map((mapped) => {
+          const existing = current.find((p) => p.id === mapped.id);
+          if (existing?.status === "완료") {
+            return {
+              ...mapped,
+              status: "완료",
+              statusTone: getProjectStatusTone("완료"),
+              desc: existing.desc,
+              data: {
+                ...mapped.data,
+                workflowStatus: "완료",
+                currentStage: existing.data?.currentStage ?? "검토 완료",
+              },
+            };
+          }
+          return mapped;
+        }),
       );
+      return mappedProjects;
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
+      setProjectsLoadError(
+        error.message
+        || "프로젝트 목록을 불러오지 못했습니다. 백엔드(http://localhost:8000)가 실행 중인지 확인해주세요.",
+      );
+      setProjects([]);
+      return [];
     }
+  };
+
+  const upsertProjectInList = (
+    data,
+    id = resolveProjectListId(data),
+    overrides = {},
+  ) => {
+    if (!id) return;
+    const nextProject = buildProjectListItem(data, id, overrides);
+    setProjects((current) => {
+      const exists = current.some((project) => matchesProjectEntry(project, id, data));
+      if (!exists) return [nextProject, ...current];
+      return current.map((project) => (
+        matchesProjectEntry(project, id, data) ? nextProject : project
+      ));
+    });
+    setActiveProjectId(id);
+    setEditingProjectId(id);
+  };
+
+  const restoreProjectSession = async (savedProjectApiId, savedScreen) => {
+    const loadedProjects = await loadProjects();
+    const cachedProject = loadedProjects.find(
+      (project) =>
+        project.id === savedProjectApiId
+        || project.data?.projectApiId === savedProjectApiId,
+    );
+    const localProjectData = {
+      ...initialProjectData,
+      ...(cachedProject?.data ?? {}),
+      projectId: savedProjectApiId,
+      projectApiId: savedProjectApiId,
+      lastScreen: savedScreen,
+    };
+
+    const serverProject = await fetchProject(savedProjectApiId);
+    let restoredProjectData = mergeServerProjectData(localProjectData, serverProject);
+
+    if (shouldHydrateMatchData(restoredProjectData)) {
+      restoredProjectData = await hydrateProjectMatchData(
+        savedProjectApiId,
+        restoredProjectData,
+      );
+    }
+
+    const nextScreen = resolveRestoredScreen(restoredProjectData, savedScreen);
+    upsertProjectInList(restoredProjectData, savedProjectApiId);
+    setProjectData(restoredProjectData);
+    setScreen(nextScreen);
+    persistAppSession(nextScreen, savedProjectApiId);
+    return nextScreen;
   };
 
   const goToProjects = async () => {
     await loadProjects();
     setScreen("projects");
-    localStorage.setItem("hidipl_screen", "projects");
+    persistAppSession("projects");
+  };
+
+  const goHome = async () => {
+    await loadProjects();
+    setScreen("projects");
+    persistAppSession("projects");
   };
 
   useEffect(() => {
-    if (localStorage.getItem("hidipl_screen") === "projects") {
-      loadProjects();
-    }
+    let ignore = false;
+
+    (async () => {
+      if (shouldRestoreSession) {
+        try {
+          await restoreProjectSession(
+            savedSession.projectApiId,
+            savedSession.screen,
+          );
+        } catch (error) {
+          console.error("세션 복원 실패:", error);
+          if (!ignore) {
+            await loadProjects();
+            setScreen("projects");
+            persistAppSession("projects");
+          }
+        } finally {
+          if (!ignore) {
+            setRestoring(false);
+          }
+        }
+        return;
+      }
+
+      if (savedSession.screen === "projects" || screen === "projects") {
+        await loadProjects();
+      }
+      if (!ignore) {
+        setRestoring(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (restoring) return;
+    persistAppSession(screen, projectData.projectApiId);
+  }, [restoring, screen, projectData.projectApiId]);
+
+  useEffect(() => {
+    let ignore = false;
+    const apiProjectId = projectData.projectApiId;
+
+    if (screen !== "dashboard" || !apiProjectId) return undefined;
+    if (!shouldHydrateMatchData(projectData) || projectData.matchHydrationAttempted) {
+      return undefined;
+    }
+
+    hydrateProjectMatchData(apiProjectId, projectData).then((nextData) => {
+      if (!ignore) {
+        setProjectData(nextData);
+        syncProjectList(nextData);
+      }
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    screen,
+    projectData.projectApiId,
+    projectData.matchId,
+    projectData.quoteIds,
+    projectData.cachedExplanation,
+    projectData.matchHydrationAttempted,
+    projectData.serverStatus,
+    projectData.lastScreen,
+  ]);
   const startNewProject = () => {
     setEditingProjectId("");
     setProjectData({ ...initialProjectData });
@@ -172,13 +448,12 @@ export default function App() {
       workflowStatus: "진행 중",
       lastScreen: "requirements",
     };
-    const nextProject = buildProjectListItem(nextData, projectId, {
+
+    upsertProjectInList(nextData, projectApiId || projectId, {
       status: "진행 중",
       statusTone: "blue",
       desc: shouldContinue ? "요구사항 작성 중" : "요구사항 정리 중",
     });
-
-    setProjects((current) => [nextProject, ...current]);
     setProjectData(nextData);
     setActiveProjectId(projectId);
     setEditingProjectId(projectId);
@@ -230,9 +505,14 @@ export default function App() {
             localProjectData,
             serverProject,
           );
-          setProjectData(restoredProjectData);
-          syncProjectList(restoredProjectData);
-          setScreen(getScreenFromProject(restoredProjectData));
+          const nextProjectData = shouldHydrateMatchData(restoredProjectData)
+            ? await hydrateProjectMatchData(apiProjectId, restoredProjectData)
+            : restoredProjectData;
+          const nextScreen = getScreenFromProject(nextProjectData);
+          setProjectData(nextProjectData);
+          upsertProjectInList(nextProjectData, apiProjectId);
+          setScreen(nextScreen);
+          persistAppSession(nextScreen, apiProjectId);
           return;
         } catch (error) {
           setAnalysisErrorMessage(
@@ -289,28 +569,7 @@ export default function App() {
     setScreen("partnerMatching");
   };
 
-  const buildProjectRequest = (data) => {
-    const displaySizeText = data.displaySize || "";
-
-    return {
-      company_name: data.companyName || "미입력",
-      location: data.location || null,
-      deadline: data.projectDate || null,
-      request_text: [
-        `프로젝트명: ${data.projectName || "미입력"}`,
-        `활용 용도: ${data.usage || "미입력"}`,
-        `디스플레이 크기: ${displaySizeText || "미입력"}`,
-        `수량: ${data.quantity || "미입력"}`,
-        `운영 시간: ${data.operationTime || "미입력"}`,
-        `카테고리: ${data.category || "미입력"}`,
-        `예산 상한: ${data.budgetAmount || "미입력"}`,
-        `현재 단계: ${data.currentStage || "미입력"}`,
-        `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
-        `추가 요청사항: ${data.otherConditions || "없음"}`,
-        `첨부 메모: ${data.attachmentMemo || "없음"}`,
-      ].join("\n"),
-    };
-  };
+  const buildProjectRequest = (data) => buildProjectRequestPayload(data);
 
   const unwrapCandidateVendors = (response) =>
     response?.candidate_vendors ?? response?.candidates ?? [];
@@ -438,9 +697,13 @@ export default function App() {
     }
   };
 
-  const goHome = () => {
-    setScreen("projects");
-  };
+  if (restoring) {
+    return (
+      <div aria-busy="true" aria-live="polite" className="app-shell app-restoring">
+        <p>프로젝트를 불러오는 중입니다...</p>
+      </div>
+    );
+  }
 
   if (screen === "login") {
     return <LoginPage onLogin={goToProjects} />;
@@ -450,12 +713,14 @@ export default function App() {
   if (screen === "projects") {
     return (
       <ProjectListPage
+        loadError={projectsLoadError}
         projects={projects}
         onCreate={startNewProject}
         onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
         onOpenDashboard={openProjectFromList}
+        onReloadProjects={loadProjects}
       />
     );
   }
@@ -629,6 +894,23 @@ export default function App() {
   );
 }
 
+function resolveRestoredScreen(projectData, savedScreen) {
+  const serverStatus = projectData.serverStatus ?? projectData.status;
+
+  if (serverStatus === "created") {
+    return "requirements";
+  }
+
+  if (serverStatus && KNOWN_SERVER_STATUSES.has(serverStatus)) {
+    return getScreenFromProject(projectData);
+  }
+
+  return getScreenFromProject({
+    ...projectData,
+    lastScreen: savedScreen ?? projectData.lastScreen,
+  });
+}
+
 function getProjectStatusTone(status) {
   if (status === "완료") return "green";
   if (status === "검토 중") return "orange";
@@ -642,19 +924,29 @@ function mergeServerProjectData(localData, serverProject) {
     serverStatus,
     localData.lastScreen,
   );
-  const workflowStatus = getWorkflowStatusFromServerStatus(
-    serverStatus,
-    localData.workflowStatus,
+  const workflowStatus =
+    localData.workflowStatus === "완료"
+      ? "완료"
+      : getWorkflowStatusFromServerStatus(serverStatus, localData.workflowStatus);
+  const requestText = serverProject?.request_text ?? localData.requestText;
+  const parsedFields = applyParsedRequestTextToProjectData(
+    localData,
+    serverProject?.request_text,
   );
 
   return {
     ...localData,
+    ...parsedFields,
     projectApiId: serverProject?.project_id ?? localData.projectApiId,
     serverStatus,
     companyName: serverProject?.company_name ?? localData.companyName,
     location: serverProject?.location ?? localData.location,
     projectDate: serverProject?.deadline ?? localData.projectDate,
-    requestText: serverProject?.request_text ?? localData.requestText,
+    requestText,
+    category:
+      serverProject?.category
+      ?? parsedFields.category
+      ?? localData.category,
     createdAt: serverProject?.created_at ?? localData.createdAt,
     currentStage: getCurrentStageFromServerStatus(
       serverStatus,
@@ -684,7 +976,7 @@ function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
 function getScreenFromServerStatus(status, fallback = "requirements") {
   if (status === "matched") return "dashboard";
   if (status === "quote_uploaded") return "quoteReviewLoading";
-  if (status === "partner_matched") return "quoteWaiting";
+  if (status === "partner_matched") return fallback;
   if (status === "created") return "requirements";
   return fallback;
 }

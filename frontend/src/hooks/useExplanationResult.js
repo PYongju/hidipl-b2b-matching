@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchExplanation } from "../api/apiClient";
 import { createExplanationViewModel } from "../utils/explanationAdapter";
+import { isAwaitingMatchHydration } from "../utils/projectMatchHydration";
 
 const EMPTY_EXPLANATION_VIEW_MODEL = {
   isFallback: false,
@@ -22,13 +23,15 @@ function useExplanationResult(projectData, suppliers) {
   const forcedState = projectData.explanationState;
   const projectId = getProjectApiId(projectData);
   const matchId = getMatchId(projectData);
-  const apiParamError = useMemo(
-    () =>
-      !forcedState && (!projectId || !matchId)
-        ? new Error("AI 근거 조회에 필요한 project_id 또는 match_id가 없습니다.")
-        : null,
-    [forcedState, matchId, projectId],
-  );
+  const cachedExplanation = projectData.cachedExplanation ?? null;
+  const awaitingHydration = isAwaitingMatchHydration(projectData);
+  const apiParamError = useMemo(() => {
+    if (forcedState || cachedExplanation || awaitingHydration) return null;
+    if (!projectId || !matchId) {
+      return new Error("AI 근거 조회에 필요한 project_id 또는 match_id가 없습니다.");
+    }
+    return null;
+  }, [awaitingHydration, cachedExplanation, forcedState, matchId, projectId]);
   const [apiState, setApiState] = useState({
     error: null,
     rawResponse: null,
@@ -44,7 +47,18 @@ function useExplanationResult(projectData, suppliers) {
       };
     }
 
-    if (apiParamError) {
+    if (cachedExplanation) {
+      setApiState({
+        error: null,
+        rawResponse: cachedExplanation,
+        state: "ready",
+      });
+      return () => {
+        ignore = true;
+      };
+    }
+
+    if (awaitingHydration || apiParamError) {
       return () => {
         ignore = true;
       };
@@ -65,10 +79,21 @@ function useExplanationResult(projectData, suppliers) {
     return () => {
       ignore = true;
     };
-  }, [apiParamError, forcedState, matchId, projectData, projectId]);
+  }, [
+    apiParamError,
+    awaitingHydration,
+    cachedExplanation,
+    forcedState,
+    matchId,
+    projectId,
+  ]);
 
-  const explanationState = forcedState ?? (apiParamError ? "error" : apiState.state);
-  const rawResponse = apiState.rawResponse;
+  const explanationState =
+    forcedState
+    ?? (cachedExplanation ? "ready" : null)
+    ?? (awaitingHydration ? "loading" : null)
+    ?? (apiParamError ? "error" : apiState.state);
+  const rawResponse = cachedExplanation ?? apiState.rawResponse;
   const explanationErrorMessage =
     projectData.explanationErrorMessage ??
     apiParamError?.message ??

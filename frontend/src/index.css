@@ -41,6 +41,13 @@ button {
   background: #f8fafc;
 }
 
+.app-restoring {
+  display: grid;
+  place-items: center;
+  color: #475569;
+  font-size: 15px;
+}
+
 .topbar {
   position: sticky;
   top: 0;
