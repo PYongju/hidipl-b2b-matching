@@ -172,11 +172,14 @@ def main() -> None:
 
     print("\n========== 5. Dashboard 조회 ==========")
     dashboard_response = get_matches(project_id)
+    assert dashboard_response["project_id"] == project_id
+    assert dashboard_response["match_id"] == match_id
     assert dashboard_response["recommendation"]["items"]
     full_result["dashboard"] = dashboard_response
 
     print("\n========== 6. Explanation 조회 ==========")
-    explanation_response = get_explanation(project_id, match_id)
+    explanation_response = get_explanation(project_id, dashboard_response["match_id"])
+    assert explanation_response["match_id"] == dashboard_response["match_id"]
     print("overall_summary:", explanation_response["overall_summary"])
     assert explanation_response["overall_summary"]
     selected_provider = os.getenv("EXPLANATION_PROVIDER")
