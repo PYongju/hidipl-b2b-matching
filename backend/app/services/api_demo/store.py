@@ -70,6 +70,7 @@ class ApiDemoStore:
         self.project_quote_pool_index: dict[str, str] = {}
         self.project_match_index: dict[str, list[str]] = {}
         self.project_candidate_vendor_index: dict[str, str] = {}
+        self.lazy_hydration_project_ids: set[str] = set()
 
     def create_project(
         self,
@@ -189,6 +190,7 @@ class ApiDemoStore:
         record = self.persistence.load_project_record(project_id)
         if record is not None:
             self.projects[record.project_id] = record
+            self._sync_lazy_hydration_marker(record)
         return record
 
     def get_quote_pool(self, project_id: str) -> QuotePoolRecord | None:
@@ -263,6 +265,50 @@ class ApiDemoStore:
             self.candidate_vendors[record.candidate_vendor_id] = record
             self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
         return record
+
+    def restore_project_record(self, record: ProjectRecord) -> None:
+        self.projects[record.project_id] = record
+        self._sync_lazy_hydration_marker(record)
+
+    def restore_quote_pool_record(self, record: QuotePoolRecord) -> None:
+        self.quote_pools[record.quote_pool_id] = record
+        self.project_quote_pool_index[record.project_id] = record.quote_pool_id
+
+    def restore_match_record(self, record: MatchRecord) -> None:
+        self.matches[record.match_id] = record
+        match_ids = self.project_match_index.setdefault(record.project_id, [])
+        if record.match_id not in match_ids:
+            match_ids.append(record.match_id)
+
+    def restore_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
+        self.candidate_vendors[record.candidate_vendor_id] = record
+        self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
+
+    def update_project_requirement_result(
+        self,
+        project_id: str,
+        requirement_result: Any,
+    ) -> None:
+        record = self.projects.get(project_id)
+        if record is not None:
+            record.requirement_result = requirement_result
+            record.request_id = requirement_result.request_id or record.request_id
+            record.requirement_source = (
+                (getattr(requirement_result, "metadata", {}) or {}).get("requirement_source")
+                or record.requirement_source
+            )
+        self.lazy_hydration_project_ids.discard(project_id)
+        if self.persistence is not None:
+            self.persistence.update_project_requirement_result(
+                project_id=project_id,
+                requirement_result=requirement_result,
+            )
+
+    def _sync_lazy_hydration_marker(self, record: ProjectRecord) -> None:
+        if getattr(record, "requirement_result", None) is None:
+            self.lazy_hydration_project_ids.add(record.project_id)
+        else:
+            self.lazy_hydration_project_ids.discard(record.project_id)
 
 
 def _create_default_persistence():

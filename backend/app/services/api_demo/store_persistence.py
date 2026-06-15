@@ -71,6 +71,14 @@ class ApiDemoPersistence(ABC):
     ) -> None:
         raise NotImplementedError
 
+    def update_project_requirement_result(
+        self,
+        *,
+        project_id: str,
+        requirement_result: Any,
+    ) -> None:
+        raise NotImplementedError
+
     @abstractmethod
     def save_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         raise NotImplementedError
@@ -78,6 +86,22 @@ class ApiDemoPersistence(ABC):
     @abstractmethod
     def load_candidate_vendor_record(self, project_id: str) -> CandidateVendorRecord | None:
         raise NotImplementedError
+
+    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+        return []
+
+    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+        return []
+
+    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+        return []
+
+    def load_recent_candidate_vendor_records(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[CandidateVendorRecord]:
+        return []
 
 
 class FakeJsonApiDemoPersistence(ApiDemoPersistence):
@@ -136,6 +160,22 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
             return
         data["explanation_result"] = deepcopy(sanitize_for_db_storage(explanation_result))
 
+    def update_project_requirement_result(
+        self,
+        *,
+        project_id: str,
+        requirement_result: Any,
+    ) -> None:
+        data = self.projects.get(project_id)
+        if not data:
+            return
+        data["requirement_result"] = deepcopy(sanitize_for_db_storage(requirement_result))
+        data["request_id"] = data["requirement_result"].get("request_id") or data.get("request_id")
+        data["requirement_source"] = (
+            (data["requirement_result"].get("metadata") or {}).get("requirement_source")
+            or data.get("requirement_source")
+        )
+
     def save_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         self.candidate_vendors[record.candidate_vendor_id] = deepcopy(
             serialize_candidate_vendor_record(record)
@@ -146,6 +186,34 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
         candidate_vendor_id = self.project_candidate_vendor_index.get(project_id)
         data = self.candidate_vendors.get(candidate_vendor_id or "")
         return deserialize_candidate_vendor_record(deepcopy(data)) if data else None
+
+    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+        values = list(self.projects.values())
+        if limit is not None:
+            values = values[-limit:]
+        return [deserialize_project_record(deepcopy(data)) for data in values]
+
+    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+        values = list(self.quote_pools.values())
+        if limit is not None:
+            values = values[-limit:]
+        return [deserialize_quote_pool_record(deepcopy(data)) for data in values]
+
+    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+        values = list(self.matches.values())
+        if limit is not None:
+            values = values[-limit:]
+        return [deserialize_match_record(deepcopy(data)) for data in values]
+
+    def load_recent_candidate_vendor_records(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[CandidateVendorRecord]:
+        values = list(self.candidate_vendors.values())
+        if limit is not None:
+            values = values[-limit:]
+        return [deserialize_candidate_vendor_record(deepcopy(data)) for data in values]
 
 
 class SqlJsonApiDemoPersistence(ApiDemoPersistence):
@@ -223,24 +291,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
         )
         if row is None:
             return None
-        requirement_result = _json_loads(row.requirement_result_json)
-        if requirement_result is None:
-            logger.warning("project %s has no requirement_result_json; cannot restore", project_id)
-            return None
-        return deserialize_project_record(
-            {
-                "project_id": row.project_id,
-                "request_id": requirement_result.get("request_id"),
-                "company_name": row.company_name,
-                "location": row.location,
-                "deadline": row.deadline,
-                "request_text": row.request_text or "",
-                "requirement_result": requirement_result,
-                "created_at": _date_to_iso(row.created_at),
-                "original_request_text": row.request_text,
-                "requirement_source": (requirement_result.get("metadata") or {}).get("requirement_source"),
-            }
-        )
+        return self._row_to_project_record(row)
 
     def save_quote_pool_record(self, record: QuotePoolRecord) -> None:
         if not self.enabled:
@@ -419,6 +470,29 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             "update_match_explanation",
         )
 
+    def update_project_requirement_result(
+        self,
+        *,
+        project_id: str,
+        requirement_result: Any,
+    ) -> None:
+        if not self.enabled:
+            return
+        self._execute_write(
+            """
+            UPDATE projects
+            SET requirement_result_json = :requirement_result_json
+            WHERE project_id = :project_id
+            """,
+            {
+                "project_id": project_id,
+                "requirement_result_json": _json_dumps(
+                    sanitize_for_db_storage(requirement_result)
+                ),
+            },
+            "update_project_requirement_result",
+        )
+
     def save_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         if not self.enabled:
             return
@@ -557,6 +631,175 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             logger.warning("API demo MySQL persistence schema check failed: %s", exc)
             return False
 
+    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+        rows = self._fetch_all(
+            f"""
+            SELECT
+                project_id,
+                company_name,
+                location,
+                deadline,
+                request_text,
+                requirement_result_json,
+                created_at
+            FROM projects
+            ORDER BY created_at DESC
+            {_limit_clause(limit)}
+            """,
+            {},
+            "load_recent_project_records",
+        )
+        return [
+            record
+            for record in (self._row_to_project_record(row) for row in rows)
+            if record is not None
+        ]
+
+    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+        rows = self._fetch_all(
+            f"""
+            SELECT
+                quote_pool_id,
+                project_id,
+                uploaded_files_json,
+                quote_ingestion_results_json,
+                failed_files_json,
+                created_at
+            FROM quote_pools
+            ORDER BY created_at DESC
+            {_limit_clause(limit)}
+            """,
+            {},
+            "load_recent_quote_pool_records",
+        )
+        records = []
+        for row in rows:
+            quote_results = _json_loads(row.quote_ingestion_results_json)
+            if quote_results is None:
+                continue
+            records.append(
+                deserialize_quote_pool_record(
+                    {
+                        "quote_pool_id": row.quote_pool_id,
+                        "project_id": row.project_id,
+                        "uploaded_files": _json_loads(row.uploaded_files_json) or [],
+                        "quote_ingestion_results": quote_results,
+                        "failed_files": _json_loads(row.failed_files_json) or [],
+                        "created_at": _date_to_iso(row.created_at),
+                    }
+                )
+            )
+        return records
+
+    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+        rows = self._fetch_all(
+            f"""
+            SELECT
+                match_id,
+                project_id,
+                recommendation_result_json,
+                explanation_result_json,
+                created_at
+            FROM match_results
+            WHERE recommendation_result_json IS NOT NULL
+            ORDER BY created_at DESC
+            {_limit_clause(limit)}
+            """,
+            {},
+            "load_recent_match_records",
+        )
+        return [
+            record
+            for record in (self._row_to_match_record(row) for row in rows)
+            if record is not None
+        ]
+
+    def load_recent_candidate_vendor_records(
+        self,
+        *,
+        limit: int | None = None,
+    ) -> list[CandidateVendorRecord]:
+        rows = self._fetch_all(
+            f"""
+            SELECT
+                candidate_vendor_id,
+                project_id,
+                requirement_result_json,
+                candidate_vendor_result_json,
+                selected_vendor_names_json,
+                requested_vendor_names_json,
+                top_n,
+                similarity_threshold,
+                executed_at,
+                created_at
+            FROM candidate_vendors
+            ORDER BY created_at DESC
+            {_limit_clause(limit)}
+            """,
+            {},
+            "load_recent_candidate_vendor_records",
+        )
+        records = []
+        for row in rows:
+            record = self._row_to_candidate_vendor_record(row)
+            if record is not None:
+                records.append(record)
+        return records
+
+    def _row_to_project_record(self, row) -> ProjectRecord | None:
+        if row is None:
+            return None
+        requirement_result = _json_loads(row.requirement_result_json)
+        request_id = (
+            requirement_result.get("request_id")
+            if isinstance(requirement_result, dict)
+            else None
+        )
+        return deserialize_project_record(
+            {
+                "project_id": row.project_id,
+                "request_id": request_id or f"request_{row.project_id}",
+                "company_name": row.company_name,
+                "location": row.location,
+                "deadline": row.deadline,
+                "request_text": row.request_text or "",
+                "requirement_result": requirement_result,
+                "created_at": _date_to_iso(row.created_at),
+                "original_request_text": row.request_text,
+                "requirement_source": (
+                    (requirement_result.get("metadata") or {}).get("requirement_source")
+                    if isinstance(requirement_result, dict)
+                    else None
+                ),
+            }
+        )
+
+    def _row_to_candidate_vendor_record(self, row) -> CandidateVendorRecord | None:
+        if row is None:
+            return None
+        requirement_result = _json_loads(row.requirement_result_json)
+        candidate_result = _json_loads(row.candidate_vendor_result_json)
+        if requirement_result is None or candidate_result is None:
+            return None
+        selected = _json_loads(row.selected_vendor_names_json) or []
+        requested = _json_loads(row.requested_vendor_names_json) or []
+        return deserialize_candidate_vendor_record(
+            {
+                "candidate_vendor_id": row.candidate_vendor_id,
+                "project_id": row.project_id,
+                "requirement_result": requirement_result,
+                "candidate_vendor_result": candidate_result,
+                "selected_vendor_names": selected,
+                "selected_vendor_count": len(selected),
+                "requested_vendor_names": requested,
+                "requested_vendor_count": len(requested),
+                "top_n": row.top_n or 10,
+                "similarity_threshold": float(row.similarity_threshold or 60.0),
+                "executed_at": _date_to_iso(row.executed_at),
+                "created_at": _date_to_iso(row.created_at),
+            }
+        )
+
     def _row_to_match_record(self, row) -> MatchRecord | None:
         if row is None:
             return None
@@ -588,6 +831,14 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
         except Exception as exc:
             logger.warning("API demo MySQL persistence %s failed: %s", operation, exc)
             return None
+
+    def _fetch_all(self, sql: str, params: dict[str, Any], operation: str):
+        try:
+            with self.session_factory() as session:
+                return session.execute(text(sql), params).fetchall()
+        except Exception as exc:
+            logger.warning("API demo MySQL persistence %s failed: %s", operation, exc)
+            return []
 
 
 def _json_dumps(value: Any) -> str:
@@ -627,3 +878,15 @@ def _to_db_datetime(value: Any) -> Any:
         except ValueError:
             return value
     return value
+
+
+def _limit_clause(limit: int | None) -> str:
+    if limit is None:
+        return ""
+    try:
+        normalized = int(limit)
+    except (TypeError, ValueError):
+        return ""
+    if normalized <= 0:
+        return ""
+    return f"LIMIT {normalized}"
