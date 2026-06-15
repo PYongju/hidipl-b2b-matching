@@ -26,7 +26,7 @@ function useCompareResult(projectData) {
   const apiParamError = useMemo(
     () =>
       !forcedState && !projectData.projectApiId
-        ? new Error("비교 검토에 필요한 projectApiId가 없습니다.")
+        ? new Error("비교할 프로젝트 정보가 없어요. 견적서를 업로드한 뒤 다시 시도해 주세요.")
         : null,
     [forcedState, projectData.projectApiId],
   );
@@ -55,6 +55,8 @@ function useCompareResult(projectData) {
       })
       .catch((error) => {
         if (!ignore) {
+          // 기술 상세(에러 원문)는 콘솔로만 남기고, 화면에는 행동 중심 문구를 노출
+          console.error("견적 비교 데이터 조회 실패:", error);
           setApiState({ error, rawResponse: null, state: "error" });
         }
       });
@@ -69,8 +71,7 @@ function useCompareResult(projectData) {
   const compareErrorMessage =
     projectData.compareErrorMessage ??
     apiParamError?.message ??
-    apiState.error?.message ??
-    "견적 비교 데이터를 불러오지 못했습니다.";
+    "일시적인 문제로 비교 데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
 
   const viewModel = useMemo(() => {
     if (compareState !== "ready" || !rawResponse) {

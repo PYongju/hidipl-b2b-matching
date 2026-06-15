@@ -123,7 +123,7 @@ export default function ProjectRequirementsPage({
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
-              <small>구매팀</small>
+              <small>구매검토팀</small>
             </div>
           </>
         }
@@ -137,7 +137,7 @@ export default function ProjectRequirementsPage({
             </button>
             <div>
               <p>프로젝트 상세</p>
-              <h1>{projectData.projectName || "신규 검토 건"}</h1>
+              <h1>{projectData.projectName || "새 프로젝트"}</h1>
             </div>
           </div>
           <div className="requirements-status">
@@ -154,7 +154,7 @@ export default function ProjectRequirementsPage({
             <div className="requirements-section-title">
               <div>
                 <h2>요구사항 작성</h2>
-                <p>발주사 기본 정보와 디스플레이 요구사항을 기준에 맞춰 정리합니다.</p>
+                <p>발주사 기본 정보와 디스플레이 요구사항을 기준에 맞춰 정리해요.</p>
               </div>
             </div>
 
@@ -163,7 +163,7 @@ export default function ProjectRequirementsPage({
                 <span>1</span>
                 <div>
                   <b>발주사 및 기본 정보</b>
-                  <small>회사명, 설치 위치, 프로젝트명과 활용 목적을 입력합니다.</small>
+                  <small>회사명, 설치 위치, 프로젝트명과 활용 목적을 입력해요.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
@@ -215,7 +215,7 @@ export default function ProjectRequirementsPage({
                 <span>2</span>
                 <div>
                   <b>디스플레이 스펙</b>
-                  <small>화면 크기, 수량, 운영 조건과 카테고리를 입력합니다.</small>
+                  <small>화면 크기, 수량, 운영 조건과 카테고리를 입력해요.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
@@ -311,7 +311,7 @@ export default function ProjectRequirementsPage({
                 <span>3</span>
                 <div>
                   <b>예산과 검토 기준</b>
-                  <small>매칭 우선순위와 요청 가능 범위를 판단합니다.</small>
+                  <small>매칭 우선순위와 요청 가능 범위를 판단해요.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
@@ -356,7 +356,7 @@ export default function ProjectRequirementsPage({
                 <span>4</span>
                 <div>
                   <b>추가 메모</b>
-                  <small>A/S, 납기, 설치 제한, 첨부 자료에 대한 메모를 남깁니다.</small>
+                  <small>A/S, 납기, 설치 제한, 첨부 자료에 대한 메모를 남겨요.</small>
                 </div>
               </div>
               <label>
@@ -382,7 +382,7 @@ export default function ProjectRequirementsPage({
             <div className="requirements-section-title">
               <div>
                 <h2>매칭 가능성 체크</h2>
-                <p>현재 입력값 기준 사전 검증 결과입니다.</p>
+                <p>현재 입력값 기준 사전 검증 결과예요.</p>
               </div>
             </div>
 
@@ -413,7 +413,7 @@ export default function ProjectRequirementsPage({
               <b>다음 단계 안내</b>
               <p>
                 파트너 매칭 화면에서 AI 추천 순위와 적합도 점수를 확인하고, 견적 요청을
-                보낼 업체를 선택할 수 있습니다.
+                보낼 공급사를 선택할 수 있어요.
               </p>
             </div>
           </aside>
@@ -421,7 +421,7 @@ export default function ProjectRequirementsPage({
       </main>
 
       <footer className="requirements-bottom-actions">
-        <span>요구사항은 빈 값이어도 저장할 수 있습니다.</span>
+        <span>요구사항은 빈 값이어도 저장할 수 있어요.</span>
         <div>
           <button className="button action-secondary" onClick={onSaveDraft} type="button">
             임시 저장
@@ -469,16 +469,16 @@ function getMatchingChecks(data) {
       level: requiredFilledCount === 3 ? "ok" : "warn",
       message:
         requiredFilledCount === 3
-          ? "회사명, 설치 위치, 활용 목적이 입력되었습니다."
-          : `회사명, 설치 위치, 활용 목적 중 ${requiredFilledCount}/3개가 입력되었습니다.`,
+          ? "회사명, 설치 위치, 활용 목적이 입력됐어요."
+          : `회사명, 설치 위치, 활용 목적 중 ${requiredFilledCount}/3개가 입력됐어요.`,
     },
     {
       title: "정보 탐색 단계 확인 필요",
       weight: 16,
       level: stage.includes("정보 탐색") ? "warn" : "ok",
       message: stage.includes("정보 탐색")
-        ? "정보 탐색 단계는 자동 매칭이 제한될 수 있습니다."
-        : "현재 단계 기준으로 파트너 매칭 검토가 가능합니다.",
+        ? "정보 탐색 단계는 자동 매칭이 제한될 수 있어요."
+        : "현재 단계 기준으로 파트너 매칭 검토가 가능해요.",
     },
     {
       title: "일정 6개월 이내",
@@ -492,14 +492,14 @@ function getMatchingChecks(data) {
       level: hasDisplay && hasQuantity && hasBudget ? "ok" : "warn",
       message: (() => {
         if (hasDisplay && hasQuantity && hasBudget) {
-          return "디스플레이 스펙, 수량, 예산 조건이 입력되었습니다.";
+          return "디스플레이 스펙, 수량, 예산 조건이 입력됐어요.";
         }
         const missing = [
           hasDisplay ? null : "디스플레이 크기",
           hasQuantity ? null : "수량",
           hasBudget ? null : "예산",
         ].filter(Boolean);
-        return `${missing.join(", ")}을(를) 입력하면 후보군을 더 정확히 좁힐 수 있습니다.`;
+        return `${missing.join(", ")}을(를) 입력하면 후보군을 더 정확히 좁힐 수 있어요.`;
       })(),
     },
     {
@@ -507,8 +507,8 @@ function getMatchingChecks(data) {
       weight: 16,
       level: hasSolutions ? "ok" : "warn",
       message: hasSolutions
-        ? `${solutionsLabel} 파트너 풀과 매칭할 수 있습니다.`
-        : "솔루션을 선택하면 후보군을 더 정확히 좁힐 수 있습니다.",
+        ? `${solutionsLabel} 공급사 풀과 매칭할 수 있어요.`
+        : "솔루션을 선택하면 후보군을 더 정확히 좁힐 수 있어요.",
     },
   ];
 }
@@ -570,15 +570,15 @@ function getReadinessMessage(readiness, checks) {
   const warnCount = checks.filter((check) => check.level !== "ok").length;
 
   if (readiness >= 85 && warnCount === 0) {
-    return "입력과 사전 검증이 충분합니다. 지금 상태로 파트너 매칭을 진행해도 좋습니다.";
+    return "입력과 사전 검증이 충분해요. 지금 상태로 파트너 매칭을 진행해도 좋아요.";
   }
   if (readiness >= 60) {
-    return "기본 조건은 갖춰졌습니다. 남은 항목을 보완하면 추천 정확도가 더 높아집니다.";
+    return "기본 조건은 갖춰졌어요. 남은 항목을 보완하면 추천 정확도가 더 높아져요.";
   }
   if (warnCount > 0) {
-    return "매칭 가능성 체크에서 확인이 필요한 항목이 있습니다. 경고 항목을 먼저 보완해 주세요.";
+    return "매칭 가능성 체크에서 확인이 필요한 항목이 있어요. 경고 항목을 먼저 보완해 주세요.";
   }
-  return "필수 정보와 스펙/예산을 입력하면 매칭 준비도가 올라갑니다.";
+  return "필수 정보와 스펙/예산을 입력하면 매칭 준비도가 올라가요.";
 }
 
 function inferDisplayUnit(displaySize = "") {
@@ -620,7 +620,7 @@ function getScheduleState(value) {
   if (!value) {
     return {
       level: "warn",
-      message: "일정이 없으면 납기 기준 매칭 정확도가 낮아집니다.",
+      message: "일정이 없으면 납기 기준 매칭 정확도가 낮아져요.",
     };
   }
 
@@ -628,7 +628,7 @@ function getScheduleState(value) {
   if (Number.isNaN(target.getTime())) {
     return {
       level: "warn",
-      message: "일정 형식을 확인해야 합니다.",
+      message: "일정 형식을 확인해 주세요.",
     };
   }
 
@@ -638,12 +638,12 @@ function getScheduleState(value) {
   if (target > sixMonthsLater) {
     return {
       level: "warn",
-      message: "일정이 6개월을 초과해 우선 매칭 보류 대상으로 표시됩니다.",
+      message: "일정이 6개월을 초과해 우선 매칭 보류 대상으로 표시돼요.",
     };
   }
 
   return {
     level: "ok",
-    message: "프로젝트 기간이 가능한 범위입니다.",
+    message: "프로젝트 기간이 가능한 범위예요.",
   };
 }

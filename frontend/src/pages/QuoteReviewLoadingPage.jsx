@@ -8,23 +8,23 @@ import { createMatchViewModel } from "../utils/matchAdapter";
 const REVIEW_STEPS = [
   {
     title: "견적서 파일 확인",
-    detail: "업로드된 견적서와 업체 정보를 비교 검토 대상으로 정리합니다.",
+    detail: "업로드된 견적서와 공급사 정보를 비교 검토 대상으로 정리해요.",
   },
   {
-    title: "OCR/파싱 결과 평가",
-    detail: "금액, 납기, 보증, 별도 비용 항목을 추출하고 누락값을 확인합니다.",
+    title: "견적서 내용 추출 결과 평가",
+    detail: "금액, 납기, 보증, 별도 비용 항목을 추출하고 누락된 값을 확인해요.",
   },
   {
-    title: "비교 항목 정규화",
-    detail: "업체별 표현 차이를 같은 비교 기준으로 맞춥니다.",
+    title: "비교 항목 기준 통일",
+    detail: "공급사별 표현 차이를 같은 비교 기준으로 맞춰요.",
   },
   {
     title: "AI 추천 기준 분석",
-    detail: "예산, 납기, 유지보수, 리스크 조건을 함께 반영합니다.",
+    detail: "예산, 납기, 유지보수, 리스크 조건을 함께 반영해요.",
   },
   {
     title: "검토 화면 구성",
-    detail: "비교표, 추천 사유, 확인 필요 항목을 화면에 표시할 준비를 합니다.",
+    detail: "비교표, 추천 사유, 확인 필요 항목을 화면에 표시할 준비를 해요.",
   },
 ];
 
@@ -49,14 +49,14 @@ export default function QuoteReviewLoadingPage({
     try {
       const projectApiId = projectData.projectApiId;
       if (!projectApiId) {
-        throw new Error("프로젝트 API ID가 없어 견적 비교 분석을 실행할 수 없습니다.");
+        throw new Error("프로젝트 정보가 없어 견적 비교 분석을 시작할 수 없어요.");
       }
 
       let quoteIds = projectData.quoteIds ?? [];
       if (!quoteIds.length) {
         const quoteFiles = projectData.quoteFiles ?? [];
         if (!quoteFiles.length) {
-          throw new Error("업로드할 견적서가 없습니다. 견적 수신 화면에서 파일을 선택해 주세요.");
+          throw new Error("업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 선택해 주세요.");
         }
 
         const uploadResult = await uploadProjectQuotes(projectApiId, quoteFiles);
@@ -74,7 +74,7 @@ export default function QuoteReviewLoadingPage({
       }
 
       if (!quoteIds.length) {
-        throw new Error("업로드된 견적서 ID가 없어 견적 비교 분석을 실행할 수 없습니다.");
+        throw new Error("업로드된 견적서가 없어 견적 비교 분석을 시작할 수 없어요.");
       }
 
       const matchResult = await runProjectMatch(projectApiId);
@@ -89,7 +89,7 @@ export default function QuoteReviewLoadingPage({
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisState("error");
-      setErrorMessage(error.message || "견적 비교 분석 중 오류가 발생했습니다.");
+      setErrorMessage(error.message || "견적 비교 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.");
     }
   };
 
@@ -142,7 +142,7 @@ export default function QuoteReviewLoadingPage({
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
-              <small>구매팀</small>
+              <small>구매검토팀</small>
             </div>
           </>
         }
@@ -174,18 +174,18 @@ export default function QuoteReviewLoadingPage({
           </Badge>
           <h1>
             {analysisState === "error"
-              ? "견적 비교 분석을 완료하지 못했습니다"
+              ? "견적 비교 분석을 완료하지 못했어요"
               : isComplete
                 ? "모든 분석을 마쳤어요."
-                : "수신한 견적서를 비교 분석하고 있습니다"}
+                : "수신한 견적서를 비교 분석하고 있어요"}
           </h1>
           <p>
             {isComplete ? (
-              <span aria-live="polite">{redirectCountdown ?? 3}초 후 검토 화면으로 이동합니다.</span>
+              <span aria-live="polite">{redirectCountdown ?? 3}초 후 검토 화면으로 이동해요.</span>
             ) : (
               <>
                 {projectData.projectName || projectData.companyName || "프로젝트"}의 업로드된 견적서를
-                기준으로 비교표와 추천 사유를 준비합니다.
+                기준으로 비교표와 추천 사유를 준비해요.
               </>
             )}
           </p>

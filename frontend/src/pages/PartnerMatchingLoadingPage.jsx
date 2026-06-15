@@ -7,23 +7,23 @@ import { formatProjectSolutions } from "../utils/projectRequestText";
 const MATCHING_STEPS = [
   {
     title: "요구사항 분석",
-    detail: "활용 목적, 스펙, 운영 조건을 읽고 있습니다.",
+    detail: "활용 목적, 스펙, 운영 조건을 읽고 있어요.",
   },
   {
     title: "예산/일정 기준 추출",
-    detail: "예산 범위와 납기 조건을 후보 필터에 반영합니다.",
+    detail: "예산 범위와 납기 조건을 후보 필터에 반영해요.",
   },
   {
-    title: "파트너 후보군 검색",
-    detail: "카테고리와 설치 경험이 맞는 공급사를 찾고 있습니다.",
+    title: "공급사 후보군 검색",
+    detail: "카테고리와 설치 경험이 맞는 공급사를 찾고 있어요.",
   },
   {
     title: "적합도 점수 계산",
-    detail: "전문성, 응답 속도, 가격 경쟁력, 신뢰도를 비교합니다.",
+    detail: "전문성, 응답 속도, 가격 경쟁력, 신뢰도를 비교해요.",
   },
   {
     title: "추천 사유 생성",
-    detail: "담당자가 검토할 수 있도록 추천 근거를 정리합니다.",
+    detail: "담당자가 검토할 수 있도록 추천 근거를 정리해요.",
   },
 ];
 
@@ -105,7 +105,7 @@ export default function PartnerMatchingLoadingPage({
       .catch((error) => {
         if (!isMounted) return;
         setCandidateState("error");
-        setErrorMessage(error.message || "파트너 추천 후보 조회 중 오류가 발생했습니다.");
+        setErrorMessage(error.message || "공급사 추천 후보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
       });
 
     return () => {
@@ -152,12 +152,12 @@ export default function PartnerMatchingLoadingPage({
           </Badge>
           <h1>
             {isReady
-              ? "추천 파트너 검토 준비가 완료되었습니다"
-              : "프로젝트 조건에 맞는 파트너를 찾고 있습니다"}
+              ? "추천 공급사 검토 준비가 끝났어요"
+              : "프로젝트 조건에 맞는 공급사를 찾고 있어요"}
           </h1>
           <p>
-            {projectData.projectName || projectData.companyName || "신규 검토 건"}
-            의 요구사항을 기준으로 후보 업체를 좁히고 추천 근거를 정리합니다.
+            {projectData.projectName || projectData.companyName || "새 프로젝트"}
+            의 요구사항을 기준으로 후보 공급사를 좁히고 추천 근거를 정리해요.
           </p>
 
           <div className="matching-loading-progress" aria-label={`진행률 ${progress}%`}>
@@ -201,19 +201,19 @@ export default function PartnerMatchingLoadingPage({
 
           {candidateState === "waiting-project" ? (
             <div className="matching-loading-message">
-              프로젝트를 저장하는 중입니다. 저장이 완료되면 파트너 추천을 시작합니다.
+              프로젝트를 저장하고 있어요. 저장이 끝나면 공급사 추천을 시작해요.
             </div>
           ) : null}
 
           {candidateState === "loading" ? (
             <div className="matching-loading-message">
-              candidate-vendors API에서 추천 후보를 조회하고 있습니다.
+              추천 후보를 불러오고 있어요.
             </div>
           ) : null}
 
           {candidateState === "empty" ? (
             <div className="matching-loading-message warning">
-              추천 후보가 없습니다. 요구사항을 보완하거나 백엔드 후보 조회 결과를 확인해야 합니다.
+              추천 후보가 없어요. 요구사항을 보완해 주세요.
             </div>
           ) : null}
 
