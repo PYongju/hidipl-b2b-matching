@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -18,9 +19,40 @@ export default function ProjectRequirementsPage({
   onNext,
   onProjectDataChange,
   onSaveDraft = () => {},
+  onAutoSave,
   isPartnerMatchingLoading = false,
   onGoHome,
 }) {
+  const autoSaveTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!onAutoSave || !projectData.projectApiId) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      onAutoSave({
+        company_name: projectData.companyName || null,
+        location: projectData.location || null,
+        deadline: projectData.projectDate || null,
+        request_text: projectData.requestText || null,
+      });
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [
+    projectData.companyName,
+    projectData.location,
+    projectData.projectDate,
+    projectData.requestText,
+  ]);
+
   const checks = getMatchingChecks(projectData);
   const readiness = getReadinessScore(projectData, checks);
   const readinessMessage = getReadinessMessage(readiness, checks);
