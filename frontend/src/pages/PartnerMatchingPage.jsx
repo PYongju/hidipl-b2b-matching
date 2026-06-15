@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
+import { formatProjectSolutions } from "../utils/projectRequestText";
 
 function normalizeSimilarityScore(value) {
   if (typeof value !== "number") return 0;
@@ -245,7 +246,7 @@ export default function PartnerMatchingPage({
           <SummaryItem label="위치" value={projectData.location || "미입력"} />
           <SummaryItem label="일정" value={projectData.projectDate || "일정 미정"} />
           <SummaryItem label="발주처 유형" value={projectData.clientType || "미입력"} />
-          <SummaryItem label="솔루션" value={projectData.category || "디스플레이"} />
+          <SummaryItem label="솔루션" value={formatProjectSolutions(projectData, "미선택")} />
           <SummaryItem label="상태" value="요청 대상 검토중" />
         </section>
 
