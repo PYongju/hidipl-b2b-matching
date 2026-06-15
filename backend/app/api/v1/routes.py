@@ -377,6 +377,54 @@ async def delete_projects(body: ProjectDeleteRequest, db: Session = Depends(get_
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
+# [P11] 프로젝트 정보 수정 (자동 임시저장)
+class ProjectUpdateRequest(BaseModel):
+    company_name: str | None = None
+    location: str | None = None
+    deadline: str | None = None
+    request_text: str | None = None
+
+@router.patch("/projects/{project_id}")
+async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
+    try:
+        row = db.execute(
+            text("SELECT project_id FROM projects WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+        db.execute(
+            text("""
+                UPDATE projects SET
+                    company_name = COALESCE(:company_name, company_name),
+                    location = COALESCE(:location, location),
+                    deadline = COALESCE(:deadline, deadline),
+                    request_text = COALESCE(:request_text, request_text)
+                WHERE project_id = :project_id
+            """),
+            {
+                "company_name": body.company_name,
+                "location": body.location,
+                "deadline": body.deadline,
+                "request_text": body.request_text,
+                "project_id": project_id,
+            }
+        )
+        db.commit()
+        return {
+            "ok": True,
+            "data": {
+                "project_id": project_id,
+                "updated_at": datetime.now().isoformat(),
+            },
+            "error": None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # [P8] 프로젝트 상태 조회
 @router.get("/projects/{project_id}")
