@@ -154,7 +154,7 @@ export default function App() {
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
     id,
-    name: data.projectName || `${data.companyName || "신규 고객"} 검토 건`,
+    name: data.projectName || `${data.companyName || "신규 고객"} 프로젝트`,
     status: overrides.status || data.workflowStatus || "진행 중",
     statusTone:
       overrides.statusTone ||
@@ -518,7 +518,7 @@ export default function App() {
           return;
         } catch (error) {
           setAnalysisErrorMessage(
-            error.message || "프로젝트 상태 조회 중 오류가 발생했습니다.",
+            error.message || "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
           );
         }
       }
@@ -602,7 +602,7 @@ export default function App() {
         createdProject?.id;
 
       if (!projectApiId) {
-        throw new Error("서버 프로젝트 ID를 확인하지 못했습니다.");
+        throw new Error("프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
 
       const candidateResponse = await runPartnerMatchingStep(
@@ -646,7 +646,7 @@ export default function App() {
       setPartnerMatchingTransition("error");
       setPartnerMatchingError(
         error.message ||
-          "프로젝트 요구사항 저장 또는 파트너 추천 중 오류가 발생했습니다.",
+          "요구사항 저장 또는 공급사 추천 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
       );
     }
   };
@@ -693,7 +693,7 @@ export default function App() {
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisErrorMessage(
-        error.message || "AI 분석 실행 중 오류가 발생했습니다.",
+        error.message || "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
       );
       setAnalysisState("error");
     }

@@ -5,6 +5,7 @@ import FlowTopbar from "../components/FlowTopbar";
 import { formatNumberInput } from "../utils/formatters";
 import SolutionTagPicker from "../components/SolutionTagPicker";
 import { normalizeProjectSolutions } from "../utils/projectRequestText";
+import { EMPTY_PROJECTS } from "../constants/uiText";
 
 const filterOptions = ["전체", "진행 중", "검토 중", "완료"];
 
@@ -114,7 +115,7 @@ export default function ProjectListPage({
             <h1>프로젝트 목록</h1>
             <span>
               진행 중인 견적 검토와 완료된 선정 이력을 프로젝트 단위로
-              관리합니다.
+              관리해요.
             </span>
           </div>
           <button
@@ -122,7 +123,7 @@ export default function ProjectListPage({
             onClick={openCreateDrawer}
             type="button"
           >
-            + 신규 검토 건 생성
+            {EMPTY_PROJECTS.cta}
           </button>
         </section>
 
@@ -244,7 +245,7 @@ export default function ProjectListPage({
                 onClick={() => onOpenDashboard(project.id)}
                 type="button"
               >
-                <h2>{readable(project.name, "신규 검토 프로젝트")}</h2>
+                <h2>{readable(project.name, "새 프로젝트")}</h2>
                 <p>{readable(project.desc, "요구사항 정리 중")}</p>
               </button>
               <div className="history-meta">
@@ -258,7 +259,15 @@ export default function ProjectListPage({
           ))}
           {filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
-              조건에 맞는 프로젝트가 없습니다.
+              <p>{EMPTY_PROJECTS.message}</p>
+              <span>{EMPTY_PROJECTS.hint}</span>
+              <button
+                className="button action-primary"
+                onClick={openCreateDrawer}
+                type="button"
+              >
+                {EMPTY_PROJECTS.cta}
+              </button>
             </div>
           )}
         </section>
@@ -270,13 +279,13 @@ export default function ProjectListPage({
             className="quick-create-backdrop"
             onClick={closeCreateDrawer}
             type="button"
-            aria-label="검토 건 생성 닫기"
+            aria-label="새 프로젝트 생성 닫기"
           />
-          <aside className="quick-create-drawer" aria-label="신규 검토 건 생성">
+          <aside className="quick-create-drawer" aria-label="새 프로젝트 생성">
             <header className="quick-create-header">
               <div>
                 <p>신규 프로젝트</p>
-                <h2>검토 건 생성</h2>
+                <h2>새 프로젝트 생성</h2>
               </div>
               <button
                 className="drawer-close"
@@ -343,9 +352,9 @@ export default function ProjectListPage({
                     value={draft.currentStage}
                   >
                     <option>요구사항</option>
-                    <option>파트너 매칭 필요</option>
-                    <option>견적 수신중</option>
-                    <option>비교 검토중</option>
+                    <option>파트너 매칭</option>
+                    <option>견적 수신</option>
+                    <option>견적 검토</option>
                   </select>
                 </label>
               </section>

@@ -18,8 +18,8 @@ export default function AnalysisPage({
         {isError ? (
           <>
             <div className="analysis-symbol error">!</div>
-            <h1>AI 분석을 시작하지 못했습니다</h1>
-            <p>{errorMessage || "프로젝트 생성, 견적 업로드, 매칭 실행 중 오류가 발생했습니다."}</p>
+            <h1>AI 분석을 시작하지 못했어요</h1>
+            <p>{errorMessage || "분석을 시작하는 중에 문제가 생겼어요. 잠시 후 다시 시도해 주세요."}</p>
             <div className="analysis-actions">
               <button className="button" onClick={onBack} type="button">
                 입력 화면으로 돌아가기
@@ -32,8 +32,8 @@ export default function AnalysisPage({
         ) : (
           <>
             <div className="analysis-symbol">✦</div>
-            <h1>{isReady ? "AI 분석 준비가 완료되었습니다" : "AI가 견적서를 분석 중입니다"}</h1>
-            <p>프로젝트 생성, 견적서 업로드, 매칭 실행 흐름을 순서대로 처리하고 있습니다.</p>
+            <h1>{isReady ? "AI 분석 준비가 끝났어요" : "AI가 견적서를 분석하고 있어요"}</h1>
+            <p>프로젝트 생성, 견적서 업로드, 매칭 실행 흐름을 순서대로 처리하고 있어요.</p>
             <div className="analysis-progress">
               <span className={isReady ? "complete" : ""} />
             </div>

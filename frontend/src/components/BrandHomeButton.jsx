@@ -7,7 +7,7 @@ export default function BrandHomeButton({ onClick }) {
         <span />
         <span />
       </div>
-      <div className="brand-title">견적 검토 쿼파일럿</div>
+      <div className="brand-title">QuoPilot</div>
     </>
   );
 

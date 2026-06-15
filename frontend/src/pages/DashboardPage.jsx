@@ -5,6 +5,13 @@ import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
 import { getStatusUi } from "../utils/statusMap";
+import { withObjectParticle, withSubjectParticle } from "../utils/josa";
+import {
+  AI_COMPARE_NOTICE,
+  AI_FALLBACK_NOTICE,
+  FINAL_SELECTION,
+  FIT_SCORE_TOOLTIP,
+} from "../constants/uiText";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
 
@@ -180,7 +187,7 @@ export default function DashboardPage({
 
   const getSupplierCardSummary = (supplier) => {
     if (explanationState === "loading") {
-      return "AI 근거 요약을 불러오는 중입니다.";
+      return "AI 근거 요약을 불러오고 있어요.";
     }
 
     return (
@@ -231,7 +238,7 @@ export default function DashboardPage({
     if (status === "parseFail") {
       return (
         <Badge tone="red" key={key}>
-          {label} OCR 분석 실패
+          {label} 수정 필요
         </Badge>
       );
     }
@@ -242,7 +249,7 @@ export default function DashboardPage({
     ) {
       return (
         <Badge tone="orange" key={key}>
-          {label} 검토 필요
+          {label} 확인 필요
         </Badge>
       );
     }
@@ -344,7 +351,7 @@ export default function DashboardPage({
             <button
               className="icon-button"
               disabled
-              title="프로젝트명 수정 API 연결 후 사용할 수 있습니다."
+              title="프로젝트명 수정은 곧 사용할 수 있어요."
               type="button"
             >
               ✎
@@ -366,7 +373,7 @@ export default function DashboardPage({
                   : "button button-blue"
               }
               disabled
-              title="상태는 현재 화면 진행에 따라 자동 반영됩니다."
+              title="상태는 화면 진행에 따라 자동으로 반영돼요."
               type="button"
             >
               {selectionFinalized ? "검토 완료" : "검토 진행 중"}
@@ -430,18 +437,17 @@ export default function DashboardPage({
         {compareState === "ready" && isFailureScenario && (
           <section className="failure-scenario-panel">
             <div>
-              <b>실패 상태 UI 점검용 mock 데이터</b>
+              <b>실패 상태 표시 점검용 예시 데이터</b>
               <span>
-                업로드 실패, OCR 일부 실패, 파싱 실패, 총액 미확정, LLM
-                fallback이 어떻게 보이는지 확인하는 프로젝트입니다.
+                업로드 실패, 내용 추출 실패, 총액 미확정, 기본 요약이 어떻게
+                보이는지 확인하는 프로젝트예요.
               </span>
             </div>
             <div className="failure-state-row">
               <Badge tone="red">업로드 실패</Badge>
-              <Badge tone="red">OCR 일부 실패</Badge>
               <Badge tone="red">수정 필요</Badge>
               <Badge tone="gray">총액 미확정</Badge>
-              <Badge tone="orange">LLM fallback</Badge>
+              <Badge tone="orange">기본 요약</Badge>
             </div>
           </section>
         )}
@@ -480,6 +486,14 @@ export default function DashboardPage({
                           <div className="fit">
                             적합도{" "}
                             <b className={supplier.fitClass}>{supplier.fit}%</b>
+                            <span
+                              className="fit-info"
+                              role="img"
+                              aria-label={FIT_SCORE_TOOLTIP}
+                              title={FIT_SCORE_TOOLTIP}
+                            >
+                              ⓘ
+                            </span>
                           </div>
                         </div>
                         <div className="supplier-cost-badges">
@@ -505,7 +519,7 @@ export default function DashboardPage({
                               }
                             >
                               {isFailureScenario && supplier.id === "c"
-                                ? "△ OCR 일부 실패 · 2개 항목 수정 필요"
+                                ? "△ 일부 항목 인식 실패 · 2개 항목 수정 필요"
                                 : `○ ${supplier.submitted}`}
                             </span>
                           </div>
@@ -513,7 +527,7 @@ export default function DashboardPage({
                             <small>과거 성과</small>
                             <div className="badge-row">
                               {isFailureScenario && supplier.id === "b" && (
-                                <Badge tone="orange">파싱 신뢰도 낮음</Badge>
+                                <Badge tone="orange">인식 신뢰도 낮음</Badge>
                               )}
                               {isFailureScenario && supplier.id === "c" && (
                                 <Badge tone="gray">총액 미확정</Badge>
@@ -652,12 +666,9 @@ export default function DashboardPage({
 
             <aside className="side-column">
               <section className="panel ai-panel">
-                <h2>✦ AI 근거 요약</h2>
+                <h2>AI 근거 요약</h2>
                 {explanationIsFallback && (
-                  <div className="fallback-notice">
-                    AI 설명 생성이 일시적으로 실패해 기본 규칙 기반 요약을
-                    표시합니다.
-                  </div>
+                  <div className="fallback-notice">{AI_FALLBACK_NOTICE}</div>
                 )}
                 <p>{overallSummary}</p>
                 <button
@@ -710,7 +721,7 @@ export default function DashboardPage({
                       onChange={(event) =>
                         setDraftMemo(event.target.value.slice(0, maxMemoLength))
                       }
-                      placeholder="검토 메모를 입력하세요...&#10;(내부 공유용입니다.)"
+                      placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
                       readOnly={!isMemoEditing}
                       value={memoValue}
                     />
@@ -756,7 +767,6 @@ export default function DashboardPage({
                       <b>{supplier.name}</b>
                       {supplier.recommended && (
                         <div>
-                          <Badge>추천</Badge>
                           <Badge>AI 추천</Badge>
                         </div>
                       )}
@@ -765,11 +775,7 @@ export default function DashboardPage({
                 </div>
                 <div className="notice">
                   <b>유의 사항</b>
-                  <span>
-                    본 비교는 AI가 추출한 정보 기반입니다. 최종 선정 전 모든
-                    항목을 반드시 확인하고, 필요 시 공급사에 추가 확인하시기
-                    바랍니다.
-                  </span>
+                  <span>{AI_COMPARE_NOTICE}</span>
                 </div>
               </section>
             </aside>
@@ -782,10 +788,10 @@ export default function DashboardPage({
           <button
             className="button action-secondary"
             disabled
-            title="검토 메모 저장은 우측 메모 영역에서만 가능합니다."
+            title="검토 메모 저장은 오른쪽 메모 영역에서만 할 수 있어요."
             type="button"
           >
-            ▣ 임시 저장
+            임시 저장
           </button>
           <button
             className="button action-secondary"
@@ -793,8 +799,8 @@ export default function DashboardPage({
             onClick={handleExportToExcel}
             title={
               canExportReport
-                ? "AI 근거 요약을 고객 보고서(엑셀)로 내보냅니다"
-                : "AI 근거 요약을 불러온 후 내보낼 수 있습니다"
+                ? "AI 근거 요약을 고객 보고서(엑셀)로 내보내요."
+                : "AI 근거 요약을 불러온 뒤 내보낼 수 있어요."
             }
             type="button"
           >
@@ -810,7 +816,7 @@ export default function DashboardPage({
             onClick={() => setConfirmOpen(true)}
             type="button"
           >
-            {selectionFinalized ? "선정 완료" : "◎ 최종 선정 확정"}
+            {selectionFinalized ? "선정 완료" : "최종 선정 확정"}
           </button>
         </footer>
       )}
@@ -822,8 +828,12 @@ export default function DashboardPage({
             aria-modal="true"
             aria-label="최종 선정 확인"
           >
-            <h2>최종 선정 업체 확정</h2>
-            <p>{selectedSupplier?.name}를 최종 선정 업체로 확정하시겠습니까?</p>
+            <h2>{FINAL_SELECTION.dialogTitle}</h2>
+            <p>
+              {withObjectParticle(selectedSupplier?.name ?? "")} 최종 선정
+              공급사로 확정할까요?
+            </p>
+            <p className="confirm-result-note">{FINAL_SELECTION.dialogResult}</p>
             <div className="confirm-actions">
               <button
                 className="button"
@@ -845,7 +855,8 @@ export default function DashboardPage({
       )}
       {toastVisible && (
         <div className="selection-toast" role="status">
-          {selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.
+          {withSubjectParticle(selectedSupplier?.name ?? "")} 최종 선정
+          공급사로 확정됐어요.
         </div>
       )}
       {selectionFinalized && followupVisible && (
@@ -858,8 +869,11 @@ export default function DashboardPage({
           >
             ×
           </button>
-          <b>{selectedSupplier?.name}가 최종 선정 업체로 확정되었습니다.</b>
-          <span>프로젝트 상태가 검토 완료로 변경되었습니다.</span>
+          <b>{FINAL_SELECTION.doneEmotion}</b>
+          <span>
+            {withSubjectParticle(selectedSupplier?.name ?? "")} 최종 선정
+            공급사로 확정됐어요. {FINAL_SELECTION.statusChanged}
+          </span>
           <div>
             <button className="button" onClick={onGoProjects} type="button">
               프로젝트 목록으로 이동
@@ -1443,8 +1457,8 @@ function CompareLoadingState() {
       <div className="state-card state-card-loading">
         <div className="state-icon loading-icon" />
         <div>
-          <h2>견적 비교 데이터를 불러오는 중입니다</h2>
-          <p>공급사 정보, 견적 항목, AI 근거 요약을 준비하고 있습니다.</p>
+          <h2>견적 비교 데이터를 불러오고 있어요</h2>
+          <p>공급사 정보, 견적 항목, AI 근거 요약을 준비하고 있어요.</p>
         </div>
       </div>
       <div className="loading-layout">
@@ -1479,7 +1493,7 @@ function CompareErrorState({ message, onGoProjects, onRetry }) {
       <div className="state-card state-card-error">
         <div className="state-icon error-icon">!</div>
         <div>
-          <h2>견적 비교 데이터를 불러오지 못했습니다</h2>
+          <h2>견적 비교 데이터를 불러오지 못했어요</h2>
           <p>{message}</p>
           <div className="state-actions">
             <button
@@ -1500,10 +1514,10 @@ function CompareErrorState({ message, onGoProjects, onRetry }) {
         </div>
       </div>
       <div className="error-guide">
-        <b>확인할 항목</b>
+        <b>이렇게 해보세요</b>
         <span>
-          API 응답 형식, 프로젝트 ID, 업로드된 견적서 상태, 네트워크 연결을
-          확인해주세요.
+          잠시 후 다시 시도해 주세요. 문제가 계속되면 업로드한 견적서 상태와
+          네트워크 연결을 확인해 주세요.
         </span>
       </div>
     </section>

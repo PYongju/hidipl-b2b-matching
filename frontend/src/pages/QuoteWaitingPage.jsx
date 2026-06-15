@@ -72,7 +72,7 @@ export default function QuoteWaitingPage({
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
-              <small>구매팀</small>
+              <small>구매검토팀</small>
             </div>
           </>
         }
@@ -118,7 +118,7 @@ export default function QuoteWaitingPage({
             <div className="quote-panel-title with-progress">
               <div>
                 <h2>견적서 업로드</h2>
-                <p>공급사별 견적서를 한 번에 첨부합니다. 선택한 파일은 프로젝트 단위로 업로드됩니다.</p>
+                <p>공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트 단위로 업로드돼요.</p>
               </div>
               <div className="quote-progress">
                 <span>{selectedFiles.length}개 선택</span>
@@ -140,7 +140,7 @@ export default function QuoteWaitingPage({
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
                 <div className="empty-file-row">
-                  아직 업로드할 견적서가 없습니다.
+                  아직 업로드할 견적서가 없어요.
                 </div>
               ) : (
                 selectedFiles.map((file) => (
@@ -173,8 +173,8 @@ export default function QuoteWaitingPage({
           <aside className="quote-ops-panel">
             <div className="quote-panel-title quote-ops-panel-title">
               <div>
-                <h2>운영 액션</h2>
-                <p>수신 대기 단계에서 필요한 후속 조치를 수행합니다.</p>
+                <h2>추가 작업</h2>
+                <p>견적 수신 단계에서 필요한 후속 작업을 해요.</p>
               </div>
             </div>
 
@@ -187,8 +187,8 @@ export default function QuoteWaitingPage({
               </h3>
               {requestTargets.length === 0 ? (
                 <div className="quote-request-empty">
-                  파트너 매칭 단계에서 선택한 견적 요청 대상이 없습니다.
-                  <span>이전 단계에서 발송 대상 업체를 선택해 주세요.</span>
+                  파트너 매칭 단계에서 선택한 견적 요청 대상이 없어요.
+                  <span>이전 단계에서 발송 대상 공급사를 선택해 주세요.</span>
                 </div>
               ) : (
                 <div className="selected-partner-list quote-request-target-list">
@@ -213,7 +213,7 @@ export default function QuoteWaitingPage({
               <button
                 className="quote-action-button"
                 disabled
-                title="현재 통합 범위에서는 프로젝트 단위 업로드만 사용합니다."
+                title="현재 버전에서는 프로젝트 단위 업로드만 사용해요."
                 type="button"
               >
                 프로젝트 단위 일괄 업로드 <Badge tone="blue">{selectedFiles.length}</Badge>
@@ -221,10 +221,10 @@ export default function QuoteWaitingPage({
               <button
                 className="quote-action-button"
                 disabled
-                title="업체명 매핑은 OCR/파싱 결과 연동 후 확인할 수 있습니다."
+                title="공급사명 연결은 견적서 내용 추출 후 확인할 수 있어요."
                 type="button"
               >
-                업체명 매핑은 OCR/파싱 후 확인
+                공급사명은 견적서 내용 추출 후 확인
               </button>
             </section>
 
@@ -233,7 +233,7 @@ export default function QuoteWaitingPage({
               <button
                 className="quote-action-button"
                 disabled
-                title="하단의 업로드 후 비교 분석 버튼을 사용하세요."
+                title="아래 ‘업로드 후 비교 분석’ 버튼을 사용해 주세요."
                 type="button"
               >
                 업로드 완료 후 비교 분석
@@ -242,7 +242,7 @@ export default function QuoteWaitingPage({
 
             <label className="request-memo">
               <span>내부 메모</span>
-              <textarea defaultValue="현재는 견적서를 프로젝트 단위로 업로드합니다. 업체명 매핑은 OCR/파싱 결과에서 확인 예정." />
+              <textarea defaultValue="현재는 견적서를 프로젝트 단위로 업로드해요. 공급사명은 견적서 내용 추출 결과에서 확인할 예정이에요." />
             </label>
           </aside>
         </section>
@@ -254,7 +254,7 @@ export default function QuoteWaitingPage({
             ? "견적서 업로드 완료"
             : selectedFiles.length
               ? `견적서 ${receivedCount}개 선택됨`
-              : "견적서를 업로드하면 비교 검토를 시작할 수 있습니다."}
+              : "견적서를 업로드하면 비교 검토를 시작할 수 있어요."}
         </span>
         <div>
           <button className="button action-secondary" onClick={onSaveDraft} type="button">임시 저장</button>
@@ -303,7 +303,7 @@ function resolveRequestTargets(projectData) {
               : Math.round(raw.semantic_similarity_score)
             : null,
         response:
-          typeof raw.response_speed === "number" ? `${raw.response_speed}h` : raw.response_speed ?? "미확인",
+          typeof raw.response_speed === "number" ? `${raw.response_speed}시간` : raw.response_speed ?? "미확인",
         caution: (raw.filter_reasons ?? []).some(
           (reason) => !/^상위 \d+개 추천 후보 외$/.test(String(reason ?? "").trim()),
         ),
