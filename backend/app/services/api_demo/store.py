@@ -2,13 +2,34 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import logging
 import os
+from pathlib import Path
 from typing import Any, TYPE_CHECKING
 from uuid import uuid4
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - python-dotenv is optional at import time.
+    load_dotenv = None
 
 if TYPE_CHECKING:
     from services.api_demo.store_persistence import ApiDemoPersistence
 
 logger = logging.getLogger(__name__)
+
+
+def _load_app_env() -> None:
+    if load_dotenv is None:
+        return
+    try:
+        app_dir = Path(__file__).resolve().parents[2]
+        env_path = app_dir / ".env"
+        if env_path.exists():
+            load_dotenv(env_path, override=False)
+    except Exception as exc:
+        logger.warning("API demo store .env load skipped: %s", exc)
+
+
+_load_app_env()
 
 
 @dataclass

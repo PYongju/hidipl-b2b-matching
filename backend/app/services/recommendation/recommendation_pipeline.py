@@ -11,6 +11,7 @@ from services.recommendation.schemas import (
 )
 from services.recommendation.product_group_filter import (
     filter_quotes_by_product_group_scope,
+    group_quotes_by_product_group,
 )
 from services.requirement_ingestion.schemas import RequirementIngestionResult
 
@@ -30,6 +31,124 @@ class RecommendationPipeline:
         selected_partner_names: list[str] | None = None,
         filter_by_selected_partners: bool = False,
         top_n: int = 3,
+    ) -> RecommendationPipelineResult:
+        return self._recommend_internal(
+            requirement_result,
+            quote_results,
+            selected_partner_names=selected_partner_names,
+            filter_by_selected_partners=filter_by_selected_partners,
+            top_n=top_n,
+            apply_product_group_filter=True,
+        )
+
+    def recommend_grouped_by_product_group(
+        self,
+        requirement_result: RequirementIngestionResult,
+        quote_results: list[QuoteIngestionResult],
+        *,
+        selected_partner_names: list[str] | None = None,
+        filter_by_selected_partners: bool = False,
+        top_n: int = 3,
+    ) -> dict[str, RecommendationPipelineResult]:
+        groups = group_quotes_by_product_group(quote_results)
+        if not groups:
+            raise ValueError("추천 대상 견적서 결과가 없습니다.")
+
+        grouped_results: dict[str, RecommendationPipelineResult] = {}
+        for product_group, group_quote_results in groups.items():
+            result = self._recommend_internal(
+                requirement_result,
+                group_quote_results,
+                selected_partner_names=selected_partner_names,
+                filter_by_selected_partners=filter_by_selected_partners,
+                top_n=top_n,
+                apply_product_group_filter=False,
+            )
+            result.metadata.update(
+                {
+                    "product_group": product_group,
+                    "product_group_quote_count": len(group_quote_results),
+                    "grouped_recommendation": True,
+                }
+            )
+            grouped_results[product_group] = result
+        return grouped_results
+
+    def combine_grouped_results(
+        self,
+        requirement_result: RequirementIngestionResult,
+        grouped_results: dict[str, RecommendationPipelineResult],
+        *,
+        top_n: int = 3,
+    ) -> RecommendationPipelineResult:
+        requirement = requirement_result.requirement
+        items: list[RecommendationItem] = []
+        all_items: list[RecommendationItem] = []
+        failed_candidates: list[dict[str, Any]] = []
+        filtered_candidates: list[dict[str, Any]] = []
+        product_group_counts: dict[str, int] = {}
+
+        for product_group, result in grouped_results.items():
+            product_group_counts[product_group] = int(
+                result.metadata.get("product_group_quote_count", len(result.all_items))
+            )
+            for item in result.items:
+                item.metadata = dict(item.metadata or {})
+                item.metadata["product_group"] = product_group
+                items.append(item)
+            for item in result.all_items:
+                item.metadata = dict(item.metadata or {})
+                item.metadata["product_group"] = product_group
+                all_items.append(item)
+            failed_candidates.extend(result.failed_candidates)
+            filtered_candidates.extend(result.filtered_candidates)
+
+        metadata = {
+            "ranking_provider": self.ranking_provider.__class__.__name__,
+            "grouped_by_product_group": len(grouped_results) > 1,
+            "product_group_counts": product_group_counts,
+            "group_order": list(grouped_results.keys()),
+            "product_group_results": {
+                product_group: self.to_storage_dict(result)
+                for product_group, result in grouped_results.items()
+            },
+            "product_group_filter": {
+                "enabled": False,
+                "source": "grouped_product_group",
+                "selected_product_groups": [],
+                "input_quote_count": sum(product_group_counts.values()),
+                "ranking_quote_count": sum(product_group_counts.values()),
+                "excluded_quote_count": 0,
+                "selection_required": False,
+                "fallback_used": False,
+            },
+            "product_group_excluded_candidates": [],
+            "candidate_count": len(all_items),
+            "failed_candidate_count": len(failed_candidates),
+            "filtered_candidate_count": len(filtered_candidates),
+            "input_quote_count": sum(product_group_counts.values()),
+        }
+
+        return RecommendationPipelineResult(
+            request_id=requirement_result.request_id,
+            customer_name=requirement.customer_name,
+            top_n=top_n,
+            items=items,
+            all_items=all_items,
+            failed_candidates=failed_candidates,
+            filtered_candidates=filtered_candidates,
+            metadata=metadata,
+        )
+
+    def _recommend_internal(
+        self,
+        requirement_result: RequirementIngestionResult,
+        quote_results: list[QuoteIngestionResult],
+        *,
+        selected_partner_names: list[str] | None = None,
+        filter_by_selected_partners: bool = False,
+        top_n: int = 3,
+        apply_product_group_filter: bool,
     ) -> RecommendationPipelineResult:
         if not quote_results:
             raise ValueError("추천 대상 견적서 결과가 없습니다.")
@@ -56,15 +175,26 @@ class RecommendationPipeline:
             if matched_quote_results:
                 filtered_quote_results = matched_quote_results
 
-        (
-            filtered_quote_results,
-            product_group_excluded_candidates,
-            product_group_filter_metadata,
-        ) = filter_quotes_by_product_group_scope(
-            requirement=requirement,
-            quote_documents=filtered_quote_results,
-        )
-        failed_candidates.extend(product_group_excluded_candidates)
+        if apply_product_group_filter:
+            (
+                filtered_quote_results,
+                product_group_excluded_candidates,
+                product_group_filter_metadata,
+            ) = filter_quotes_by_product_group_scope(
+                requirement=requirement,
+                quote_documents=filtered_quote_results,
+            )
+            failed_candidates.extend(product_group_excluded_candidates)
+        else:
+            product_group_filter_metadata = {
+                "enabled": False,
+                "source": "grouped_product_group",
+                "input_quote_count": len(filtered_quote_results),
+                "ranking_quote_count": len(filtered_quote_results),
+                "excluded_quote_count": 0,
+                "selection_required": False,
+                "fallback_used": False,
+            }
 
         for quote_result in filtered_quote_results:
             try:
