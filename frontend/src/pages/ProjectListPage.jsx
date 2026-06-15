@@ -8,11 +8,13 @@ const filterOptions = ["전체", "진행 중", "검토 중", "완료"];
 
 export default function ProjectListPage({
   projects,
+  loadError = "",
   onCreate,
   onCreateDraft,
   onOpenDashboard,
   onEditProject,
   onDeleteProjects,
+  onReloadProjects,
   onGoHome,
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
@@ -33,10 +35,12 @@ export default function ProjectListPage({
   ).length;
   const filteredProjects = projects.filter((project) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
+    const projectId = String(project.id ?? "");
+    const projectName = String(project.name ?? "");
     const matchesSearch =
       !normalizedSearch ||
-      project.id.toLowerCase().includes(normalizedSearch) ||
-      project.name.toLowerCase().includes(normalizedSearch);
+      projectId.toLowerCase().includes(normalizedSearch) ||
+      projectName.toLowerCase().includes(normalizedSearch);
 
     if (!matchesSearch) return false;
     if (activeFilter === "전체") return true;
@@ -139,6 +143,21 @@ export default function ProjectListPage({
           </article>
         </section>
 
+        {loadError && (
+          <div className="empty-project-result" role="alert">
+            <p>{loadError}</p>
+            {onReloadProjects && (
+              <button
+                className="button action-secondary"
+                onClick={() => onReloadProjects()}
+                type="button"
+              >
+                다시 불러오기
+              </button>
+            )}
+          </div>
+        )}
+
         <section className="project-tools">
           <input
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -235,7 +254,7 @@ export default function ProjectListPage({
               </div>
             </article>
           ))}
-          {filteredProjects.length === 0 && (
+          {filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
               조건에 맞는 프로젝트가 없습니다.
             </div>
