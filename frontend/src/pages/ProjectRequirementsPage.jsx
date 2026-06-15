@@ -3,7 +3,12 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { formatNumberInput } from "../utils/formatters";
-import { buildProjectRequestPayload } from "../utils/projectRequestText";
+import {
+  buildProjectRequestPayload,
+  formatProjectSolutions,
+  normalizeProjectSolutions,
+} from "../utils/projectRequestText";
+import SolutionTagPicker, { SolutionTagChipList } from "../components/SolutionTagPicker";
 
 const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
 
@@ -57,7 +62,7 @@ export default function ProjectRequirementsPage({
     projectData.displayInch,
     projectData.quantity,
     projectData.operationTime,
-    projectData.category,
+    projectData.solutions,
     projectData.budgetAmount,
     projectData.currentStage,
     projectData.reviewPreset,
@@ -73,6 +78,8 @@ export default function ProjectRequirementsPage({
   const displayWidthValue = projectData.displayWidth ?? parseDisplayDimension(projectData.displaySize, "width");
   const displayHeightValue = projectData.displayHeight ?? parseDisplayDimension(projectData.displaySize, "height");
   const displayInchValue = projectData.displayInch ?? parseDisplayInch(projectData.displaySize);
+
+  const selectedSolutions = normalizeProjectSolutions(projectData);
 
   const updateField = (field, value) => {
     onProjectDataChange((current) => ({
@@ -277,19 +284,25 @@ export default function ProjectRequirementsPage({
                     <option>이벤트 기간 지정</option>
                   </select>
                 </label>
-                <label>
+                <label className="requirements-solution-field">
                   <span>솔루션</span>
-                  <select
-                    onChange={(event) => updateField("category", event.target.value)}
-                    value={projectData.category || "디스플레이"}
-                  >
-                    <option>디스플레이</option>
-                    <option>사이니지</option>
-                    <option>키오스크</option>
-                    <option>화상회의/회의실</option>
-                    <option>기타</option>
-                  </select>
+                  <SolutionTagPicker
+                    onChange={(solutions) => updateField("solutions", solutions)}
+                    showChips={false}
+                    value={selectedSolutions}
+                  />
                 </label>
+                {selectedSolutions.length > 0 && (
+                  <>
+                    <div aria-hidden="true" className="requirements-form-grid-spacer" />
+                    <div className="requirements-solution-chips">
+                      <SolutionTagChipList
+                        onChange={(solutions) => updateField("solutions", solutions)}
+                        value={selectedSolutions}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -444,7 +457,8 @@ function getMatchingChecks(data) {
   const hasDisplay = hasDisplayDimension(data);
   const hasQuantity = Boolean(data.quantity?.trim());
   const hasBudget = Boolean(data.budgetAmount?.trim());
-  const hasCategory = Boolean((data.category || "디스플레이").trim());
+  const hasSolutions = normalizeProjectSolutions(data).length > 0;
+  const solutionsLabel = formatProjectSolutions(data, "");
 
   const requiredFilledCount = [hasCompany, hasLocation, hasUsage].filter(Boolean).length;
 
@@ -491,9 +505,9 @@ function getMatchingChecks(data) {
     {
       title: "솔루션 적합성",
       weight: 16,
-      level: hasCategory ? "ok" : "warn",
-      message: hasCategory
-        ? `${data.category || "디스플레이"} 파트너 풀과 매칭할 수 있습니다.`
+      level: hasSolutions ? "ok" : "warn",
+      message: hasSolutions
+        ? `${solutionsLabel} 파트너 풀과 매칭할 수 있습니다.`
         : "솔루션을 선택하면 후보군을 더 정확히 좁힐 수 있습니다.",
     },
   ];
@@ -508,7 +522,7 @@ function getFieldReadinessScore(data) {
   const hasDisplay = hasDisplayDimension(data);
   const hasQuantity = Boolean(data.quantity?.trim());
   const hasBudget = Boolean(data.budgetAmount?.trim());
-  const hasCategory = Boolean((data.category || "디스플레이").trim());
+  const hasSolutions = normalizeProjectSolutions(data).length > 0;
   const hasReviewPreset = Boolean(data.reviewPreset?.trim());
 
   const items = [
@@ -520,7 +534,7 @@ function getFieldReadinessScore(data) {
     { filled: hasDisplay, weight: 16 },
     { filled: hasQuantity, weight: 10 },
     { filled: hasBudget, weight: 14 },
-    { filled: hasCategory, weight: 6 },
+    { filled: hasSolutions, weight: 6 },
     { filled: hasReviewPreset, weight: 8 },
   ];
 

@@ -29,6 +29,8 @@ import {
 import {
   applyParsedRequestTextToProjectData,
   buildProjectRequestPayload,
+  formatProjectSolutions,
+  normalizeProjectSolutions,
 } from "./utils/projectRequestText";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
@@ -162,7 +164,7 @@ export default function App() {
     meta: [
       data.projectDate || "일정 미정",
       data.budgetAmount ? `${data.budgetAmount} 이하` : "예산 미정",
-      data.category || "카테고리 미정",
+      formatProjectSolutions(data, "솔루션 미정"),
     ],
     data: {
       ...data,
@@ -241,7 +243,7 @@ export default function App() {
               projectDate: item.deadline ?? item.projectDate ?? "",
               requestText: item.request_text ?? item.requestText ?? "",
               ...parsedFields,
-              category: item.category ?? parsedFields.category ?? "",
+              solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
               workflowStatus: getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
@@ -810,7 +812,7 @@ export default function App() {
             partnerMatchingTransition === "loading" ||
             partnerMatchingTransition === "error"
           }
-          category={projectData.category}
+          category={formatProjectSolutions(projectData, "미선택")}
           companyName={projectData.companyName}
           status={partnerMatchingTransition === "error" ? "error" : "loading"}
         />
@@ -943,10 +945,10 @@ function mergeServerProjectData(localData, serverProject) {
     location: serverProject?.location ?? localData.location,
     projectDate: serverProject?.deadline ?? localData.projectDate,
     requestText,
-    category:
-      serverProject?.category
-      ?? parsedFields.category
-      ?? localData.category,
+    solutions:
+      parsedFields.solutions?.length > 0
+        ? parsedFields.solutions
+        : normalizeProjectSolutions({ ...localData, ...parsedFields }),
     createdAt: serverProject?.created_at ?? localData.createdAt,
     currentStage: getCurrentStageFromServerStatus(
       serverStatus,

@@ -4,7 +4,8 @@ const REQUEST_TEXT_FIELD_MAP = {
   "디스플레이 크기": "displaySize",
   "수량": "quantity",
   "운영 시간": "operationTime",
-  "카테고리": "category",
+  "카테고리": "solutions",
+  "솔루션": "solutions",
   "예산 상한": "budgetAmount",
   "우선 검토 기준": "reviewPreset",
   "추가 요청사항": "otherConditions",
@@ -14,6 +15,41 @@ const REQUEST_TEXT_FIELD_MAP = {
 const EMPTY_REQUEST_VALUES = new Set(["미입력", "없음"]);
 
 export const DISPLAY_SIZE_UNITS = ["mm", "cm", "m", "inch"];
+
+export const SOLUTION_OPTIONS = [
+  "LED전광판",
+  "비디오월",
+  "사이니지",
+  "투명디스플레이",
+  "빔프로젝터",
+  "키오스크",
+  "콘텐츠",
+];
+
+function parseSolutionsValue(value) {
+  const text = normalizeRequestValue(value);
+  if (!text) return [];
+  return text
+    .split(/[,、]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function normalizeProjectSolutions(data) {
+  if (Array.isArray(data?.solutions)) {
+    return data.solutions.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  const legacyCategory = String(data?.category ?? "").trim();
+  if (!legacyCategory) return [];
+
+  return parseSolutionsValue(legacyCategory);
+}
+
+export function formatProjectSolutions(data, fallback = "미입력") {
+  const solutions = normalizeProjectSolutions(data);
+  return solutions.length > 0 ? solutions.join(", ") : fallback;
+}
 
 function normalizeRequestValue(value) {
   const trimmed = String(value ?? "").trim();
@@ -95,7 +131,10 @@ export function mapDisplaySizeFields(displaySizeText) {
 
 export function parseProjectFieldsFromRequestText(requestText) {
   const fields = Object.fromEntries(
-    Object.values(REQUEST_TEXT_FIELD_MAP).map((key) => [key, null]),
+    Object.values(REQUEST_TEXT_FIELD_MAP).map((key) => [
+      key,
+      key === "solutions" ? [] : null,
+    ]),
   );
 
   for (const rawLine of String(requestText ?? "").split(/\r?\n/)) {
@@ -108,7 +147,8 @@ export function parseProjectFieldsFromRequestText(requestText) {
     const key = REQUEST_TEXT_FIELD_MAP[label];
     if (!key) continue;
 
-    fields[key] = normalizeRequestValue(value);
+    fields[key] =
+      key === "solutions" ? parseSolutionsValue(value) : normalizeRequestValue(value);
   }
 
   return fields;
@@ -120,13 +160,17 @@ export function applyParsedRequestTextToProjectData(localData, requestText) {
 
   const merge = (key) => parsed[key] ?? localData?.[key] ?? null;
   const mergeDisplay = (key) => displayFields[key] ?? localData?.[key] ?? null;
+  const solutions =
+    parsed.solutions?.length > 0
+      ? parsed.solutions
+      : normalizeProjectSolutions(localData);
 
   return {
     projectName: merge("projectName"),
     usage: merge("usage"),
     quantity: merge("quantity"),
     operationTime: merge("operationTime"),
-    category: merge("category"),
+    solutions,
     budgetAmount: merge("budgetAmount"),
     reviewPreset: merge("reviewPreset"),
     otherConditions: merge("otherConditions"),
@@ -148,7 +192,7 @@ export function buildProjectRequestText(data) {
     `디스플레이 크기: ${displaySizeText || "미입력"}`,
     `수량: ${data.quantity || "미입력"}`,
     `운영 시간: ${data.operationTime || "미입력"}`,
-    `카테고리: ${data.category || "미입력"}`,
+    `카테고리: ${formatProjectSolutions(data)}`,
     `예산 상한: ${data.budgetAmount || "미입력"}`,
     `현재 단계: ${data.currentStage || "미입력"}`,
     `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
@@ -166,7 +210,9 @@ export function buildProjectRequestPayload(data) {
   };
 }
 
-/** @deprecated use parseProjectFieldsFromRequestText().category */
+/** @deprecated use normalizeProjectSolutions() */
 export function parseCategoryFromRequestText(requestText) {
-  return parseProjectFieldsFromRequestText(requestText).category ?? "";
+  return formatProjectSolutions({
+    solutions: parseProjectFieldsFromRequestText(requestText).solutions,
+  });
 }

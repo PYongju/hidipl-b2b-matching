@@ -4631,13 +4631,15 @@ textarea {
 }
 
 .quick-create-section label,
-.quick-create-field {
+.quick-create-field,
+.quick-create-solution-field {
   display: grid;
   gap: 7px;
 }
 
 .quick-create-section label > span,
-.quick-create-field > span {
+.quick-create-field > span,
+.quick-create-solution-field > span {
   color: #475569;
   font-size: 12px;
   font-weight: 800;
@@ -4972,6 +4974,16 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  align-items: start;
+}
+
+.requirements-form-grid-spacer {
+  min-height: 0;
+}
+
+.requirements-solution-chips {
+  grid-column: 2;
+  margin-top: -6px;
 }
 
 .requirements-money-field {
@@ -5081,6 +5093,53 @@ textarea {
   border-color: #93c5fd;
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.requirements-solution-field .solution-picker {
+  gap: 8px;
+}
+
+.solution-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.solution-picker select {
+  width: 100%;
+}
+
+.solution-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.solution-chip.priority-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+}
+
+.solution-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.solution-chip-remove:hover {
+  color: #1d4ed8;
+  background: #eff6ff;
 }
 
 .matching-check-panel {
