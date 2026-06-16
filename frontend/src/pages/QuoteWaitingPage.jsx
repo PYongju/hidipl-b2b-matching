@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import { fetchProjectMatches } from "../api/apiClient";
 import FlowBottomBar from "../components/FlowBottomBar";

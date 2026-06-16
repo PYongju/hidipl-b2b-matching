@@ -27,7 +27,6 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
-  onSaveDraft = () => {},
   onAutoSave,
   isPartnerMatchingLoading = false,
   onGoHome,
