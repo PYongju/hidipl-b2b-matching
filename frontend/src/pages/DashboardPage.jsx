@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { updateProject } from "../api/apiClient";
 import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
@@ -7,6 +8,7 @@ import useExplanationResult from "../hooks/useExplanationResult";
 import { updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
+import { buildProjectRequestPayload } from "../utils/projectRequestText";
 import {
   AI_COMPARE_NOTICE,
   AI_FALLBACK_NOTICE,
@@ -108,6 +110,10 @@ export default function DashboardPage({
   const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
   const [isMemoEditing, setIsMemoEditing] = useState(false);
   const [supplierStartIndex, setSupplierStartIndex] = useState(0);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(projectData.projectName ?? "");
+  const [titleSaveError, setTitleSaveError] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
   const supplierCount = suppliers.length;
   const canNavigateSuppliers = supplierCount > VISIBLE_SUPPLIER_COUNT;
   const maxSupplierStartIndex =
@@ -163,6 +169,13 @@ export default function DashboardPage({
     setDraftMemo(memo);
     setIsMemoEditing(false);
   }, [projectId, projectData.reviewMemo]);
+
+  useEffect(() => {
+    setTitleDraft(projectData.projectName ?? "");
+    setIsEditingTitle(false);
+    setTitleSaveError("");
+    setIsSavingTitle(false);
+  }, [projectId, projectData.projectName]);
 
   const goPrevSuppliers = () => {
     setSupplierStartIndex((current) =>
@@ -333,6 +346,68 @@ export default function DashboardPage({
   };
 
   const canExportReport = explanationState === "ready";
+  const projectTitle = projectData.projectName || `프로젝트 ${projectId}`;
+
+  const startTitleEdit = () => {
+    setTitleDraft(projectData.projectName ?? "");
+    setTitleSaveError("");
+    setIsEditingTitle(true);
+  };
+
+  const cancelTitleEdit = () => {
+    setTitleDraft(projectData.projectName ?? "");
+    setTitleSaveError("");
+    setIsEditingTitle(false);
+  };
+
+  const saveProjectTitle = async () => {
+    const nextTitle = titleDraft.trim();
+
+    if (!nextTitle) {
+      setTitleSaveError("프로젝트명을 입력해 주세요.");
+      return;
+    }
+
+    const nextProjectData = {
+      ...projectData,
+      projectName: nextTitle,
+    };
+
+    setIsSavingTitle(true);
+    setTitleSaveError("");
+    onProjectDataChange?.((current) => ({
+      ...current,
+      projectName: nextTitle,
+    }));
+
+    try {
+      if (projectData.projectApiId) {
+        await updateProject(
+          projectData.projectApiId,
+          buildProjectRequestPayload(nextProjectData),
+        );
+      }
+      setIsEditingTitle(false);
+    } catch (error) {
+      setTitleSaveError(
+        error.message || "프로젝트명 저장에 실패했어요. 다시 시도해 주세요.",
+      );
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  const handleTitleKeyDown = async (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      await saveProjectTitle();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelTitleEdit();
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -359,17 +434,51 @@ export default function DashboardPage({
       <main className="dashboard">
         <section className="project-head">
           <div className="project-title">
-            <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
-            <button
-              className="icon-button"
-              disabled
-              title="프로젝트명 수정은 곧 사용할 수 있어요."
-              type="button"
-            >
-              ✎
-            </button>
+            {isEditingTitle ? (
+              <div className="project-title-editor">
+                <input
+                  aria-label="프로젝트명 수정"
+                  className="project-title-input"
+                  onChange={(event) => setTitleDraft(event.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  type="text"
+                  value={titleDraft}
+                />
+                <button
+                  className="project-title-save"
+                  disabled={isSavingTitle}
+                  onClick={saveProjectTitle}
+                  type="button"
+                >
+                  {isSavingTitle ? "저장 중" : "저장"}
+                </button>
+                <button
+                  className="project-title-cancel"
+                  disabled={isSavingTitle}
+                  onClick={cancelTitleEdit}
+                  type="button"
+                >
+                  취소
+                </button>
+              </div>
+            ) : (
+              <>
+                <h1>{projectTitle}</h1>
+                <button
+                  className="icon-button project-title-edit"
+                  onClick={startTitleEdit}
+                  title="프로젝트명 수정"
+                  type="button"
+                >
+                  수정
+                </button>
+              </>
+            )}
             <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
+          {titleSaveError ? (
+            <p className="project-title-error">{titleSaveError}</p>
+          ) : null}
           <div className="project-actions">
             <button
               className="button action-secondary"
@@ -676,7 +785,7 @@ export default function DashboardPage({
               </section>
             </div>
 
-            <aside className="side-column">
+            <aside className="side-column sticky-column">
               <section className="panel ai-panel">
                 <h2>AI 근거 요약</h2>
                 {explanationIsFallback && (

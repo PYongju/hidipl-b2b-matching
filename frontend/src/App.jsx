@@ -461,7 +461,7 @@ export default function App() {
   const startNewProject = () => {
     setEditingProjectId("");
     setProjectData({ ...initialProjectData });
-    setScreen("wizard");
+    setScreen("requirements");
   };
 
   const createDraftProject = async (draftData, shouldContinue = false) => {

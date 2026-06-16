@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
+import { fetchProjectMatches } from "../api/apiClient";
+import FlowBottomBar from "../components/FlowBottomBar";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import {
@@ -8,7 +10,10 @@ import {
   updateProject,
 } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
-import { formatProjectSolutions } from "../utils/projectRequestText";
+import {
+  buildQuoteRequestMessage,
+  formatProjectSolutions,
+} from "../utils/projectRequestText";
 
 function shouldRestoreMatchData(projectData) {
   if (!projectData?.projectApiId) return false;
@@ -44,7 +49,7 @@ function parseResponseHours(value) {
   return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 }
 
-const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보/;
 
 function hasRealCaution(filterReasons) {
   return filterReasons.some(
@@ -111,6 +116,17 @@ export default function PartnerMatchingPage({
     projectData.requestTargetIds ?? [],
   );
   const [showAllPartners, setShowAllPartners] = useState(true);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestMessageDrafts, setRequestMessageDrafts] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const [premiumFilter, setPremiumFilter] = useState("all");
+  const [sortKey, setSortKey] = useState("ai");
+  const [showFullList, setShowFullList] = useState(false);
+  const candidates = projectData.candidateVendors ?? [];
+  const partners = useMemo(
+    () => candidates.map(normalizeCandidateVendor),
+    [candidates],
+  );
 
   useEffect(() => {
     setTargetIds(projectData.requestTargetIds ?? []);
@@ -133,8 +149,7 @@ export default function PartnerMatchingPage({
           matchHydrationAttempted: true,
         }));
       })
-      .catch((error) => {
-        console.error("매칭 결과 조회 실패:", error);
+      .catch(() => {
         if (ignore) return;
         onProjectDataChange((current) => ({
           ...current,
@@ -146,6 +161,7 @@ export default function PartnerMatchingPage({
       ignore = true;
     };
   }, [
+    onProjectDataChange,
     projectData.projectApiId,
     projectData.matchId,
     projectData.quoteIds,
@@ -271,6 +287,18 @@ export default function PartnerMatchingPage({
       });
   }, [partners, premiumFilter, searchTerm, showAllPartners, sortKey]);
 
+  useEffect(() => {
+    setShowFullList(false);
+  }, [searchTerm, premiumFilter, sortKey, showAllPartners]);
+
+  const displayedPartners = useMemo(
+    () =>
+      showFullList
+        ? visiblePartners
+        : visiblePartners.slice(0, DEFAULT_VISIBLE_COUNT),
+    [DEFAULT_VISIBLE_COUNT, showFullList, visiblePartners],
+  );
+
   const targetPartners = useMemo(
     () => partners.filter((partner) => targetIds.includes(partner.id)),
     [partners, targetIds],
@@ -299,6 +327,7 @@ export default function PartnerMatchingPage({
       const nextTargetIds =
         typeof updater === "function" ? updater(current) : updater;
       persistRequestTargets(nextTargetIds);
+      notifyAutoSave();
       return nextTargetIds;
     });
   };
@@ -345,14 +374,26 @@ export default function PartnerMatchingPage({
     }));
   };
 
-  const handleGoQuoteWaiting = () => {
-    persistRequestTargets(targetIds);
-    onGoDashboard();
+  const handleRequestDraftChange = (targetId, value) => {
+    if (!targetId) return;
+    setRequestMessageDrafts((current) => ({
+      ...current,
+      [targetId]: value,
+    }));
   };
 
   const handleGoBack = () => {
     persistRequestTargets(targetIds);
     onBack();
+  };
+
+  const handleGoQuoteWaiting = () => {
+    if (targetIds.length === 0) {
+      window.alert("견적 요청 대상을 1개 이상 선택해 주세요.");
+      return;
+    }
+    persistRequestTargets(targetIds);
+    onGoDashboard();
   };
 
   return (
@@ -421,13 +462,23 @@ export default function PartnerMatchingPage({
 
         <section className="partner-notice strong">
           {partners.length === 0
-            ? "공급사 추천 결과를 불러오고 있거나, 아직 추천된 공급사가 없어요."
-            : `공급사 ${partners.length}개를 순위대로 보여드려요. 상위 ${recommendedCount}개는 AI 추천으로 표시하고, 기준 미충족 공급사는 아래에 따로 보여드려요.`}
+            ? "공급사 추천 결과를 불러오고 있어요. 잠시 후 추천된 공급사가 표시됩니다."
+            : `공급사 ${partners.length}개가 순위별로 나열됩니다. 이 중 ${recommendedCount}개는 AI 추천으로 표시되고, 최종 선택은 담당자가 판단해 주세요.`}
         </section>
 
         <section className="partner-layout">
           <div className="partner-table-panel">
-            <div className="partner-tools-top">
+            <div className="partner-section-title partner-section-title-stacked">
+              <div>
+                <h2>추천 공급사 목록</h2>
+                <p>
+                  검토 조건에 맞는 공급사를 선택하고 실제로 필요한 공급사만
+                  선택해 주세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="partner-toolbar-row">
               <input
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="공급사명, 전문 분야 검색"
@@ -449,6 +500,20 @@ export default function PartnerMatchingPage({
                 <option value="response">응답 빠른순</option>
                 <option value="cases">사례 많은순</option>
               </select>
+              <button
+                className="button button-small"
+                onClick={() => setShowAllPartners((current) => !current)}
+                type="button"
+              >
+                {showAllPartners ? "AI 추천 공급사만 보기" : "전체 보기"}
+              </button>
+              <button
+                className="button button-small"
+                onClick={addRecommendedPartners}
+                type="button"
+              >
+                AI 추천 대상 모두 추가
+              </button>
             </div>
 
             <div className="partner-section-title">
@@ -517,7 +582,7 @@ export default function PartnerMatchingPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {visiblePartners.length === 0 ? (
+                  {displayedPartners.length === 0 ? (
                     <tr>
                       <td className="partner-empty-cell" colSpan={10}>
                         <b>{candidateEmptyMessage.title}</b>
@@ -525,7 +590,7 @@ export default function PartnerMatchingPage({
                       </td>
                     </tr>
                   ) : null}
-                  {visiblePartners.map((partner) => {
+                  {displayedPartners.map((partner) => {
                     const isTarget = targetIds.includes(partner.id);
                     return (
                       <tr
@@ -556,8 +621,7 @@ export default function PartnerMatchingPage({
                           </Badge>
                         </td>
                         <td>
-                          {partner.cases >= 5 ? "예" : "아니오"}
-                          {partner.cases ? ` (${partner.cases}건)` : ""}
+                          {partner.cases ? `예 (${partner.cases}건)` : "아니오"}
                         </td>
                         <td>{partner.response}</td>
                         <td>
@@ -595,16 +659,38 @@ export default function PartnerMatchingPage({
                 </tbody>
               </table>
             </div>
+
+            {visiblePartners.length > DEFAULT_VISIBLE_COUNT && (
+              <div className="partner-list-more">
+                <button
+                  className="button action-secondary"
+                  onClick={() => setShowFullList((current) => !current)}
+                  type="button"
+                >
+                  {showFullList
+                    ? "기본 15개만 보기"
+                    : `${visiblePartners.length - DEFAULT_VISIBLE_COUNT}개 더 보기`}
+                </button>
+              </div>
+            )}
           </div>
 
-          <aside className="request-panel">
+          <aside className="request-panel sticky-column">
             <div className="request-card">
               <div className="request-card-head">
                 <div>
                   <h2>요청 발송 대상</h2>
                   <p>선택한 공급사를 최종 확인해요.</p>
                 </div>
-                <div className="request-count-chips">
+                <div className="request-card-actions">
+                  <button
+                    className="button button-small"
+                    disabled={targetPartners.length === 0}
+                    onClick={handleOpenRequestModal}
+                    type="button"
+                  >
+                    요청 문구 복사
+                  </button>
                   <Badge tone="blue">{targetPartners.length}개 대상</Badge>
                 </div>
               </div>
@@ -653,11 +739,6 @@ export default function PartnerMatchingPage({
                 </span>
               ))}
             </div>
-
-            <label className="request-memo">
-              <span>발송 전 메모</span>
-              <textarea placeholder="공급사에 전달할 견적 요청 메모를 입력해 주세요." />
-            </label>
           </aside>
         </section>
       </main>
@@ -706,12 +787,6 @@ function SummaryItem({ label, value }) {
 }
 
 function getCandidateEmptyMessage(status) {
-  if (status === "loading") {
-    return {
-      title: "추천 후보를 불러오고 있어요.",
-      description: "프로젝트 조건을 기준으로 공급사 후보를 찾고 있어요.",
-    };
-  }
   if (status === "empty") {
     return {
       title: "추천 후보가 없어요.",
@@ -734,6 +809,6 @@ function getCandidateEmptyMessage(status) {
   }
   return {
     title: "표시할 공급사가 없어요.",
-    description: "검색어 또는 필터 조건을 조정해 주세요.",
+    description: "검색어나 조건 필터를 조정해 주세요.",
   };
 }

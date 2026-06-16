@@ -1,31 +1,24 @@
-// 6/12 수정
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
-import { formatNumberInput } from "../utils/formatters";
-import SolutionTagPicker from "../components/SolutionTagPicker";
-import { normalizeProjectSolutions } from "../utils/projectRequestText";
 import { EMPTY_PROJECTS } from "../constants/uiText";
 
-const filterOptions = ["전체", "진행 중", "검토 중", "완료"];
+const FILTER_OPTIONS = ["전체", "진행 중", "검토 중", "완료"];
 
 export default function ProjectListPage({
   projects,
   loadError = "",
   onCreate,
-  onCreateDraft,
   onOpenDashboard,
-  onEditProject,
   onDeleteProjects,
   onReloadProjects,
   onGoHome,
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
-  const [openMenuId, setOpenMenuId] = useState("");
+  const [managementMode, setManagementMode] = useState(false);
   const [activeFilter, setActiveFilter] = useState("전체");
   const [searchTerm, setSearchTerm] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [draft, setDraft] = useState(() => getEmptyDraft());
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const completedCount = projects.filter(
     (project) => normalizeStatus(project.status) === "완료",
@@ -36,20 +29,44 @@ export default function ProjectListPage({
   const reviewCount = projects.filter(
     (project) => normalizeStatus(project.status) === "검토 중",
   ).length;
-  const filteredProjects = projects.filter((project) => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const projectId = String(project.id ?? "");
-    const projectName = String(project.name ?? "");
-    const matchesSearch =
-      !normalizedSearch ||
-      projectId.toLowerCase().includes(normalizedSearch) ||
-      projectName.toLowerCase().includes(normalizedSearch);
 
-    if (!matchesSearch) return false;
-    if (activeFilter === "전체") return true;
-    return normalizeStatus(project.status) === activeFilter;
-  });
-  const canSubmitDraft = true;
+  const filteredProjects = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return projects.filter((project) => {
+      const projectId = String(project.id ?? "");
+      const projectName = String(project.name ?? "");
+      const matchesSearch =
+        !normalizedSearch ||
+        projectId.toLowerCase().includes(normalizedSearch) ||
+        projectName.toLowerCase().includes(normalizedSearch);
+
+      if (!matchesSearch) return false;
+      if (activeFilter === "전체") return true;
+      return normalizeStatus(project.status) === activeFilter;
+    });
+  }, [activeFilter, projects, searchTerm]);
+
+  const selectedCount = selectedIds.length;
+  const visibleProjectIds = filteredProjects.map((project) => project.id);
+  const allVisibleSelected =
+    visibleProjectIds.length > 0 &&
+    visibleProjectIds.every((projectId) => selectedIds.includes(projectId));
+
+  const openCreatePage = () => {
+    onCreate?.();
+  };
+
+  const enterManagementMode = () => {
+    setManagementMode(true);
+    setSelectedIds([]);
+  };
+
+  const exitManagementMode = () => {
+    setManagementMode(false);
+    setSelectedIds([]);
+    setDeleteTarget(null);
+  };
 
   const toggleSelected = (projectId) => {
     setSelectedIds((current) =>
@@ -59,39 +76,46 @@ export default function ProjectListPage({
     );
   };
 
-  const deleteSelected = () => {
-    onDeleteProjects(selectedIds);
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelectedIds((current) =>
+        current.filter((id) => !visibleProjectIds.includes(id)),
+      );
+      return;
+    }
+
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      visibleProjectIds.forEach((projectId) => next.add(projectId));
+      return Array.from(next);
+    });
+  };
+
+  const handleCardClick = (projectId) => {
+    if (managementMode) {
+      toggleSelected(projectId);
+      return;
+    }
+
+    onOpenDashboard(projectId);
+  };
+
+  const requestDelete = () => {
+    if (selectedCount === 0) return;
+
+    setDeleteTarget({
+      count: selectedCount,
+      ids: selectedIds,
+    });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+
+    onDeleteProjects(deleteTarget.ids);
+    setDeleteTarget(null);
     setSelectedIds([]);
-  };
-
-  const openCreateDrawer = () => {
-    const emptyDraft = getEmptyDraft();
-    setDraft(emptyDraft);
-    if (onCreateDraft) {
-      onCreateDraft(emptyDraft, true);
-    } else {
-      onCreate?.();
-    }
-  };
-
-  const closeCreateDrawer = () => {
-    setDrawerOpen(false);
-  };
-
-  const updateDraft = (field, value) => {
-    setDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
-
-  const submitDraft = (shouldContinue) => {
-    if (onCreateDraft) {
-      onCreateDraft(draft, shouldContinue);
-    } else {
-      onCreate?.();
-    }
-    setDrawerOpen(false);
+    setManagementMode(false);
   };
 
   return (
@@ -108,19 +132,19 @@ export default function ProjectListPage({
           </>
         }
       />
+
       <main className="flow-main">
         <section className="flow-hero">
           <div>
             <p>프로젝트 히스토리</p>
             <h1>프로젝트 목록</h1>
             <span>
-              진행 중인 견적 검토와 완료된 선정 이력을 프로젝트 단위로
-              관리해요.
+              진행 중인 견적 검토와 완료된 선정 이력을 프로젝트 단위로 관리해요.
             </span>
           </div>
           <button
             className="button action-primary"
-            onClick={openCreateDrawer}
+            onClick={openCreatePage}
             type="button"
           >
             {EMPTY_PROJECTS.cta}
@@ -161,13 +185,14 @@ export default function ProjectListPage({
           </div>
         )}
 
-        <section className="project-tools">
+        <section className={`project-tools${managementMode ? " management-mode" : ""}`}>
           <input
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="프로젝트명 또는 ID 검색"
             value={searchTerm}
           />
-          {filterOptions.map((filter) => (
+
+          {FILTER_OPTIONS.map((filter) => (
             <button
               className={`chip ${activeFilter === filter ? "active" : ""}`}
               key={filter}
@@ -177,93 +202,108 @@ export default function ProjectListPage({
               {filter}
             </button>
           ))}
-          <button
-            className="chip danger-chip"
-            disabled={selectedIds.length === 0}
-            onClick={deleteSelected}
-            type="button"
-          >
-            선택 삭제
-          </button>
-          <button
-            className="chip danger-chip"
-            disabled={projects.length === 0}
-            onClick={() => {
-              onDeleteProjects(projects.map((project) => project.id));
-              setSelectedIds([]);
-            }}
-            type="button"
-          >
-            전체 삭제
-          </button>
-        </section>
 
-        <section className="project-card-grid">
-          {filteredProjects.map((project) => (
-            <article className="history-card" key={project.id}>
-              <div className="history-card-top">
-                <label className="project-select-check">
-                  <input
-                    checked={selectedIds.includes(project.id)}
-                    onChange={() => toggleSelected(project.id)}
-                    type="checkbox"
-                  />
-                  <span>{project.id}</span>
-                </label>
-                <Badge tone={project.statusTone}>
-                  {normalizeStatus(project.status)}
-                </Badge>
-                <button
-                  className="project-more-button"
-                  onClick={() =>
-                    setOpenMenuId(openMenuId === project.id ? "" : project.id)
-                  }
-                  type="button"
-                  aria-label={`${project.name} 메뉴`}
-                >
-                  ...
-                </button>
-                {openMenuId === project.id && (
-                  <div className="project-menu">
-                    <button
-                      onClick={() => onEditProject(project)}
-                      type="button"
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={() => onDeleteProjects([project.id])}
-                      type="button"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                )}
-              </div>
+          {!managementMode ? (
+            <button
+              className="chip danger-chip"
+              disabled={projects.length === 0}
+              onClick={enterManagementMode}
+              type="button"
+            >
+              관리
+            </button>
+          ) : (
+            <>
               <button
-                className="history-card-main"
-                onClick={() => onOpenDashboard(project.id)}
+                className="chip"
+                disabled={filteredProjects.length === 0}
+                onClick={toggleSelectAllVisible}
                 type="button"
               >
-                <h2>{readable(project.name, "새 프로젝트")}</h2>
-                <p>{readable(project.desc, "요구사항 정리 중")}</p>
+                {allVisibleSelected ? "전체 선택 해제" : "전체 선택"}
               </button>
-              <div className="history-meta">
-                {project.meta.map((item) => (
-                  <Badge tone="gray" key={item}>
-                    {readable(item, "미정")}
+              <button
+                className="chip danger-chip"
+                disabled={selectedCount === 0}
+                onClick={requestDelete}
+                type="button"
+              >
+                {selectedCount}개 삭제
+              </button>
+              <button className="chip" onClick={exitManagementMode} type="button">
+                취소
+              </button>
+            </>
+          )}
+        </section>
+
+        {managementMode && (
+          <div className="project-selection-guide" role="status">
+            <strong>삭제할 항목을 선택하세요.</strong>
+          </div>
+        )}
+
+        <section className="project-card-grid">
+          {filteredProjects.map((project) => {
+            const isSelected = selectedIds.includes(project.id);
+
+            return (
+              <article
+                className={`history-card ${managementMode ? "selection-mode" : ""} ${isSelected ? "selected" : ""}`}
+                key={project.id}
+                onClick={() => handleCardClick(project.id)}
+              >
+                <div className="history-card-top">
+                  {managementMode ? (
+                    <label
+                      className="project-select-check"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        checked={isSelected}
+                        onChange={() => toggleSelected(project.id)}
+                        type="checkbox"
+                      />
+                      <span>{project.id}</span>
+                    </label>
+                  ) : (
+                    <span className="project-card-id">{project.id}</span>
+                  )}
+                  <Badge tone={project.statusTone}>
+                    {normalizeStatus(project.status)}
                   </Badge>
-                ))}
-              </div>
-            </article>
-          ))}
+                </div>
+
+                <button
+                  className="history-card-main"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleCardClick(project.id);
+                  }}
+                  type="button"
+                >
+                  <h2>{readable(project.name, "미입력 프로젝트")}</h2>
+                  <p>{readable(project.desc, "요구사항")}</p>
+                </button>
+
+                <div className="history-meta">
+                  {project.meta.map((item) => (
+                    <Badge tone="gray" key={item}>
+                      {readable(item, "미정")}
+                    </Badge>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
+
           {filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
               <p>{EMPTY_PROJECTS.message}</p>
               <span>{EMPTY_PROJECTS.hint}</span>
               <button
                 className="button action-primary"
-                onClick={openCreateDrawer}
+                onClick={openCreatePage}
                 type="button"
               >
                 {EMPTY_PROJECTS.cta}
@@ -273,212 +313,58 @@ export default function ProjectListPage({
         </section>
       </main>
 
-      {drawerOpen && (
-        <div className="quick-create-layer" role="presentation">
+      {deleteTarget && (
+        <div className="confirm-delete-backdrop" role="presentation">
           <button
-            className="quick-create-backdrop"
-            onClick={closeCreateDrawer}
+            aria-label="삭제 확인 닫기"
+            className="confirm-delete-dismiss"
+            onClick={() => setDeleteTarget(null)}
             type="button"
-            aria-label="새 프로젝트 생성 닫기"
           />
-          <aside className="quick-create-drawer" aria-label="새 프로젝트 생성">
-            <header className="quick-create-header">
-              <div>
-                <p>신규 프로젝트</p>
-                <h2>새 프로젝트 생성</h2>
-              </div>
-              <button
-                className="drawer-close"
-                onClick={closeCreateDrawer}
-                type="button"
-                aria-label="닫기"
-              >
-                ×
-              </button>
-            </header>
-
-            <div className="quick-create-body">
-              <section className="quick-create-section">
-                <div className="quick-create-section-title">
-                  <span>1</span>
-                  <strong>필수 정보</strong>
-                </div>
-                <label>
-                  <span>회사명 *</span>
-                  <input
-                    onChange={(event) =>
-                      updateDraft("companyName", event.target.value)
-                    }
-                    placeholder="예: Microsoft"
-                    value={draft.companyName}
-                  />
-                </label>
-                <label>
-                  <span>설치 위치/주소 *</span>
-                  <input
-                    onChange={(event) =>
-                      updateDraft("location", event.target.value)
-                    }
-                    placeholder="예: 수원사업장 본관 로비"
-                    value={draft.location}
-                  />
-                </label>
-                <label>
-                  <span>프로젝트 일정</span>
-                  <input
-                    onChange={(event) =>
-                      updateDraft("projectDate", event.target.value)
-                    }
-                    type="date"
-                    value={draft.projectDate}
-                  />
-                </label>
-                <label>
-                  <span>활용 용도/디스플레이 요구 *</span>
-                  <textarea
-                    onChange={(event) =>
-                      updateDraft("usage", event.target.value)
-                    }
-                    placeholder="활용 용도, 설치 환경, 화면 크기, 운영 조건 등을 간단히 적어주세요."
-                    value={draft.usage}
-                  />
-                </label>
-                <label>
-                  <span>현재 단계</span>
-                  <select
-                    onChange={(event) =>
-                      updateDraft("currentStage", event.target.value)
-                    }
-                    value={draft.currentStage}
-                  >
-                    <option>요구사항</option>
-                    <option>파트너 매칭</option>
-                    <option>견적 수신</option>
-                    <option>견적 검토</option>
-                  </select>
-                </label>
-              </section>
-
-              <section className="quick-create-section">
-                <div className="quick-create-section-title">
-                  <span>2</span>
-                  <strong>추가 설정</strong>
-                </div>
-                <label>
-                  <span>발주처 유형</span>
-                  <select
-                    onChange={(event) =>
-                      updateDraft("clientType", event.target.value)
-                    }
-                    value={draft.clientType}
-                  >
-                    <option>기업</option>
-                    <option>공공기관</option>
-                    <option>병원/학교</option>
-                    <option>리테일/상업공간</option>
-                  </select>
-                </label>
-                <div className="quick-create-solution-field">
-                  <span>솔루션</span>
-                  <SolutionTagPicker
-                    onChange={(solutions) => updateDraft("solutions", solutions)}
-                    value={normalizeProjectSolutions(draft)}
-                  />
-                </div>
-                <label>
-                  <span>예산 범위</span>
-                  <input
-                    inputMode="numeric"
-                    onChange={(event) =>
-                      updateDraft(
-                        "budgetAmount",
-                        formatNumberInput(event.target.value),
-                      )
-                    }
-                    placeholder="예: 120,000,000"
-                    value={draft.budgetAmount}
-                  />
-                </label>
-                <div className="quick-create-field">
-                  <span>우선 검토 프리셋</span>
-                  <div className="quick-preset-grid">
-                    {["균형 추천", "최저가 우선", "납기 우선", "A/S 우선"].map(
-                      (preset) => (
-                        <button
-                          className={
-                            draft.reviewPreset === preset
-                              ? "quick-preset active"
-                              : "quick-preset"
-                          }
-                          key={preset}
-                          onClick={() => updateDraft("reviewPreset", preset)}
-                          type="button"
-                        >
-                          {preset}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <footer className="quick-create-footer">
+          <section
+            aria-labelledby="confirm-delete-title"
+            aria-modal="true"
+            className="confirm-delete-modal"
+            role="dialog"
+          >
+            <p>삭제 확인</p>
+            <h2 id="confirm-delete-title">
+              선택한 {deleteTarget.count}개 프로젝트를 삭제할까요?
+            </h2>
+            <span>삭제 후에는 되돌릴 수 없습니다.</span>
+            <div className="confirm-delete-actions">
               <button
                 className="button"
-                onClick={closeCreateDrawer}
+                onClick={() => setDeleteTarget(null)}
                 type="button"
               >
                 취소
               </button>
               <button
-                className="button"
-                disabled={!canSubmitDraft}
-                onClick={() => submitDraft(false)}
+                className="button action-danger"
+                onClick={confirmDelete}
                 type="button"
               >
-                임시 저장
+                삭제
               </button>
-              <button
-                className="button action-primary"
-                disabled={!canSubmitDraft}
-                onClick={() => submitDraft(true)}
-                type="button"
-              >
-                생성하고 계속
-              </button>
-            </footer>
-          </aside>
+            </div>
+          </section>
         </div>
       )}
     </div>
   );
 }
 
-function getEmptyDraft() {
-  return {
-    companyName: "",
-    location: "",
-    projectName: "",
-    projectDate: "",
-    usage: "",
-    currentStage: "요구사항",
-    clientType: "기업",
-    solutions: [],
-    budgetAmount: "",
-    reviewPreset: "균형 추천",
-  };
-}
-
 function normalizeStatus(value) {
-  if (value === "완료" || String(value).includes("완료")) return "완료";
-  if (String(value).includes("검토")) return "검토 중";
-  if (String(value).includes("진행")) return "진행 중";
+  const text = String(value ?? "");
+  if (text.includes("완료")) return "완료";
+  if (text.includes("검토")) return "검토 중";
+  if (text.includes("진행")) return "진행 중";
   return readable(value, "진행 중");
 }
 
 function readable(value, fallback) {
   const text = String(value ?? "").trim();
-  if (!text || /[�]/.test(text) || /[?]{2,}/.test(text)) return fallback;
+  if (!text || /[?]{2,}/.test(text)) return fallback;
   return text;
 }
