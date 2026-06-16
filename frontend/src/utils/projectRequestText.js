@@ -1,6 +1,6 @@
 const REQUEST_TEXT_FIELD_MAP = {
   "프로젝트명": "projectName",
-  "활용 용도": "usage",
+  "사용 용도": "usage",
   "디스플레이 크기": "displaySize",
   "수량": "quantity",
   "운영 시간": "operationTime",
@@ -30,7 +30,7 @@ function parseSolutionsValue(value) {
   const text = normalizeRequestValue(value);
   if (!text) return [];
   return text
-    .split(/[,、]/)
+    .split(/[,/]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -61,21 +61,21 @@ function normalizeRequestValue(value) {
 
 function inferDisplayUnit(displaySize = "") {
   if (/인치|inch/i.test(displaySize)) return "inch";
-  const unitMatch = displaySize?.match(/\b(mm|cm|m)\b/i);
+  const unitMatch = displaySize.match(/\b(mm|cm|m)\b/i);
   return unitMatch?.[1]?.toLowerCase() || "mm";
 }
 
 function parseDisplayInch(displaySize = "") {
-  const match = displaySize?.match(/([\d,.]+)\s*(?:인치|inch)/i);
+  const match = displaySize.match(/([\d,.]+)\s*(?:인치|inch)/i);
   return match?.[1] || "";
 }
 
 function parseDisplayDimension(displaySize = "", axis) {
   const axisPattern = axis === "width" ? /W\s*([\d,.]+)/i : /H\s*([\d,.]+)/i;
-  const axisMatch = displaySize?.match(axisPattern);
+  const axisMatch = displaySize.match(axisPattern);
   if (axisMatch?.[1]) return axisMatch[1];
 
-  const pairMatch = displaySize?.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
+  const pairMatch = displaySize.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
   if (!pairMatch) return "";
   return axis === "width" ? pairMatch[1] : pairMatch[2];
 }
@@ -188,7 +188,7 @@ export function buildProjectRequestText(data) {
 
   return [
     `프로젝트명: ${data.projectName || "미입력"}`,
-    `활용 용도: ${data.usage || "미입력"}`,
+    `사용 용도: ${data.usage || "미입력"}`,
     `디스플레이 크기: ${displaySizeText || "미입력"}`,
     `수량: ${data.quantity || "미입력"}`,
     `운영 시간: ${data.operationTime || "미입력"}`,
@@ -198,6 +198,55 @@ export function buildProjectRequestText(data) {
     `우선 검토 기준: ${data.reviewPreset || "미입력"}`,
     `추가 요청사항: ${data.otherConditions || "없음"}`,
     `첨부 메모: ${data.attachmentMemo || "없음"}`,
+  ].join("\n");
+}
+
+function formatBudgetForMessage(value) {
+  const normalized = normalizeRequestValue(value);
+  return normalized ? `${normalized}원` : null;
+}
+
+function buildQuoteReplyChecklist() {
+  return [
+    "▪ 모델명 / 주요 사양",
+    "▪ 수량 기준 단가 및 총액",
+    "▪ 설치 / 배송 포함 여부",
+    "▪ 예상 납기",
+    "▪ A/S 및 보증 조건",
+  ];
+}
+
+export function buildQuoteRequestMessage(data, options = {}) {
+  const vendorName = normalizeRequestValue(options.vendorName) || "[업체명]";
+  const solutions = formatProjectSolutions(data, "");
+  const lines = [
+    ["프로젝트명", normalizeRequestValue(data.projectName)],
+    ["고객사", normalizeRequestValue(data.companyName)],
+    ["설치 위치", normalizeRequestValue(data.location)],
+    ["희망 일정", normalizeRequestValue(data.projectDate)],
+    ["사용 용도", normalizeRequestValue(data.usage)],
+    ["희망 제품군", solutions || null],
+    ["디스플레이 크기", normalizeRequestValue(data.displaySize)],
+    ["수량", normalizeRequestValue(data.quantity)],
+    ["운영 시간", normalizeRequestValue(data.operationTime)],
+    ["예산 범위", formatBudgetForMessage(data.budgetAmount)],
+    ["추가 요청사항", normalizeRequestValue(data.otherConditions)],
+    ["첨부 / 참고자료", normalizeRequestValue(data.attachmentMemo)],
+  ]
+    .filter(([, value]) => Boolean(value))
+    .map(([label, value]) => `▪ ${label}: ${value}`);
+
+  return [
+    `안녕하세요 ${vendorName} 님`,
+    "하이디플레이를 통해 견적 요청드립니다.",
+    "",
+    ...lines,
+    "",
+    "가능하시다면 아래 항목을 포함해 회신 부탁드립니다.",
+    ...buildQuoteReplyChecklist(),
+    "",
+    "내용 확인 후 견적 회신 부탁드립니다.",
+    "감사합니다.",
   ].join("\n");
 }
 
