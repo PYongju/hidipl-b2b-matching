@@ -1,0 +1,37 @@
+{
+  "timestamp": "20260616_153013",
+  "trap": {
+    "violation_rate_primary": 0.125,
+    "total_llm": 8,
+    "violations_raw": 1,
+    "postprocess_corrected_count": 0,
+    "postprocess_correction_rate": 0.0,
+    "violation_rate_final": 0.125,
+    "final_total": 8,
+    "final_violations": 1,
+    "partial_fallback_records": 0,
+    "raw_output_missing_count": 0,
+    "fallback_rate": 0.0,
+    "fallback_by_provider": {},
+    "template_provider_count": 0,
+    "config_errors": 0,
+    "total_records": 8
+  },
+  "clean": {
+    "violation_rate_primary": 0.25,
+    "total_llm": 8,
+    "violations_raw": 2,
+    "postprocess_corrected_count": 0,
+    "postprocess_correction_rate": 0.0,
+    "violation_rate_final": 0.25,
+    "final_total": 8,
+    "final_violations": 2,
+    "partial_fallback_records": 0,
+    "raw_output_missing_count": 0,
+    "fallback_rate": 0.0,
+    "fallback_by_provider": {},
+    "template_provider_count": 0,
+    "config_errors": 0,
+    "total_records": 8
+  }
+}

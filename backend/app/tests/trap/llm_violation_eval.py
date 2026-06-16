@@ -106,7 +106,8 @@ def evaluate(eval_dataset, settings) -> dict:
     # 안정성/폴백(별도 보고) --------------------------------------------------
     raw_output_missing_count = 0      # raw가 None이라 주 지표에서 제외된 전체 건수
     fallback_by_provider = Counter()  # provider 종류별 폴백 건수
-    config_errors = 0                 # azure_openai인데 raw=None 등 비정상(0이어야 정상)
+    config_errors = 0
+    records = []                 # azure_openai인데 raw=None 등 비정상(0이어야 정상)
 
     # 폴백 실패 유형 분리(옵션 B: provider 의 metadata["fallback_error_type"] 기준) ----------
     json_parse_failed_count = 0
@@ -116,6 +117,8 @@ def evaluate(eval_dataset, settings) -> dict:
     for rec in eval_dataset:
         result = provider.generate(rec)
         raw = result.raw_llm_output
+        qid = rec.items[0].quote_id if rec.items else "?"
+
 
         # --- raw 없는 케이스: 주 지표에서 제외(방안 A) ---
         if raw is None:
@@ -146,6 +149,16 @@ def evaluate(eval_dataset, settings) -> dict:
                     f"[CONFIG WARNING] 분류되지 않은 provider={result.provider!r}, raw=None "
                     f"(request_id={result.request_id})."
                 )
+
+            records.append({              
+                "quote_id": qid,
+                "raw_violation": None,
+                "final_violation": None,
+                "provider": result.provider,
+                "raw_output": None,
+                "note": "raw_missing",
+            })
+
             continue
 
         # --- 주 지표 (방안 A) ---
@@ -165,6 +178,14 @@ def evaluate(eval_dataset, settings) -> dict:
         # --- 후처리 보정(가림) 측정: raw 위반인데 final 클린 ---
         if raw_viol and not final_viol:
             postprocess_corrected_count += 1
+        
+        records.append({
+            "quote_id": qid,
+            "raw_violation": raw_viol,
+            "final_violation": final_viol,
+            "provider": result.provider,
+            "raw_output": raw,
+        })
 
     # --- 비율 계산: 분모 0 방어 ---
     total_records = total_llm + raw_output_missing_count  # 처리한 전체 건수(generator 안전)
@@ -200,6 +221,7 @@ def evaluate(eval_dataset, settings) -> dict:
         "config_errors": config_errors,  # 0이 아니면 평가 설정 점검 필요
         # 메타 ------------------------------------------------------------
         "total_records": total_records,
+        "records": records,
     }
 
 

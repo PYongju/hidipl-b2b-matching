@@ -9,6 +9,7 @@ trap_injection_verify 가 get_normal_result(qid) 로 호출한다.
 """
 import json
 import os
+from dataclasses import fields
 
 from services.recommendation.schemas import (
     RecommendationItem,
@@ -16,15 +17,20 @@ from services.recommendation.schemas import (
 )
 
 _DIR = os.path.join(os.path.dirname(__file__), "baselines")
+_ITEM_FIELDS = {fd.name for fd in fields(RecommendationItem)}
 
+
+def _filter_item(d: dict) -> dict:
+    """RecommendationItem 이 모르는 필드(예: product_group)는 조용히 떨어낸다."""
+    return {k: v for k, v in d.items() if k in _ITEM_FIELDS}
 
 def get_normal_result(qid: str) -> RecommendationPipelineResult:
     path = os.path.join(_DIR, f"{qid}.json")
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
 
-    items = [RecommendationItem(**it) for it in d["items"]]
-    all_items = [RecommendationItem(**it) for it in d.get("all_items", d["items"])]
+    items = [RecommendationItem(**_filter_item(it)) for it in d["items"]]
+    all_items = [RecommendationItem(**_filter_item(it)) for it in d.get("all_items", d["items"])]
     return RecommendationPipelineResult(
         request_id=d.get("request_id"),
         customer_name=d.get("customer_name"),
