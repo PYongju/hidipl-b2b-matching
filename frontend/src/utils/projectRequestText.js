@@ -202,20 +202,21 @@ export function buildProjectRequestText(data) {
 }
 
 /**
- * 카톡으로 공급사(파트너)에게 바로 붙여넣어 보낼 견적 요청 문구를 만든다.
- * 업체명은 [업체명] placeholder로 두고, 사용자가 발송 직전 직접 수정한다.
+ * 카톡으로 파트너사에게 바로 붙여넣어 보낼 견적 요청 문구를 만든다.
+ * 업체명과 수수료는 [업체명], [수수료] placeholder로 두고, 사용자가 발송 직전 직접 수정한다.
  * 값이 비어 있는 항목은 문구에서 제외한다.
  */
 export function buildQuoteRequestMessage(data) {
   const solutions = formatProjectSolutions(data, "");
   const lines = [
+    ["수수료 모델", "[수수료]"],
     ["고객사", normalizeRequestValue(data.companyName)],
     ["솔루션", solutions || null],
-    ["설치 장소", normalizeRequestValue(data.location)],
-    ["설치 일정", normalizeRequestValue(data.projectDate)],
     ["디스플레이 크기", normalizeRequestValue(data.displaySize)],
     ["수량", normalizeRequestValue(data.quantity)],
     ["운영 시간", normalizeRequestValue(data.operationTime)],
+    ["설치 장소", normalizeRequestValue(data.location)],
+    ["설치 일정", normalizeRequestValue(data.projectDate)],
     ["추가 요청사항", normalizeRequestValue(data.otherConditions)],
   ]
     .filter(([, value]) => Boolean(value))
@@ -223,7 +224,7 @@ export function buildQuoteRequestMessage(data) {
 
   return [
     "안녕하세요 [업체명] 님",
-    "하이디플레이를 통해 견적 요청 드립니다.",
+    "신규 프로젝트 연결해드립니다.",
     "",
     ...lines,
     "",
