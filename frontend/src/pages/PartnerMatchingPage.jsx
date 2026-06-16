@@ -2,7 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
+import { fetchProjectMatches } from "../api/apiClient";
+import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { formatProjectSolutions } from "../utils/projectRequestText";
+
+function shouldRestoreMatchData(projectData) {
+  if (!projectData?.projectApiId) return false;
+  if (projectData.matchHydrationAttempted) return false;
+
+  const hasQuoteIds =
+    Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
+  const hasExplanationSource = Boolean(
+    projectData.matchId ||
+    projectData.cachedExplanation ||
+    projectData.matchResult,
+  );
+
+  return !hasQuoteIds || !hasExplanationSource;
+}
 
 function normalizeSimilarityScore(value) {
   if (typeof value !== "number") return 0;
@@ -80,6 +97,45 @@ export default function PartnerMatchingPage({
   useEffect(() => {
     setTargetIds(projectData.requestTargetIds ?? []);
   }, [projectData.requestTargetIds]);
+
+  useEffect(() => {
+    let ignore = false;
+    const apiProjectId = projectData.projectApiId;
+
+    if (!apiProjectId || !shouldRestoreMatchData(projectData)) {
+      return undefined;
+    }
+
+    fetchProjectMatches(apiProjectId)
+      .then((matchesResponse) => {
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          ...buildHydratedProjectFields(matchesResponse, current),
+          matchHydrationAttempted: true,
+        }));
+      })
+      .catch((error) => {
+        console.error("매칭 결과 조회 실패:", error);
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          matchHydrationAttempted: true,
+        }));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    projectData.projectApiId,
+    projectData.matchId,
+    projectData.quoteIds,
+    projectData.cachedExplanation,
+    projectData.matchResult,
+    projectData.matchHydrationAttempted,
+  ]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [premiumFilter, setPremiumFilter] = useState("all");
   const [sortKey, setSortKey] = useState("ai");
