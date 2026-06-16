@@ -63,7 +63,7 @@ export default function SolutionTagPicker({
       >
         <option value="">
           {availableOptions.length === 0 && selected.length > 0
-            ? "선택 가능한 솔루션이 없습니다"
+            ? "선택할 수 있는 솔루션이 없어요"
             : "솔루션 선택"}
         </option>
         {availableOptions.map((tag) => (

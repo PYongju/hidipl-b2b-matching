@@ -210,7 +210,12 @@ export default function DashboardPage({
   const getStatusBadge = (status) => {
     const statusUi = getStatusUi(status);
     if (!statusUi) return null;
-    return <Badge tone={statusUi.tone}>{statusUi.badge}</Badge>;
+    // parseFail 등 원인 보조문구(note)가 있으면 배지 툴팁으로 노출 (가이드 §4 #2)
+    return (
+      <Badge tone={statusUi.tone} title={statusUi.note}>
+        {statusUi.badge}
+      </Badge>
+    );
   };
 
   const getSupplierCostBadge = (supplier, key, label) => {

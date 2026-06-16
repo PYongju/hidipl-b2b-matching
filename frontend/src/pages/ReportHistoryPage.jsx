@@ -1,4 +1,3 @@
-import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 
 const historyItems = [
@@ -14,14 +13,14 @@ const historyItems = [
     title: "요청 대상 저장",
     time: "2025-04-28 11:05",
     actor: "김담당자",
-    detail: "AI 추천 결과 검토 후 파트너 5개 확정",
+    detail: "AI 추천 결과 검토 후 공급사 5개 확정",
   },
   {
     type: "요청",
     title: "견적 요청 발송",
     time: "2025-04-28 11:12",
     actor: "김담당자",
-    detail: "A Display 외 4개 업체에 요청 발송",
+    detail: "A Display 외 4개 공급사에 요청 발송",
   },
   {
     type: "수신",
@@ -64,7 +63,7 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
-              <small>구매팀</small>
+              <small>구매검토팀</small>
             </div>
           </>
         }
@@ -82,7 +81,7 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
           </article>
           <article>
             <span>담당자</span>
-            <strong>김담당자 · 구매팀</strong>
+            <strong>김담당자 · 구매검토팀</strong>
           </article>
         </section>
 
@@ -91,7 +90,7 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
             <div className="report-panel-title">
               <div>
                 <h2>고객 보고서 미리보기</h2>
-                <p>고객에게 공유할 비교 결과와 최종 추천 사유를 확인합니다.</p>
+                <p>고객에게 공유할 비교 결과와 최종 추천 사유를 확인해요.</p>
               </div>
               <button className="button button-small" type="button">보고서 문구 수정</button>
             </div>
@@ -105,7 +104,7 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
                 <h1>{projectName}</h1>
                 <p>
                   상업용 디스플레이 구축 프로젝트의 수신 견적서를 비교하고,
-                  가격·납기·유지보수·유사 사례를 기준으로 최종 추천 업체를 선정했습니다.
+                  가격·납기·유지보수·유사 사례를 기준으로 최종 추천 공급사를 선정했어요.
                 </p>
               </header>
 
@@ -113,35 +112,35 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
                 <div>
                   <h3>비교 요약</h3>
                   <p>
-                    견적 요청 업체 5개 중 3개 업체가 견적서를 제출했습니다.
-                    3개 업체 모두 필수 디스플레이 사양을 충족했으며, 가격과 납기 조건에서 차이가 있었습니다.
+                    견적 요청 공급사 5개 중 3개 공급사가 견적서를 제출했어요.
+                    3개 공급사 모두 필수 디스플레이 사양을 충족했고, 가격과 납기 조건에서 차이가 있었어요.
                   </p>
                 </div>
                 <div>
                   <h3>최종 추천 요약</h3>
                   <p>
                     A Display는 최저가는 아니지만 6주 납기, 2년 무상 유지보수,
-                    유사 구축 사례 12건을 바탕으로 가장 안정적인 수행 가능성을 보였습니다.
+                    유사 구축 사례 12건을 바탕으로 가장 안정적인 수행 가능성을 보였어요.
                   </p>
                 </div>
                 <div>
                   <h3>선택 사유</h3>
                   <p>
                     로비 리모델링 일정과 연계된 프로젝트 특성상 단순 최저가보다
-                    납기 안정성과 유지보수 대응력을 우선 고려했습니다.
+                    납기 안정성과 유지보수 대응력을 우선 고려했어요.
                   </p>
                 </div>
                 <div>
                   <h3>주의사항</h3>
                   <p>
-                    현장 실사 이후 설치 방식과 세부 모델이 변경될 수 있습니다.
-                    최종 계약 전 설치 일정과 CMS 포함 범위를 다시 확인해야 합니다.
+                    현장 실사 이후 설치 방식과 세부 모델이 변경될 수 있어요.
+                    최종 계약 전에 설치 일정과 CMS 포함 범위를 다시 확인해 주세요.
                   </p>
                 </div>
               </section>
 
               <section className="final-vendor-callout">
-                <b>최종 선정 업체: A Display</b>
+                <b>최종 선정 공급사: A Display</b>
                 <span>총 견적 금액 96,800,000원 · 납기 6주 · 무상 유지보수 2년 · 유사 구축 사례 12건</span>
               </section>
 
@@ -188,7 +187,7 @@ export default function ReportHistoryPage({ projectData, onBack, onGoProjects })
             <div className="report-panel-title">
               <div>
                 <h2>히스토리 타임라인</h2>
-                <p>프로젝트 주요 이벤트와 수정 이력을 확인합니다.</p>
+                <p>프로젝트 주요 이벤트와 수정 이력을 확인해요.</p>
               </div>
             </div>
 
