@@ -410,6 +410,7 @@ class ProjectUpdateRequest(BaseModel):
     deadline: str | None = None
     request_text: str | None = None
     workflow_status: str | None = None
+    requested_vendor_ids: list[str] | None = None
 
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
@@ -439,7 +440,29 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
                 "project_id": project_id,
             }
         )
+
+        if body.requested_vendor_ids is not None:
+            cv_row = db.execute(
+                text(
+                    "SELECT candidate_vendor_id FROM candidate_vendors "
+                    "WHERE project_id = :project_id ORDER BY created_at DESC LIMIT 1"
+                ),
+                {"project_id": project_id},
+            ).fetchone()
+            if cv_row:
+                db.execute(
+                    text(
+                        "UPDATE candidate_vendors SET requested_vendor_ids_json = :ids "
+                        "WHERE candidate_vendor_id = :candidate_vendor_id"
+                    ),
+                    {
+                        "ids": json.dumps(body.requested_vendor_ids, ensure_ascii=False),
+                        "candidate_vendor_id": cv_row.candidate_vendor_id,
+                    },
+                )
+                
         db.commit()
+
         return {
             "ok": True,
             "data": {

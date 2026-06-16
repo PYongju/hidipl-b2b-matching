@@ -85,6 +85,7 @@ class CandidateVendorRecord:
     top_n: int
     similarity_threshold: float
     executed_at: str
+    requested_vendor_ids: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
 

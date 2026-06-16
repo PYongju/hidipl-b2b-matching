@@ -572,6 +572,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 candidate_vendor_result_json,
                 selected_vendor_names_json,
                 requested_vendor_names_json,
+                requested_vendor_ids_json,
                 top_n,
                 similarity_threshold,
                 executed_at,
@@ -583,6 +584,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 :candidate_vendor_result_json,
                 :selected_vendor_names_json,
                 :requested_vendor_names_json,
+                :requested_vendor_ids_json,
                 :top_n,
                 :similarity_threshold,
                 :executed_at,
@@ -593,6 +595,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 candidate_vendor_result_json = VALUES(candidate_vendor_result_json),
                 selected_vendor_names_json = VALUES(selected_vendor_names_json),
                 requested_vendor_names_json = VALUES(requested_vendor_names_json),
+                requested_vendor_ids_json = VALUES(requested_vendor_ids_json),
                 top_n = VALUES(top_n),
                 similarity_threshold = VALUES(similarity_threshold),
                 executed_at = VALUES(executed_at)
@@ -606,6 +609,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 ),
                 "selected_vendor_names_json": _json_dumps(record.selected_vendor_names),
                 "requested_vendor_names_json": _json_dumps(record.requested_vendor_names),
+                "requested_vendor_ids_json": _json_dumps(record.requested_vendor_ids),
                 "top_n": record.top_n,
                 "similarity_threshold": record.similarity_threshold,
                 "executed_at": _to_db_datetime(record.executed_at),
@@ -626,6 +630,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 candidate_vendor_result_json,
                 selected_vendor_names_json,
                 requested_vendor_names_json,
+                requested_vendor_ids_json,
                 top_n,
                 similarity_threshold,
                 executed_at,
@@ -646,6 +651,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             return None
         selected = _json_loads(row.selected_vendor_names_json) or []
         requested = _json_loads(row.requested_vendor_names_json) or []
+        requested_ids = _json_loads(row.requested_vendor_ids_json) or []
         return deserialize_candidate_vendor_record(
             {
                 "candidate_vendor_id": row.candidate_vendor_id,
@@ -656,6 +662,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                 "selected_vendor_count": len(selected),
                 "requested_vendor_names": requested,
                 "requested_vendor_count": len(requested),
+                "requested_vendor_ids": requested_ids,
                 "top_n": row.top_n or 10,
                 "similarity_threshold": float(row.similarity_threshold or 60.0),
                 "executed_at": _date_to_iso(row.executed_at),
