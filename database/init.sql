@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS candidate_vendors (
     candidate_vendor_id         VARCHAR(64)    NOT NULL,
     project_id                  VARCHAR(64)    NOT NULL,
     requirement_result_json     JSON           NULL,                  -- RequirementIngestionResult 직렬화
+    requested_vendor_ids_json   JSON           NULL,                  -- list[str]
     candidate_vendor_result_json JSON          NOT NULL,              -- PartnerMatchingResult 직렬화
     selected_vendor_names_json  JSON           NULL,                  -- list[str]
     requested_vendor_names_json JSON           NULL,                  -- list[str]
