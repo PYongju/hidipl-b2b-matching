@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from unittest import result
 from services.api_demo import routers as demo_routers
+from services.api_demo.store import store as demo_store
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from typing import List
@@ -431,6 +432,77 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
             "data": {
                 "project_id": project_id,
                 "updated_at": datetime.now().isoformat(),
+            },
+            "error": None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# [P12] 후보 공급사 미기재 필드 수정
+class CandidateVendorUpdateRequest(BaseModel):
+    response_speed: str | None = None
+    financial_status: str | None = None
+    company_location: str | None = None
+    installation_count: int | None = None
+
+@router.patch("/projects/{project_id}/candidate-vendors/{vendor_name}")
+async def update_candidate_vendor(
+    project_id: str,
+    vendor_name: str,
+    body: CandidateVendorUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    try:
+        row = db.execute(
+            text(
+                "SELECT candidate_vendor_id, candidate_vendor_result_json "
+                "FROM candidate_vendors WHERE project_id = :project_id "
+                "ORDER BY created_at DESC LIMIT 1"
+            ),
+            {"project_id": project_id},
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="후보 공급사 데이터가 없습니다.")
+
+        result_json = json.loads(row.candidate_vendor_result_json)
+        candidates = result_json.get("all_candidates", [])
+
+        target = next(
+            (c for c in candidates if c.get("partner_name") == vendor_name),
+            None,
+        )
+        if target is None:
+            raise HTTPException(status_code=404, detail=f"'{vendor_name}' 공급사를 찾을 수 없습니다.")
+
+        update_fields = body.model_dump(exclude_none=True)
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
+
+        target.update(update_fields)
+
+        db.execute(
+            text(
+                "UPDATE candidate_vendors SET candidate_vendor_result_json = :result_json "
+                "WHERE candidate_vendor_id = :candidate_vendor_id"
+            ),
+            {
+                "result_json": json.dumps(result_json, ensure_ascii=False),
+                "candidate_vendor_id": row.candidate_vendor_id,
+            },
+        )
+        db.commit()
+
+        demo_store.update_candidate_vendor_fields(project_id, vendor_name, update_fields)
+
+        return {
+            "ok": True,
+            "data": {
+                "project_id": project_id,
+                "vendor_name": vendor_name,
+                "updated_fields": update_fields,
             },
             "error": None,
         }
