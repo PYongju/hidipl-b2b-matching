@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS projects (
     internal_notes          JSON          DEFAULT NULL,
     created_at              DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status                  VARCHAR(32)   NOT NULL DEFAULT 'created',
+    workflow_status         VARCHAR(32)   DEFAULT NULL,              -- 견적 수집/매칭 진행 상황 (예: 'quotes_collected', 'matching_completed')
     company_name            VARCHAR(256)  DEFAULT NULL,
     location                VARCHAR(256)  DEFAULT NULL,
     deadline                VARCHAR(64)   DEFAULT NULL,
