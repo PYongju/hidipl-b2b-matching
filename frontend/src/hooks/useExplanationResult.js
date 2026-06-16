@@ -28,7 +28,7 @@ function useExplanationResult(projectData, suppliers) {
   const apiParamError = useMemo(() => {
     if (forcedState || cachedExplanation || awaitingHydration) return null;
     if (!projectId || !matchId) {
-      return new Error("AI 근거 조회에 필요한 project_id 또는 match_id가 없습니다.");
+      return new Error("AI 근거를 불러올 준비가 아직 안 됐어요. 이전 단계를 다시 확인해 주세요.");
     }
     return null;
   }, [awaitingHydration, cachedExplanation, forcedState, matchId, projectId]);
@@ -98,7 +98,7 @@ function useExplanationResult(projectData, suppliers) {
     projectData.explanationErrorMessage ??
     apiParamError?.message ??
     apiState.error?.message ??
-    "AI 근거 요약을 불러오지 못했습니다.";
+    "AI 근거 요약을 불러오지 못했어요.";
 
   const explanation = useMemo(() => {
     if (explanationState === "error") {

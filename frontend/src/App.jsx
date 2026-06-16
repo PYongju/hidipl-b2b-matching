@@ -220,7 +220,7 @@ export default function App() {
 
       if (!items) {
         console.error("프로젝트 목록 응답 형식 오류:", list);
-        setProjectsLoadError("프로젝트 목록 응답 형식이 올바르지 않습니다.");
+        setProjectsLoadError("프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
         setProjects([]);
         return [];
       }
@@ -276,9 +276,9 @@ export default function App() {
       return mappedProjects;
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
+      // 기술 상세(에러 원인·서버 주소)는 콘솔로만, 사용자에겐 행동 중심 문구 (가이드 §9 #9)
       setProjectsLoadError(
-        error.message
-        || "프로젝트 목록을 불러오지 못했습니다. 백엔드(http://localhost:8000)가 실행 중인지 확인해주세요.",
+        "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
       setProjects([]);
       return [];
