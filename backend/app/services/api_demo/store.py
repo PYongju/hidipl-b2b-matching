@@ -16,6 +16,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+ALLOWED_CANDIDATE_VENDOR_UPDATE_FIELDS = {
+    "response_speed",
+    "financial_status",
+    "company_location",
+    "installation_count",
+}
+
 
 def _load_app_env() -> None:
     if load_dotenv is None:
@@ -296,6 +303,48 @@ class ApiDemoStore:
             self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
         return record
 
+    def update_candidate_vendor_fields(
+        self,
+        project_id: str,
+        vendor_name: str,
+        update_fields: dict,
+    ) -> bool:
+        record = self.get_candidate_vendors(project_id)
+        if record is None:
+            return False
+
+        candidates = []
+        seen_ids = set()
+        for candidate_list in _iter_candidate_lists(record.candidate_vendor_result):
+            for candidate in candidate_list:
+                candidate_id = id(candidate)
+                if candidate_id in seen_ids:
+                    continue
+                seen_ids.add(candidate_id)
+                candidates.append(candidate)
+
+        matched = [
+            candidate
+            for candidate in candidates
+            if _candidate_vendor_name_matches(candidate, vendor_name)
+        ]
+        if not matched:
+            return False
+
+        allowed_updates = {
+            key: value
+            for key, value in (update_fields or {}).items()
+            if key in ALLOWED_CANDIDATE_VENDOR_UPDATE_FIELDS
+        }
+        for candidate in matched:
+            for key, value in allowed_updates.items():
+                if hasattr(candidate, key):
+                    setattr(candidate, key, value)
+            metadata = getattr(candidate, "metadata", None)
+            if isinstance(metadata, dict) and allowed_updates:
+                metadata.setdefault("manual_update", {}).update(allowed_updates)
+        return True
+
     def restore_project_record(self, record: ProjectRecord) -> None:
         self.projects[record.project_id] = record
         self._sync_lazy_hydration_marker(record)
@@ -339,6 +388,40 @@ class ApiDemoStore:
             self.lazy_hydration_project_ids.add(record.project_id)
         else:
             self.lazy_hydration_project_ids.discard(record.project_id)
+
+
+def _iter_candidate_lists(candidate_vendor_result: Any) -> list[list[Any]]:
+    lists = []
+    for attr in [
+        "all_candidates",
+        "candidates",
+        "selected_candidates",
+        "filtered_candidates",
+        "candidate_vendors",
+    ]:
+        value = getattr(candidate_vendor_result, attr, None)
+        if isinstance(value, list):
+            lists.append(value)
+    return lists
+
+
+def _candidate_vendor_name_matches(candidate: Any, vendor_name: str) -> bool:
+    target = _normalize_vendor_name(vendor_name)
+    if not target:
+        return False
+    metadata = getattr(candidate, "metadata", None)
+    metadata = metadata if isinstance(metadata, dict) else {}
+    names = [
+        getattr(candidate, "partner_name", None),
+        getattr(candidate, "vendor_name", None),
+        metadata.get("partner_name"),
+        metadata.get("vendor_name"),
+    ]
+    return any(_normalize_vendor_name(name) == target for name in names)
+
+
+def _normalize_vendor_name(value: Any) -> str:
+    return str(value or "").strip().lower().replace(" ", "")
 
 
 def _create_default_persistence():
