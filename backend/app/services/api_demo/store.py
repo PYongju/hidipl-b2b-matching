@@ -82,10 +82,10 @@ class CandidateVendorRecord:
     selected_vendor_count: int
     requested_vendor_names: list[str]
     requested_vendor_count: int
-    requested_vendor_ids: list[str] = field(default_factory=list)
     top_n: int
     similarity_threshold: float
     executed_at: str
+    requested_vendor_ids: list[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
 
