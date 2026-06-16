@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
-import { formatProjectSolutions } from "../utils/projectRequestText";
+import QuoteRequestModal from "../components/QuoteRequestModal";
+import {
+  buildQuoteRequestMessage,
+  formatProjectSolutions,
+} from "../utils/projectRequestText";
 
 function normalizeSimilarityScore(value) {
   if (typeof value !== "number") return 0;
@@ -76,6 +80,7 @@ export default function PartnerMatchingPage({
 }) {
   const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
   const [showAllPartners, setShowAllPartners] = useState(true);
+  const [showRequestModal, setShowRequestModal] = useState(false);
 
   useEffect(() => {
     setTargetIds(projectData.requestTargetIds ?? []);
@@ -199,6 +204,16 @@ export default function PartnerMatchingPage({
   const handleGoQuoteWaiting = () => {
     persistRequestTargets(targetIds);
     onGoDashboard();
+  };
+
+  const requestMessage = useMemo(
+    () => buildQuoteRequestMessage(projectData),
+    [projectData],
+  );
+
+  const handleOpenRequestModal = () => {
+    persistRequestTargets(targetIds);
+    setShowRequestModal(true);
   };
 
   const handleGoBack = () => {
@@ -464,22 +479,29 @@ export default function PartnerMatchingPage({
           </button>
           <button
             className="button button-blue"
-            disabled
-            title="요청 대상 저장은 곧 사용할 수 있어요."
+            onClick={handleGoQuoteWaiting}
             type="button"
           >
-            요청 대상 저장
+            견적서 자동업로드
           </button>
           <button
             className="button action-primary"
             disabled={targetPartners.length === 0}
-            onClick={handleGoQuoteWaiting}
+            onClick={handleOpenRequestModal}
             type="button"
           >
             견적 요청 발송
           </button>
         </div>
       </footer>
+
+      {showRequestModal && (
+        <QuoteRequestModal
+          message={requestMessage}
+          targetNames={targetPartners.map((partner) => partner.name)}
+          onClose={() => setShowRequestModal(false)}
+        />
+      )}
     </div>
   );
 }
