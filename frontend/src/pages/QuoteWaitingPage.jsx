@@ -1,9 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
+import { fetchProjectMatches } from "../api/apiClient";
+import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
+
+function shouldRestoreMatchData(projectData) {
+  if (!projectData?.projectApiId) return false;
+  if (projectData.matchHydrationAttempted) return false;
+
+  const hasQuoteIds =
+    Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
+  const hasExplanationSource = Boolean(
+    projectData.matchId ||
+    projectData.cachedExplanation ||
+    projectData.matchResult,
+  );
+
+  return !hasQuoteIds || !hasExplanationSource;
+}
 
 export default function QuoteWaitingPage({
   projectData,
@@ -22,6 +39,44 @@ export default function QuoteWaitingPage({
     () => resolveRequestTargets(projectData),
     [projectData],
   );
+
+  useEffect(() => {
+    let ignore = false;
+    const apiProjectId = projectData.projectApiId;
+
+    if (!apiProjectId || !shouldRestoreMatchData(projectData)) {
+      return undefined;
+    }
+
+    fetchProjectMatches(apiProjectId)
+      .then((matchesResponse) => {
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          ...buildHydratedProjectFields(matchesResponse, current),
+          matchHydrationAttempted: true,
+        }));
+      })
+      .catch((error) => {
+        console.error("매칭 결과 조회 실패:", error);
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          matchHydrationAttempted: true,
+        }));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    projectData.projectApiId,
+    projectData.matchId,
+    projectData.quoteIds,
+    projectData.cachedExplanation,
+    projectData.matchResult,
+    projectData.matchHydrationAttempted,
+  ]);
 
   const updateFiles = (files) => {
     setSelectedFiles(files);
