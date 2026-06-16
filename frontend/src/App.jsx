@@ -250,7 +250,7 @@ export default function App() {
               ...parsedFields,
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -275,13 +275,21 @@ export default function App() {
               },
             };
           }
-          // 기존 lastScreen 보존
+          // 기존 로컬 전용 필드 보존 (서버에 저장되지 않는 프론트 상태)
+          const localOnlyFields = {};
           if (existing?.data?.lastScreen) {
+            localOnlyFields.lastScreen = existing.data.lastScreen;
+          }
+          if (existing?.data?.requestTargetIds?.length > 0) {
+            localOnlyFields.requestTargetIds = existing.data.requestTargetIds;
+            localOnlyFields.requestTargets = existing.data.requestTargets ?? [];
+          }
+          if (Object.keys(localOnlyFields).length > 0) {
             return {
               ...mapped,
               data: {
                 ...mapped.data,
-                lastScreen: existing.data.lastScreen,
+                ...localOnlyFields,
               },
             };
           }

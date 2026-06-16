@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
-import { fetchProjectMatches, getCandidateVendors } from "../api/apiClient";
+import { fetchProjectMatches, getCandidateVendors, updateProject } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { formatProjectSolutions } from "../utils/projectRequestText";
 
@@ -166,19 +166,48 @@ export default function PartnerMatchingPage({
 
     getCandidateVendors(apiProjectId)
       .then((response) => {
+        const payload = response?.data?.data ?? response?.data ?? response;
         const vendors =
-          response?.candidate_vendors ??
+          payload?.candidate_vendors ??
+          response?.data?.data?.candidate_vendors ??
           response?.data?.candidate_vendors ??
+          response?.candidate_vendors ??
+          [];
+        const requestedVendorIds =
+          payload?.requested_vendor_ids ??
+          response?.data?.data?.requested_vendor_ids ??
+          response?.data?.requested_vendor_ids ??
+          response?.requested_vendor_ids ??
           [];
         console.log("candidate-vendors 응답:", response); // ← 여기
         console.log("vendors 배열:", vendors);
-        if (vendors.length > 0) {
-          onProjectDataChange((current) => ({
-            ...current,
-            candidateVendors: vendors,
-            candidateVendorsLoaded: true,
-          }));
-        }
+        onProjectDataChange((current) => {
+          const next = { ...current };
+          let changed = false;
+
+          if (vendors.length > 0 && !(current.candidateVendors?.length > 0)) {
+            next.candidateVendors = vendors;
+            next.candidateVendorsLoaded = true;
+            changed = true;
+          }
+
+          const currentTargetIds = current.requestTargetIds ?? [];
+          if (
+            requestedVendorIds.length > 0 &&
+            currentTargetIds.length === 0
+          ) {
+            const vendorSource =
+              vendors.length > 0 ? vendors : current.candidateVendors ?? [];
+            const partnerList = vendorSource.map(normalizeCandidateVendor);
+            next.requestTargetIds = requestedVendorIds;
+            next.requestTargets = partnerList.filter((partner) =>
+              requestedVendorIds.includes(partner.id),
+            );
+            changed = true;
+          }
+
+          return changed ? next : current;
+        });
       })
       .catch(() => {});
   }, [projectData.projectApiId]);
@@ -256,6 +285,12 @@ export default function PartnerMatchingPage({
         nextTargetIds.includes(partner.id),
       ),
     }));
+    const apiProjectId = projectData.projectApiId;
+    if (apiProjectId) {
+      updateProject(apiProjectId, { requested_vendor_ids: nextTargetIds }).catch(
+        () => {},
+      );
+    }
   };
 
   const updateRequestTargets = (updater) => {
