@@ -234,11 +234,22 @@ def run_match(project_id: str, payload: MatchRunRequest) -> dict[str, Any]:
 
 def get_matches(project_id: str, product_group: str | None = None) -> dict[str, Any]:
     project = _require_project(project_id)
-    quote_pool = _require_quote_pool(project_id)
     match = store.get_latest_match(project_id)
     if match is None:
         raise KeyError("match 결과가 없습니다.")
+    quote_pool = store.get_quote_pool(project_id)
     selected_product_group = canonicalize_product_group(product_group)
+    quote_pool_response = None
+    quote_count = 0
+    failed_files: list[Any] = []
+    if quote_pool is not None:
+        quote_count = len(quote_pool.quote_ingestion_results)
+        failed_files = quote_pool.failed_files
+        quote_pool_response = {
+            "quote_pool_id": quote_pool.quote_pool_id,
+            "quote_count": quote_count,
+            "failed_files": failed_files,
+        }
 
     return {
         "project_id": project_id,
@@ -250,11 +261,12 @@ def get_matches(project_id: str, product_group: str | None = None) -> dict[str, 
             "deadline": project.deadline,
         },
         "requirement": build_project_response(project),
-        "quote_pool": {
-            "quote_pool_id": quote_pool.quote_pool_id,
-            "quote_count": len(quote_pool.quote_ingestion_results),
-            "failed_files": quote_pool.failed_files,
-        },
+        "quote_pool": quote_pool_response,
+        "quote_count": quote_count,
+        "quotes": [],
+        "quote_ingestion_results": [],
+        "uploaded_files": [],
+        "failed_files": failed_files,
         "recommendation": _select_recommendation_response(
             match.recommendation_result,
             selected_product_group,
@@ -268,6 +280,11 @@ def get_matches(project_id: str, product_group: str | None = None) -> dict[str, 
             if match.explanation_result is not None
             else None
         ),
+        "metadata": {
+            "quote_pool_available": quote_pool is not None,
+            "quote_pool_missing": quote_pool is None,
+            "recommendation_source": "match_result_snapshot",
+        },
     }
 
 
@@ -361,14 +378,22 @@ def _stored_recommendation_groups_response(
         if not group_result:
             continue
         recommendation = build_recommendation_response(group_result)
+        group_metadata = (
+            group_result.get("metadata", {}) or {}
+            if isinstance(group_result, dict)
+            else getattr(group_result, "metadata", {}) or {}
+        )
+        group_all_items = (
+            group_result.get("all_items", []) or []
+            if isinstance(group_result, dict)
+            else getattr(group_result, "all_items", []) or []
+        )
         groups.append(
             {
                 "product_group": group_name,
-                "quote_count": (
-                    group_result.get("metadata", {}) or {}
-                ).get(
+                "quote_count": group_metadata.get(
                     "product_group_quote_count",
-                    len(group_result.get("all_items", []) or []),
+                    len(group_all_items),
                 ),
                 "recommendation": recommendation,
                 "explanation": stored_explanations.get(group_name),
