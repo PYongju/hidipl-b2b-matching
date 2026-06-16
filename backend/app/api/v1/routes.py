@@ -162,6 +162,19 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+# [P2-1-GET] 파트너 후보 추천 결과 조회
+@router.get("/projects/{project_id}/candidate-vendors")
+async def get_candidate_vendors_result(project_id: str):
+    try:
+        result = demo_routers.get_candidate_vendors(project_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="후보 공급사 데이터가 없습니다.")
+        return {"ok": True, "data": result, "error": None}
+    except HTTPException:
+        raise
+    except KeyError:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
 #[P2-1] 파트너 후보 추천
 @router.post("/projects/{project_id}/candidate-vendors")
 async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, db: Session = Depends(get_db)):
