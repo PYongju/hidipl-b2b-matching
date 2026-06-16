@@ -1,4 +1,3 @@
-import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 
 const historyItems = [
