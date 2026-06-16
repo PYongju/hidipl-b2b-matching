@@ -344,7 +344,7 @@ async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Se
 async def list_projects(db: Session = Depends(get_db)):
     try:
         rows = db.execute(
-            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects ORDER BY created_at DESC")
+            text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at FROM projects ORDER BY created_at DESC")
         ).fetchall()
         return {
             "ok": True,
@@ -352,6 +352,7 @@ async def list_projects(db: Session = Depends(get_db)):
                 {
                     "project_id": row.project_id,
                     "status": row.status,
+                    "workflow_status": row.workflow_status,
                     "company_name": row.company_name,
                     "location": row.location,
                     "deadline": row.deadline,
@@ -394,6 +395,7 @@ class ProjectUpdateRequest(BaseModel):
     location: str | None = None
     deadline: str | None = None
     request_text: str | None = None
+    workflow_status: str | None = None
 
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
@@ -410,7 +412,8 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
                     company_name = COALESCE(:company_name, company_name),
                     location = COALESCE(:location, location),
                     deadline = COALESCE(:deadline, deadline),
-                    request_text = COALESCE(:request_text, request_text)
+                    request_text = COALESCE(:request_text, request_text),
+                    workflow_status = COALESCE(:workflow_status, workflow_status)
                 WHERE project_id = :project_id
             """),
             {
@@ -418,6 +421,7 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
                 "location": body.location,
                 "deadline": body.deadline,
                 "request_text": body.request_text,
+                "workflow_status": body.workflow_status,
                 "project_id": project_id,
             }
         )
@@ -441,7 +445,7 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
 async def get_project(project_id: str, db: Session = Depends(get_db)):
     try:
         row = db.execute(
-            text("SELECT project_id, status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
+            text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
             {"project_id": project_id}
         ).fetchone()
         if row is None:
@@ -451,6 +455,7 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
             "data": {
                 "project_id": row.project_id,
                 "status": row.status,
+                "workflow_status": row.workflow_status,
                 "company_name": row.company_name,
                 "location": row.location,
                 "deadline": row.deadline,
