@@ -168,7 +168,7 @@ async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, d
         payload = CandidateVendorsRequest(top_n=body.quote_top_n)
         result = demo_routers.run_candidate_vendors(project_id, payload)
         db.execute(
-            text("UPDATE projects SET status = 'partner_matched' WHERE project_id = :project_id"),
+            text("UPDATE projects SET status = 'partner_matching' WHERE project_id = :project_id"),
             {"project_id": project_id}
         )
         db.commit()
