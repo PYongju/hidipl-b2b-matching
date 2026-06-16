@@ -482,7 +482,7 @@ export default function PartnerMatchingPage({
             onClick={handleGoQuoteWaiting}
             type="button"
           >
-            견적서 자동업로드
+            견적서 수동업로드
           </button>
           <button
             className="button action-primary"

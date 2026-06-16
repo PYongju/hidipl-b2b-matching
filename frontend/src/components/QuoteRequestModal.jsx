@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * 견적 요청 문구를 보여주고, 카톡에 바로 붙여넣어 전달할 수 있게 복사하는 팝업.
- * 업체명([업체명])만 수정해서 파트너사에 발송하면 된다.
+ * 업체명([업체명])만 수정해서 공급사에 발송하면 된다.
  */
 export default function QuoteRequestModal({ message, targetNames = [], onClose }) {
   const [copied, setCopied] = useState(false);
@@ -49,7 +49,7 @@ export default function QuoteRequestModal({ message, targetNames = [], onClose }
         <div className="quote-request-header">
           <div>
             <p>카톡 견적 요청</p>
-            <h2>이 문구를 복사해 파트너사에 보내세요</h2>
+            <h2>이 문구를 복사해 공급사에 보내세요</h2>
           </div>
           <button
             className="quote-request-close"
