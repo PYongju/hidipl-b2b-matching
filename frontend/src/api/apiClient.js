@@ -19,12 +19,12 @@ async function request(endpoint, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(getApiErrorMessage(payload, "API request failed"));
+    throw new Error(getApiErrorMessage(payload, "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."));
   }
 
   if (payload && typeof payload === "object" && "ok" in payload) {
     if (!payload.ok) {
-      throw new Error(getApiErrorMessage(payload, "API request failed"));
+      throw new Error(getApiErrorMessage(payload, "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."));
     }
     return payload.data;
   }
@@ -39,7 +39,7 @@ async function parseJson(response) {
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error("API response is not valid JSON");
+    throw new Error("응답을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
   }
 }
 

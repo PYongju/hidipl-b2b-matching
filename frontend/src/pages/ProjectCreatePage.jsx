@@ -80,7 +80,7 @@ export default function ProjectCreatePage({
       <main className="wizard-layout">
         <aside className="wizard-nav">
           <h1>새 프로젝트 생성</h1>
-          <p>3단계로 AI 견적 비교를 시작합니다.</p>
+          <p>3단계로 AI 견적 비교를 시작해요.</p>
           {steps.map(([title, desc], index) => {
             const current = index + 1;
             return (
@@ -102,7 +102,7 @@ export default function ProjectCreatePage({
           {step === 1 && (
             <div className="wizard-content">
               <h2>프로젝트 기본 정보</h2>
-              <p>발주사와 프로젝트 일정을 입력합니다.</p>
+              <p>발주사와 프로젝트 일정을 입력해요.</p>
               <div className="form-grid">
                 <label>
                   <span>회사명 *</span>
@@ -146,10 +146,10 @@ export default function ProjectCreatePage({
                     onChange={(event) => updateProject("currentStage", event.target.value)}
                     value={projectData.currentStage}
                   >
-                    <option>정보 탐색</option>
-                    <option>견적 수집 중</option>
-                    <option>비교 검토 중</option>
-                    <option>발주 직전</option>
+                    <option>요구사항</option>
+                    <option>파트너 매칭</option>
+                    <option>견적 수신</option>
+                    <option>견적 검토</option>
                   </select>
                 </label>
               </div>
@@ -159,7 +159,7 @@ export default function ProjectCreatePage({
           {step === 2 && (
             <div className="wizard-content">
               <h2>고객 요구사항</h2>
-              <p>공급사 비교에 필요한 스펙, 예산, 우선순위를 정리합니다.</p>
+              <p>공급사 비교에 필요한 스펙, 예산, 우선순위를 정리해요.</p>
               <div className="form-grid">
                 <label>
                   <span>디스플레이 크기</span>
@@ -226,7 +226,7 @@ export default function ProjectCreatePage({
           {step === 3 && (
             <div className="wizard-content">
               <h2>견적서 업로드</h2>
-              <p>공급사별 견적서를 한 번에 또는 하나씩 첨부할 수 있습니다. 선택한 파일은 아래 목록에 쌓입니다.</p>
+              <p>공급사별 견적서를 한 번에 또는 하나씩 첨부할 수 있어요. 선택한 파일은 아래 목록에 쌓여요.</p>
               <label className="drop-zone upload-drop-zone">
                 <input
                   accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
@@ -239,7 +239,7 @@ export default function ProjectCreatePage({
               </label>
               <div className="uploaded-list">
                 {uploadedFiles.length === 0 ? (
-                  <div className="empty-file-row">아직 업로드된 견적서가 없습니다.</div>
+                  <div className="empty-file-row">아직 업로드된 견적서가 없어요.</div>
                 ) : (
                   uploadedFiles.map((file) => (
                     <div className="file-row" key={`${file.name}-${file.lastModified}-${file.size}`}>

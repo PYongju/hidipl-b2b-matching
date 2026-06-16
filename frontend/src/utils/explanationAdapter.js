@@ -36,13 +36,13 @@ function createExplanationViewModel(response, suppliers = []) {
       rank: item.rank ?? supplier.rank ?? index + 1,
       strengths: formatList(item.strengths, supplier.strengths),
       vendorName: item.vendor_name ?? supplier.name ?? `공급사 ${index + 1}`,
-      weaknesses: formatList(item.weaknesses, supplier.weakness),
+      weaknesses: formatList(item.weaknesses, supplier.weakness ?? "특이 단점 없음"),
     };
   });
 
   return {
     isFallback: isExplanationFallback(response),
-    overallSummary: response?.overall_summary ?? "AI 근거 요약을 준비 중입니다.",
+    overallSummary: response?.overall_summary ?? "AI 근거 요약을 준비하고 있어요.",
     provider: response?.provider ?? response?.metadata?.provider ?? "unknown",
     supplierExplanations,
     warnings: response?.warnings ?? [],

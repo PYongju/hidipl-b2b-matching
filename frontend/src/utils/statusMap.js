@@ -10,12 +10,19 @@ const API_CELL_STATUSES = [
   "parse_failed",
 ];
 
+// 가이드 §4 상태 단어 정리: 범례(색=의미 1:1)에 셀 배지를 맞춤
+// orange=확인 필요, red=수정 필요, gray=검토 필요. 원인(추출 실패)은 note로 분리.
 const CELL_STATUS_UI = {
   included: { badge: "포함", tone: "green", cellClass: "included" },
   separate: { badge: "별도 청구", tone: "gray", cellClass: "separate" },
   missing: { badge: "미기재", tone: "gray", cellClass: "missing" },
-  toBeDiscussed: { badge: "검토 필요", tone: "orange", cellClass: "toBeDiscussed" },
-  parseFail: { badge: "OCR 분석 실패", tone: "red", cellClass: "parseFail" },
+  toBeDiscussed: { badge: "확인 필요", tone: "orange", cellClass: "toBeDiscussed" },
+  parseFail: {
+    badge: "수정 필요",
+    tone: "red",
+    cellClass: "parseFail",
+    note: "견적서에서 값을 읽지 못했어요. 원본을 확인한 뒤 입력해 주세요.",
+  },
 };
 
 const HIGHLIGHT_UI = {
@@ -48,7 +55,7 @@ const API_STATUS_TO_UI_STATUS = {
   "별도 청구": "separate",
   별도: "separate",
   "확인 필요": "toBeDiscussed",
-  "검토 필요": "toBeDiscussed",
+  "검토 필요": "needsReview",
   "파싱 실패": "parseFail",
   "OCR 분석 실패": "parseFail",
   "수정 필요": "parseFail",

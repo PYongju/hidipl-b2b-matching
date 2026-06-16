@@ -5,7 +5,7 @@ const moneyFormatter = new Intl.NumberFormat("ko-KR");
 const sectionDefs = [
   {
     id: "requiredInfo",
-    title: "섹션 0 · 회사 정보",
+    title: "회사 정보",
     defaultOpen: true,
     rows: [
       { label: "업력", path: ["company_info", "company_age_years"], format: (value) => withUnit(value, "년") },
@@ -16,7 +16,7 @@ const sectionDefs = [
   },
   {
     id: "hardware",
-    title: "섹션 1 · 하드웨어 항목",
+    title: "하드웨어 항목",
     defaultOpen: true,
     rows: [
       { label: "스크린 크기(mm)", path: ["hardware", "screen_size_mm"] },
@@ -24,14 +24,14 @@ const sectionDefs = [
       { label: "Type", path: ["hardware", "type"] },
       { label: "Pixel Pitch", path: ["hardware", "pixel_pitch"] },
       { label: "소비전력(kW)", path: ["hardware", "power_consumption_kw"] },
-      { label: "밝기(cd/m2)", path: ["hardware", "brightness_cd_m2"] },
+      { label: "밝기(cd/m²)", path: ["hardware", "brightness_cd_m2"] },
       { label: "Refresh Rate", path: ["hardware", "refresh_rate"] },
       { label: "무상 유지보수 기간", path: ["hardware", "free_maintenance_period"] },
     ],
   },
   {
     id: "quoteItems",
-    title: "섹션 2 · 견적 항목별 금액",
+    title: "견적 항목별 금액",
     defaultOpen: false,
     rows: [
       { label: "디스플레이 H/W", costKey: "display_hw" },
@@ -46,7 +46,7 @@ const sectionDefs = [
   },
   {
     id: "conditions",
-    title: "섹션 3 · 기타 조건",
+    title: "기타 조건",
     defaultOpen: false,
     rows: [
       { label: "납기", path: ["conditions", "delivery"], highlight: "is_fastest_delivery" },
@@ -142,7 +142,7 @@ function toSupplier(row, index, vendorMeta) {
     fit: hasScore ? Math.round(score) : "-",
     fitClass: hasScore && score >= 80 ? "fit-good" : "fit-warn",
     recommended: isRecommended,
-    submitted: hasParseIssue ? "OCR 일부 실패 · 수정 필요" : "제출 완료",
+    submitted: hasParseIssue ? "일부 항목 수정 필요" : "제출 완료",
     badges: getSupplierBadges(row),
     strengths: getStrengths(row),
     weakness: getWeakness(row),
@@ -166,8 +166,9 @@ function toComparisonRow(rowDef, rows) {
 function getCostCell(row, costKey) {
   const item = row.cost_breakdown?.[costKey];
   const status = normalizeApiStatus(item?.status);
+  // 추출 실패 셀: 값은 "-"로 두고 배지("수정 필요")와 보조 안내로 원인을 전달
   return {
-    value: status === "parseFail" ? "OCR 분석 실패" : formatCostValue(item),
+    value: status === "parseFail" ? "-" : formatCostValue(item),
     status,
   };
 }
@@ -265,7 +266,7 @@ function filterRowsByQuoteIds(rows, quoteIds = []) {
 }
 
 function getVendorName(row) {
-  return row.vendor_name || row.vendor_snapshot?.vendor_name || "업체명 확인 필요";
+  return row.vendor_name || row.vendor_snapshot?.vendor_name || "공급사명 확인 필요";
 }
 
 function getVendorCounts(rows) {
@@ -301,7 +302,8 @@ function getStrengths(row) {
 
 function getWeakness(row) {
   const issues = [...(row.check_required ?? []), ...(row.rule_warnings ?? [])];
-  return issues.length > 0 ? issues.join(", ") : "-";
+  // 단점이 없을 때 빈칸/하이픈을 "양호"로 오해하지 않도록 명시 (가이드 #13)
+  return issues.length > 0 ? issues.join(", ") : "특이 단점 없음";
 }
 
 export { createCompareViewModel };

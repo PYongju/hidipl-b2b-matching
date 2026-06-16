@@ -10,7 +10,7 @@ function normalizeSimilarityScore(value) {
 }
 
 function normalizeResponseSpeed(value) {
-  if (typeof value === "number") return `${value}h`;
+  if (typeof value === "number") return `${value}시간`;
   return value ?? "미확인";
 }
 
@@ -31,7 +31,7 @@ function hasRealCaution(filterReasons) {
 function normalizeCandidateVendor(raw, index) {
   const filterReasons = raw.filter_reasons ?? [];
   const checkRequired = raw.check_required ?? [];
-  const vendorName = raw.vendor_name ?? raw.partner_name ?? raw.name ?? `업체 ${index + 1}`;
+  const vendorName = raw.vendor_name ?? raw.partner_name ?? raw.name ?? `공급사 ${index + 1}`;
   const caseCount =
     raw.installation_count ??
     raw.case_count ??
@@ -47,7 +47,7 @@ function normalizeCandidateVendor(raw, index) {
   const defaultReason =
     checkRequired.join(", ") ||
     filterReasons.join(", ") ||
-    (businessRulePassed ? "요구사항 기준 추천 가능 업체" : "추천 기준 미충족");
+    (businessRulePassed ? "요구사항 기준 추천 가능 공급사" : "추천 기준 미충족");
 
   return {
     id: raw.vendor_id ?? raw.vendor_name ?? raw.partner_id ?? raw.partner_name ?? `partner-${index}`,
@@ -63,7 +63,7 @@ function normalizeCandidateVendor(raw, index) {
     businessRulePassed,
     recommended: businessRulePassed && rank <= 10,
     caution,
-    reason: caution ? "이전에 [납기 지연] 발생했던 업체입니다." : defaultReason,
+    reason: caution ? "이전에 납기 지연이 있었던 공급사예요." : defaultReason,
   };
 }
 
@@ -219,7 +219,7 @@ export default function PartnerMatchingPage({
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
-              <small>구매팀</small>
+              <small>구매검토팀</small>
             </div>
           </>
         }
@@ -252,8 +252,8 @@ export default function PartnerMatchingPage({
 
         <section className="partner-notice strong">
           {partners.length === 0
-            ? "파트너 추천 결과를 불러오는 중이거나 아직 추천된 업체가 없습니다."
-            : `파트너 ${partners.length}개를 순위대로 표시합니다. 상위 ${recommendedCount}개는 AI 추천으로 표시하고, 기준 미충족 업체는 아래에 분리됩니다.`}
+            ? "공급사 추천 결과를 불러오고 있거나, 아직 추천된 공급사가 없어요."
+            : `공급사 ${partners.length}개를 순위대로 보여드려요. 상위 ${recommendedCount}개는 AI 추천으로 표시하고, 기준 미충족 공급사는 아래에 따로 보여드려요.`}
         </section>
 
         <section className="partner-layout">
@@ -261,14 +261,14 @@ export default function PartnerMatchingPage({
             <div className="partner-tools-top">
               <input
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="업체명, 전문 분야 검색"
+                placeholder="공급사명, 전문 분야 검색"
                 value={searchTerm}
               />
               <select
                 onChange={(event) => setPremiumFilter(event.target.value)}
                 value={premiumFilter}
               >
-                <option value="all">전체 파트너</option>
+                <option value="all">전체 공급사</option>
                 <option value="premium">프리미엄만</option>
                 <option value="standard">일반만</option>
               </select>
@@ -281,8 +281,8 @@ export default function PartnerMatchingPage({
 
             <div className="partner-section-title">
               <div>
-                <h2>추천 파트너 테이블</h2>
-                <p>AI 추천 업체를 확인한 뒤, 실제 발송할 업체만 체크하거나 추가합니다.</p>
+                <h2>추천 공급사 목록</h2>
+                <p>AI 추천 공급사를 확인한 뒤, 실제로 보낼 공급사만 체크하거나 추가해요.</p>
               </div>
               <div className="partner-title-actions">
                 <div className="partner-count-chips">
@@ -298,7 +298,7 @@ export default function PartnerMatchingPage({
                     onClick={() => setShowAllPartners((current) => !current)}
                     type="button"
                   >
-                    {showAllPartners ? "AI 추천 파트너만 보기" : "전체 파트너 보기"}
+                    {showAllPartners ? "AI 추천 공급사만 보기" : "전체 공급사 보기"}
                   </button>
                   <button className="button button-small" onClick={addRecommendedPartners} type="button">
                     AI 추천 대상 모두 추가
@@ -325,7 +325,7 @@ export default function PartnerMatchingPage({
                   <tr>
                     <th>선택</th>
                     <th>순위</th>
-                    <th>업체명</th>
+                    <th>공급사명</th>
                     <th>AI 추천 점수</th>
                     <th>프리미엄</th>
                     <th>사례5+</th>
@@ -407,7 +407,7 @@ export default function PartnerMatchingPage({
               <div className="request-card-head">
                 <div>
                   <h2>요청 발송 대상</h2>
-                  <p>선택된 업체를 최종 확인합니다.</p>
+                  <p>선택한 공급사를 최종 확인해요.</p>
                 </div>
                 <div className="request-count-chips">
                   <Badge tone="blue">{targetPartners.length}개 대상</Badge>
@@ -416,8 +416,8 @@ export default function PartnerMatchingPage({
 
               {targetPartners.length === 0 ? (
                 <div className="request-empty">
-                  아직 요청 발송 대상이 없습니다.
-                  <span>AI 추천 대상을 한 번에 추가하거나, 테이블에서 개별 업체를 선택하세요.</span>
+                  아직 요청 발송 대상이 없어요.
+                  <span>AI 추천 대상을 한 번에 추가하거나, 목록에서 개별 공급사를 선택해 주세요.</span>
                 </div>
               ) : (
                 <div className="selected-partner-list">
@@ -438,10 +438,10 @@ export default function PartnerMatchingPage({
             </div>
 
             <div className="blacklist-card neutral">
-              <h3>주의 업체 요약</h3>
+              <h3>주의 공급사 요약</h3>
               <p>
-                총 {cautionPartners.length}개 업체는 블랙리스트 또는 리스크 이력이 있습니다.
-                견적 요청 전 사유를 확인하고 담당자가 최종 판단하세요.
+                총 {cautionPartners.length}개 공급사는 주의 이력이 있어요.
+                견적 요청 전에 사유를 확인하고 담당자가 최종 판단해 주세요.
               </p>
               {cautionPartners.map((partner) => (
                 <span key={partner.id}>{partner.name}: {partner.reason}</span>
@@ -450,7 +450,7 @@ export default function PartnerMatchingPage({
 
             <label className="request-memo">
               <span>발송 전 메모</span>
-              <textarea placeholder="파트너에게 전달할 견적 요청 메모를 입력하세요." />
+              <textarea placeholder="공급사에 전달할 견적 요청 메모를 입력해 주세요." />
             </label>
           </aside>
         </section>
@@ -465,7 +465,7 @@ export default function PartnerMatchingPage({
           <button
             className="button button-blue"
             disabled
-            title="요청 대상 저장 API 연결 후 사용할 수 있습니다."
+            title="요청 대상 저장은 곧 사용할 수 있어요."
             type="button"
           >
             요청 대상 저장
@@ -496,30 +496,30 @@ function SummaryItem({ label, value }) {
 function getCandidateEmptyMessage(status) {
   if (status === "loading") {
     return {
-      title: "추천 후보를 불러오는 중입니다.",
-      description: "프로젝트 조건을 기준으로 파트너 후보를 조회하고 있습니다.",
+      title: "추천 후보를 불러오고 있어요.",
+      description: "프로젝트 조건을 기준으로 공급사 후보를 찾고 있어요.",
     };
   }
   if (status === "empty") {
     return {
-      title: "추천 후보가 없습니다.",
-      description: "현재 조건으로 조회된 파트너가 없습니다. 요구사항을 보완하거나 전체 파트너 조건을 다시 확인해 주세요.",
+      title: "추천 후보가 없어요.",
+      description: "현재 조건으로 찾은 공급사가 없어요. 요구사항을 보완하거나 전체 공급사 조건을 다시 확인해 주세요.",
     };
   }
   if (status === "missing-project-api-id") {
     return {
-      title: "프로젝트 생성 정보가 없습니다.",
-      description: "서버에 생성된 프로젝트 ID가 없어 추천 후보를 조회하지 못했습니다.",
+      title: "프로젝트 정보가 없어요.",
+      description: "프로젝트 정보가 없어 추천 후보를 불러오지 못했어요. 이전 단계에서 프로젝트를 먼저 저장해 주세요.",
     };
   }
   if (status === "error") {
     return {
-      title: "추천 후보를 불러오지 못했습니다.",
-      description: "candidate-vendors API 연결 상태를 확인해야 합니다. 실제 데이터를 mock으로 대체하지 않습니다.",
+      title: "추천 후보를 불러오지 못했어요.",
+      description: "잠시 후 다시 시도해 주세요.",
     };
   }
   return {
-    title: "표시할 파트너가 없습니다.",
+    title: "표시할 공급사가 없어요.",
     description: "검색어 또는 필터 조건을 조정해 주세요.",
   };
 }

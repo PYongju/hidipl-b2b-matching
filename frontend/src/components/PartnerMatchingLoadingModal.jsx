@@ -1,12 +1,12 @@
 export const PARTNER_MATCHING_LOADING_STEPS = {
   "creating-project": "요구사항을 분석하고 있어요",
-  "fetching-candidates": "조건에 맞는 파트너를 찾고 있어요",
+  "fetching-candidates": "조건에 맞는 공급사를 찾고 있어요",
   finishing: "AI 추천 결과를 정리하고 있어요",
 };
 
 export const PARTNER_MATCHING_TIMELINE_STEPS = [
   { key: "creating-project", label: "요구사항 분석" },
-  { key: "fetching-candidates", label: "파트너 탐색" },
+  { key: "fetching-candidates", label: "공급사 탐색" },
   { key: "finishing", label: "결과 정리" },
 ];
 
@@ -59,8 +59,8 @@ export default function PartnerMatchingLoadingModal({
               <span />
               <span />
             </div>
-            <p className="partner-match-popup-eyebrow">AI 파트너 추천</p>
-            <h2 id="partner-match-popup-title">맞춤 파트너 추천을 진행하고 있어요</h2>
+            <p className="partner-match-popup-eyebrow">AI 공급사 추천</p>
+            <h2 id="partner-match-popup-title">맞춤 공급사 추천을 진행하고 있어요</h2>
             <p className="partner-match-popup-status" key={loadingStep}>
               {statusMessage}
             </p>
@@ -111,13 +111,13 @@ export default function PartnerMatchingLoadingModal({
                 })}
               </ol>
             </div>
-            <p className="partner-match-popup-hint">완료되면 AI 추천 화면으로 이동합니다</p>
+            <p className="partner-match-popup-hint">완료되면 AI 추천 화면으로 이동해요</p>
           </>
         ) : (
           <>
-            <h2 id="partner-match-popup-title">AI 파트너 추천을 시작하지 못했습니다</h2>
+            <h2 id="partner-match-popup-title">AI 공급사 추천을 시작하지 못했어요</h2>
             <p className="partner-match-popup-status partner-match-popup-error-text">
-              {errorMessage || "AI 파트너 추천 준비 중 오류가 발생했습니다."}
+              {errorMessage || "AI 공급사 추천 준비 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."}
             </p>
             <div className="partner-match-popup-actions">
               <button className="button action-secondary" onClick={onCancel} type="button">
