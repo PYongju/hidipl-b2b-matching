@@ -10,16 +10,16 @@ export default function ReviewDrawer({ open, onClose }) {
   return (
     <div className="drawer-layer">
       <button
-        aria-label="신규 검토 건 생성 닫기"
+        aria-label="새 프로젝트 생성 닫기"
         className="drawer-backdrop"
         onClick={onClose}
         type="button"
       />
-      <aside className="review-drawer" aria-label="신규 검토 건 생성">
+      <aside className="review-drawer" aria-label="새 프로젝트 생성">
         <div className="drawer-header">
           <div className="drawer-title-row">
             <div>
-              <p>신규 검토 건 생성</p>
+              <p>새 프로젝트 생성</p>
               <h2>요구사항 입력부터 AI 비교까지</h2>
             </div>
             <button className="drawer-close" onClick={onClose} type="button" aria-label="닫기">
@@ -83,7 +83,7 @@ export default function ReviewDrawer({ open, onClose }) {
               <div className="upload-box">
                 <div className="upload-icon">⇧</div>
                 <h3>견적서 PDF 업로드</h3>
-                <p>여러 파트너사의 견적서를 한 번에 업로드할 수 있습니다.</p>
+                <p>여러 공급사의 견적서를 한 번에 업로드할 수 있어요.</p>
                 <button type="button">파일 선택</button>
               </div>
 
@@ -102,7 +102,7 @@ export default function ReviewDrawer({ open, onClose }) {
                 <div className="ai-ready-icon">✦</div>
                 <div>
                   <h3>AI 비교 준비 완료</h3>
-                  <p>요구사항과 견적서 기준으로 적합도, 리스크, 추천 사유를 생성합니다.</p>
+                  <p>요구사항과 견적서 기준으로 적합도, 리스크, 추천 사유를 만들어요.</p>
                 </div>
               </div>
 
