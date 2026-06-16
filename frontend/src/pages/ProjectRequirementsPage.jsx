@@ -583,21 +583,21 @@ function getReadinessMessage(readiness, checks) {
 
 function inferDisplayUnit(displaySize = "") {
   if (/인치|inch/i.test(displaySize)) return "inch";
-  const unitMatch = displaySize.match(/\b(mm|cm|m)\b/i);
+  const unitMatch = displaySize?.match(/\b(mm|cm|m)\b/i);
   return unitMatch?.[1]?.toLowerCase() || "mm";
 }
 
 function parseDisplayInch(displaySize = "") {
-  const match = displaySize.match(/([\d,.]+)\s*(?:인치|inch)/i);
+  const match = displaySize?.match(/([\d,.]+)\s*(?:인치|inch)/i);
   return match?.[1] || "";
 }
 
 function parseDisplayDimension(displaySize = "", axis) {
   const axisPattern = axis === "width" ? /W\s*([\d,.]+)/i : /H\s*([\d,.]+)/i;
-  const axisMatch = displaySize.match(axisPattern);
+  const axisMatch = displaySize?.match(axisPattern);
   if (axisMatch?.[1]) return axisMatch[1];
 
-  const pairMatch = displaySize.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
+  const pairMatch = displaySize?.match(/([\d,.]+)\s*(?:x|×)\s*([\d,.]+)/i);
   if (!pairMatch) return "";
   return axis === "width" ? pairMatch[1] : pairMatch[2];
 }
