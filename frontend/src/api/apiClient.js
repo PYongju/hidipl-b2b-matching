@@ -176,6 +176,16 @@ function getCandidateVendors(projectId) {
   });
 }
 
+function updateCandidateVendorField(projectId, vendorName, fields) {
+  return request(
+    `/api/v1/projects/${projectId}/candidate-vendors/${encodeURIComponent(vendorName)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(fields),
+    },
+  );
+}
+
 export {
   createProject,
   deleteProjects, // 6/12 백엔드 작업에서 추가
@@ -188,6 +198,7 @@ export {
   fetchProjects, // 6/12 백엔드 작업에서 추가
   request,
   runProjectMatch,
+  updateCandidateVendorField,
   updateProject,
   uploadProjectQuotes,
 };
