@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(node *)",
+      "Bash(git show *)",
+      "Read(//tmp/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)"
+    ]
+  }
+}
