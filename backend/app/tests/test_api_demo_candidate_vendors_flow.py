@@ -289,8 +289,11 @@ def test_quote_upload_candidate_vendor_link() -> None:
     )
     recommendation = match_response["recommendation"]
     product_group_filter = recommendation["metadata"]["product_group_filter"]
-    assert len(recommendation["all_items"]) == product_group_filter["ranking_quote_count"]
+    assert product_group_filter["source"] == "grouped_product_group"
+    assert product_group_filter["enabled"] is False
+    assert len(recommendation["all_items"]) == quote_response["processed_count"]
     assert product_group_filter["input_quote_count"] == quote_response["processed_count"]
+    assert match_response["recommendation_groups"]
     assert match_response["metadata"]["candidate_vendor_filter_applied"] is False
     assert all(item["business_rule_passed"] is True for item in recommendation["all_items"])
     serialized = json.dumps(recommendation, ensure_ascii=False)
@@ -299,14 +302,15 @@ def test_quote_upload_candidate_vendor_link() -> None:
     assert "추천 리스트에 없던 업체" not in serialized
 
     compare_response = compare_quotes(project["project_id"], CompareRequest())
-    assert len(compare_response["rows"]) == compare_response["metadata"]["product_group_filter"]["ranking_quote_count"]
-    assert compare_response["metadata"]["product_group_filter"]["input_quote_count"] == quote_response["processed_count"]
+    assert len(compare_response["rows"]) == quote_response["processed_count"]
+    assert compare_response["metadata"]["grouped_by_product_group"] is True
+    assert compare_response["groups"]
     for row in compare_response["rows"]:
+        assert row.get("product_group")
         assert row.get("install_location") == project["region"]
         assert row.get("conditions", {}).get("install_location") == project["region"]
         assert row.get("company_location") != row.get("install_location")
     assert non_selected_count > 0
-    assert compare_response["metadata"]["product_group_filter"]["excluded_quote_count"] >= 1
     assert "후보 업체에 포함되지 않음" not in json.dumps(
         compare_response,
         ensure_ascii=False,

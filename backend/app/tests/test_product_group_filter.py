@@ -6,6 +6,7 @@ from services.parser.schemas import LineItem, LineItemCategory, QuoteDocument
 from services.quote_ingestion.schemas import QuoteIngestionResult
 from services.recommendation.product_group_filter import (
     filter_quotes_by_product_group_scope,
+    group_quotes_by_product_group,
     infer_dominant_quote_product_groups,
     resolve_quote_product_groups,
     resolve_requirement_product_groups,
@@ -14,6 +15,8 @@ from services.requirement.schemas import RequirementInfo, RequirementProduct
 
 
 def main() -> None:
+    test_group_quotes_by_product_group_keeps_all_detected_groups()
+    test_group_quotes_by_product_group_skips_split_parent_when_children_exist()
     test_requirement_led_filters_video_split_option()
     test_requirement_video_filters_led_split_option()
     test_requirement_led_and_video_includes_both()
@@ -23,6 +26,51 @@ def main() -> None:
     test_uncertain_quote_is_included()
     test_candidate_vendor_selection_is_not_used()
     print("product group filter tests passed")
+
+
+def test_group_quotes_by_product_group_keeps_all_detected_groups() -> None:
+    led, video = build_split_hyosung_quotes()
+    quote_documents = [
+        quote_result("daol_led", "다올씨앤씨", "일강_LED전광판", "LED전광판"),
+        quote_result("deep_led", "딥사이닝", "일강_LED전광판", "LED전광판"),
+        quote_result("sys_led", "시스메이트", "일강_LED전광판", "LED전광판"),
+        quote_result("orion_led", "오리온", "일강_LED전광판", "LED전광판"),
+        quote_result("daol_video", "다올씨앤씨", "일강_비디오월", "비디오월"),
+        quote_result("deep_video", "딥사이닝", "일강_비디오월", "비디오월"),
+        quote_result("sys_video", "시스메이트", "일강_비디오월", "비디오월"),
+        quote_result("video_4", "비디오월업체4", "일강_비디오월", "비디오월"),
+        quote_result("video_5", "비디오월업체5", "일강_비디오월", "비디오월"),
+        quote_result("video_6", "비디오월업체6", "일강_비디오월", "비디오월"),
+        led,
+        video,
+    ]
+
+    groups = group_quotes_by_product_group(quote_documents)
+
+    assert len(groups["LED전광판"]) == 5
+    assert len(groups["비디오월"]) == 7
+    assert "미분류" not in groups
+
+
+def test_group_quotes_by_product_group_skips_split_parent_when_children_exist() -> None:
+    led, video = build_split_hyosung_quotes()
+    parent = quote_result(
+        "hyosung_parent",
+        "효성ITX",
+        "충북 음성 회의실 디스플레이 - LED전광판/비디오월",
+        None,
+    )
+
+    groups = group_quotes_by_product_group([parent, led, video])
+    grouped_quote_ids = {
+        quote.quote_id
+        for group_quotes in groups.values()
+        for quote in group_quotes
+    }
+
+    assert "hyosung_parent" not in grouped_quote_ids
+    assert led.quote_id in {quote.quote_id for quote in groups["LED전광판"]}
+    assert video.quote_id in {quote.quote_id for quote in groups["비디오월"]}
 
 
 def test_requirement_led_filters_video_split_option() -> None:
