@@ -18,7 +18,6 @@ import {
   AI_COMPARE_NOTICE,
   AI_FALLBACK_NOTICE,
   FINAL_SELECTION,
-  FIT_SCORE_TOOLTIP,
 } from "../constants/uiText";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
@@ -525,7 +524,7 @@ export default function DashboardPage({
 
   return (
     <div className="app-shell">
-      <header className="topbar">
+      <header className="topbar flow-topbar">
         <div className="brand-zone">
           <BrandHomeButton onClick={onGoProjects} />
           <Badge tone="gray">v1.3.2</Badge>
@@ -724,6 +723,11 @@ export default function DashboardPage({
                         className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
                         key={supplier.id}
                       >
+                        {supplier.recommended ? (
+                          <div className="supplier-ai-badge">
+                            <Badge>AI 추천</Badge>
+                          </div>
+                        ) : null}
                         <div className="supplier-row">
                           <div className="supplier-name">
                             <span className="rank">{supplier.rank}</span>
@@ -733,19 +737,10 @@ export default function DashboardPage({
                               {supplier.logo}
                             </span>
                             <b>{supplier.name}</b>
-                            {supplier.recommended && <Badge>AI 추천</Badge>}
                           </div>
                           <div className="fit">
                             적합도{" "}
                             <b className={supplier.fitClass}>{supplier.fit}%</b>
-                            <span
-                              className="fit-info"
-                              role="img"
-                              aria-label={FIT_SCORE_TOOLTIP}
-                              title={FIT_SCORE_TOOLTIP}
-                            >
-                              ⓘ
-                            </span>
                           </div>
                         </div>
                         <div className="supplier-cost-badges">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import {
   fetchProjectMatches,
@@ -652,14 +653,10 @@ export default function PartnerMatchingPage({
       />
 
       <main className="partner-main">
-        <section className="partner-head">
-          <div>
-            <button className="partner-back" onClick={handleGoBack} type="button">
-              ‹
-            </button>
-            <span>프로젝트 상세</span>
-          </div>
-        </section>
+        <ProjectDetailHeader
+          onBack={handleGoBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
 
         <ProjectStepTabs
           activeStep={2}

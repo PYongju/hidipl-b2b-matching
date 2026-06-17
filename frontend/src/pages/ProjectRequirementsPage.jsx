@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AutoSaveStatus from "../components/AutoSaveStatus";
-import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { formatNumberInput } from "../utils/formatters";
 import {
@@ -179,22 +179,10 @@ export default function ProjectRequirementsPage({
       />
 
       <main className="requirements-main">
-        <section className="requirements-header">
-          <div>
-            <button className="partner-back" onClick={onBack} type="button" aria-label="목록으로">
-              ‹
-            </button>
-            <div>
-              <p>프로젝트 상세</p>
-              <h1>{projectData.projectName || "새 프로젝트"}</h1>
-            </div>
-          </div>
-          <div className="requirements-status">
-            <Badge tone="gray">{projectData.currentStage || "요구사항"}</Badge>
-            <span>저장됨</span>
-            <span>마지막 수정자 김담당자</span>
-          </div>
-        </section>
+        <ProjectDetailHeader
+          onBack={onBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
 
         <ProjectStepTabs activeStep={1} onGoPartnerMatching={onNext} />
 
