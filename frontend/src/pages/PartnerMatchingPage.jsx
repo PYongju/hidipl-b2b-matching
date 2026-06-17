@@ -77,8 +77,8 @@ function normalizeCandidateVendor(raw, index) {
     checkRequired.join(", ") ||
     filterReasons.join(", ") ||
     (businessRulePassed
-      ? "요구사항 기준 추천 가능한 공급사예요."
-      : "추천 기준 미달 공급사예요.");
+      ? "요구사항 기준 추천 가능 공급사"
+      : "추천 기준 미충족");
 
   return {
     id:
