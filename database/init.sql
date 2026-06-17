@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS match_result_items (
     CONSTRAINT chk_warranty_score     CHECK (warranty_score     >= 0.0 AND warranty_score     <= 100.0),
     CONSTRAINT chk_installation_score CHECK (installation_score >= 0.0 AND installation_score <= 100.0),
     FOREIGN KEY (match_id) REFERENCES match_results(match_id) ON DELETE CASCADE,
-    FOREIGN KEY (quote_id) REFERENCES quotes(quote_id)
+    FOREIGN KEY (quote_id) REFERENCES quotes(quote_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------------------------------------
