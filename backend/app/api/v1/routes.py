@@ -149,6 +149,10 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
             db.rollback()
             raise  # 또는 로깅 후 HTTP 500 반환
         db.execute(
+            text("UPDATE projects SET status = 'partner_matched' WHERE project_id = :project_id AND status = 'partner_matching'"),
+            {"project_id": project_id}
+        )
+        db.execute(
             text("UPDATE projects SET status = 'quote_uploaded' WHERE project_id = :project_id"),
             {"project_id": project_id}
         )
@@ -639,6 +643,33 @@ def _normalize_special_notes(value) -> list[str]:
     text = str(value).strip()
     return [text] if text else []
 
+
+# [P13] 제품군별 견적 확정
+class ConfirmSelectionRequest(BaseModel):
+    product_group: str
+    selected_quote_ids: list[str]
+
+@router.post("/projects/{project_id}/confirm")
+async def confirm_selection(project_id: str, body: ConfirmSelectionRequest):
+    try:
+        from services.api_demo.demo_state import demo_confirm_state
+        record = demo_confirm_state.confirm(
+            project_id=project_id,
+            product_group=body.product_group,
+            selected_quote_ids=body.selected_quote_ids,
+        )
+        return {
+            "ok": True,
+            "data": {
+                "project_id": record.project_id,
+                "product_group": record.product_group,
+                "selected_quote_ids": record.selected_quote_ids,
+                "confirmed_at": record.confirmed_at,
+            },
+            "error": None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # [P8] 프로젝트 상태 조회
 @router.get("/projects/{project_id}")
