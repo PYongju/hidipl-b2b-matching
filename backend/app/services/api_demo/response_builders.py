@@ -30,9 +30,7 @@ def build_project_response(project_record) -> dict[str, Any]:
             "install_schedule_text": None,
             "embedding_dim": None,
             "parser_warnings": [],
-            "ingestion_warnings": [
-                "프로젝트 요구사항이 아직 입력되지 않았습니다."
-            ],
+            "ingestion_warnings": ["프로젝트 요구사항이 아직 입력되지 않았습니다."],
         }
     requirement = result.requirement
     return {

@@ -301,7 +301,9 @@ class ApiDemoStore:
         record = self.persistence.load_candidate_vendor_record(project_id)
         if record is not None:
             self.candidate_vendors[record.candidate_vendor_id] = record
-            self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
+            self.project_candidate_vendor_index[record.project_id] = (
+                record.candidate_vendor_id
+            )
         return record
 
     def update_candidate_vendor_fields(
@@ -362,7 +364,9 @@ class ApiDemoStore:
 
     def restore_candidate_vendor_record(self, record: CandidateVendorRecord) -> None:
         self.candidate_vendors[record.candidate_vendor_id] = record
-        self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
+        self.project_candidate_vendor_index[record.project_id] = (
+            record.candidate_vendor_id
+        )
 
     def update_project_requirement_result(
         self,
@@ -374,9 +378,8 @@ class ApiDemoStore:
             record.requirement_result = requirement_result
             record.request_id = requirement_result.request_id or record.request_id
             record.requirement_source = (
-                (getattr(requirement_result, "metadata", {}) or {}).get("requirement_source")
-                or record.requirement_source
-            )
+                getattr(requirement_result, "metadata", {}) or {}
+            ).get("requirement_source") or record.requirement_source
         self.lazy_hydration_project_ids.discard(project_id)
         if self.persistence is not None:
             self.persistence.update_project_requirement_result(
@@ -435,9 +438,14 @@ def _create_default_persistence():
         persistence = SqlJsonApiDemoPersistence(enabled=True)
         if persistence.is_schema_ready():
             return persistence
-        logger.warning("API demo MySQL persistence schema not ready; falling back to memory store.")
+        logger.warning(
+            "API demo MySQL persistence schema not ready; falling back to memory store."
+        )
     except Exception as exc:
-        logger.warning("API demo MySQL persistence unavailable; falling back to memory store: %s", exc)
+        logger.warning(
+            "API demo MySQL persistence unavailable; falling back to memory store: %s",
+            exc,
+        )
     return None
 
 
