@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
-import { fetchProjectMatches } from "../api/apiClient";
+import {
+  fetchCandidateVendors,
+  fetchProjectMatches,
+  updateProject,
+} from "../api/apiClient";
 import FlowBottomBar from "../components/FlowBottomBar";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -8,6 +12,7 @@ import QuoteRequestModal from "../components/QuoteRequestModal";
 import useAutoSaveStatus from "../hooks/useAutoSaveStatus";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import {
+  buildProjectRequestPayload,
   buildQuoteRequestMessage,
   formatProjectSolutions,
 } from "../utils/projectRequestText";
@@ -169,14 +174,64 @@ export default function PartnerMatchingPage({
     projectData.matchHydrationAttempted,
   ]);
 
+  useEffect(() => {
+    const apiProjectId = projectData.projectApiId;
+
+    if (!apiProjectId) return undefined;
+    if (projectData.candidateVendors?.length) return undefined;
+    if (projectData.candidateVendorsLoaded) return undefined;
+
+    let isMounted = true;
+
+    fetchCandidateVendors(apiProjectId, 51)
+      .then((response) => {
+        if (!isMounted) return;
+
+        onProjectDataChange((current) => ({
+          ...current,
+          candidateVendors: response?.candidate_vendors ?? [],
+          candidateVendorsLoaded: true,
+          candidateVendorsResponse: response,
+          candidateVendorsError: "",
+        }));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+
+        onProjectDataChange((current) => ({
+          ...current,
+          candidateVendors: current.candidateVendors ?? [],
+          candidateVendorsLoaded: false,
+          candidateVendorsResponse: null,
+          candidateVendorsError:
+            error.message ||
+            "공급업체 후보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        }));
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    onProjectDataChange,
+    projectData.projectApiId,
+    projectData.candidateVendors,
+    projectData.candidateVendorsLoaded,
+  ]);
+
   const candidateStatus = projectData.projectApiId
-    ? partners.length > 0
-      ? "ready"
-      : "empty"
+    ? projectData.candidateVendorsError
+      ? "error"
+      : partners.length > 0
+        ? "ready"
+        : "empty"
     : "missing-project-api-id";
 
   const recommendedCount = partners.filter(
     (partner) => partner.recommended,
+  ).length;
+  const businessPassedCount = partners.filter(
+    (partner) => partner.businessRulePassed,
   ).length;
   const cautionCount = partners.filter((partner) => partner.caution).length;
 
@@ -233,20 +288,37 @@ export default function PartnerMatchingPage({
     [partners, targetIds],
   );
   const cautionPartners = partners.filter((partner) => partner.caution);
-  const candidateEmptyMessage = getCandidateEmptyMessage(candidateStatus);
+  const candidateEmptyMessage = getCandidateEmptyMessage(
+    candidateStatus,
+    projectData.candidateVendorsError,
+  );
 
   const persistRequestTargets = useCallback(
     (nextTargetIds, partnersList = partners) => {
+      const nextTargets = partnersList.filter((partner) =>
+        nextTargetIds.includes(partner.id),
+      );
+
       onProjectDataChange?.((current) => ({
         ...current,
         requestTargetIds: nextTargetIds,
-        requestTargets: partnersList.filter((partner) =>
-          nextTargetIds.includes(partner.id),
-        ),
+        requestTargets: nextTargets,
         lastScreen: "partnerMatching",
       }));
+
+      if (projectData.projectApiId) {
+        void updateProject(projectData.projectApiId, {
+          ...buildProjectRequestPayload({
+            ...projectData,
+            requestTargetIds: nextTargetIds,
+            requestTargets: nextTargets,
+          }),
+          workflow_status: projectData.workflowStatus ?? "진행 중",
+          requested_vendor_ids: nextTargetIds,
+        });
+      }
     },
-    [onProjectDataChange, partners],
+    [onProjectDataChange, partners, projectData],
   );
 
   const updateRequestTargets = (updater) => {
@@ -435,6 +507,7 @@ export default function PartnerMatchingPage({
 
             <div className="partner-summary-chips">
               <Badge tone="blue">AI 추천 {recommendedCount}</Badge>
+              <Badge tone="gray">추천 가능 {businessPassedCount}</Badge>
               <Badge tone="blue">선택 {targetIds.length}</Badge>
               <Badge tone="orange">주의 {cautionCount}</Badge>
             </div>
@@ -661,7 +734,14 @@ function SummaryItem({ label, value }) {
   );
 }
 
-function getCandidateEmptyMessage(status) {
+function getCandidateEmptyMessage(status, errorMessage = "") {
+  if (status === "error") {
+    return {
+      title: "추천 후보를 불러오지 못했어요.",
+      description:
+        errorMessage || "후보 조회 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
+    };
+  }
   if (status === "empty") {
     return {
       title: "추천 공급사가 없어요.",
