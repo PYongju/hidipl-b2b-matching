@@ -304,11 +304,11 @@ export default function DashboardPage({
     const status = cell.status;
     const highlight = cell.highlight;
     const value = cell.value || "—";
+    const canEditCompareCell =
+      overriddenValue !== undefined ||
+      isEditableMissingCompareCell(row.label, baseCell);
 
-    if (
-      isEditableMissingCompareCell(row.label, cell) &&
-      overriddenValue === undefined
-    ) {
+    if (canEditCompareCell) {
       return (
         <EditableCompareCell
           cell={cell}
@@ -316,7 +316,11 @@ export default function DashboardPage({
             handleCompareCellSave(supplier, row.label, nextValue)
           }
           rowLabel={row.label}
-          statusBadge={getStatusBadge(cell.status ?? "missing")}
+          statusBadge={
+            overriddenValue === undefined
+              ? getStatusBadge(baseCell.status ?? "missing")
+              : null
+          }
         />
       );
     }
@@ -1116,7 +1120,11 @@ function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
 
   const startEditing = () => {
     if (saving) return;
-    setDraft("");
+    const initialDraft =
+      typeof value === "string" && !isMissingCompareCellValue(value)
+        ? value
+        : "";
+    setDraft(initialDraft);
     setEditing(true);
   };
 
@@ -1178,7 +1186,15 @@ function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
   }
 
   return (
-    <div className="compare-cell cell-missing compare-inline-edit">
+    <div
+      className={[
+        "compare-cell",
+        "compare-inline-edit",
+        statusBadge ? "cell-missing" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <span>{value}</span>
       {statusBadge}
       <button
