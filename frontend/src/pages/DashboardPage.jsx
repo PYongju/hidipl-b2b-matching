@@ -4,6 +4,7 @@ import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
+import { updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
 import {
@@ -310,6 +311,12 @@ export default function DashboardPage({
       workflowStatus: "완료",
       lastScreen: "dashboard",
     }));
+    const apiProjectId = projectData.projectApiId ?? projectData.projectId;
+    if (apiProjectId) {
+      updateProject(apiProjectId, { workflow_status: "completed" }).catch(
+        (error) => console.error("완료 상태 저장 실패:", error),
+      );
+    }
     window.setTimeout(() => setToastVisible(false), 3200);
   };
 

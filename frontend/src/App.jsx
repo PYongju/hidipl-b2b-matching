@@ -39,6 +39,7 @@ const SESSION_PROJECT_KEY = "hidipl_active_project_id";
 const KNOWN_SERVER_STATUSES = new Set([
   "matched",
   "created",
+  "partner_matching",
   "partner_matched",
   "quote_uploaded",
 ]);
@@ -61,10 +62,10 @@ function readSavedSession() {
 
 function shouldRestoreProjectSession(savedScreen, savedProjectApiId) {
   return Boolean(
-    savedProjectApiId
-    && savedScreen
-    && savedScreen !== "projects"
-    && savedScreen !== "login",
+    savedProjectApiId &&
+    savedScreen &&
+    savedScreen !== "projects" &&
+    savedScreen !== "login",
   );
 }
 
@@ -88,12 +89,12 @@ function matchesProjectEntry(project, targetId, data = {}) {
   const projectId = data.projectId;
 
   return (
-    project.id === targetId
-    || project.id === projectApiId
-    || project.id === projectId
-    || project.data?.projectApiId === projectApiId
-    || project.data?.projectApiId === targetId
-    || project.data?.projectId === projectId
+    project.id === targetId ||
+    project.id === projectApiId ||
+    project.id === projectId ||
+    project.data?.projectApiId === projectApiId ||
+    project.data?.projectApiId === targetId ||
+    project.data?.projectId === projectId
   );
 }
 
@@ -177,11 +178,13 @@ export default function App() {
     if (!id) return;
     const nextProject = buildProjectListItem(data, id, overrides);
     setProjects((current) => {
-      const exists = current.some((project) => matchesProjectEntry(project, id, data));
+      const exists = current.some((project) =>
+        matchesProjectEntry(project, id, data),
+      );
       if (!exists) return [nextProject, ...current];
-      return current.map((project) => (
-        matchesProjectEntry(project, id, data) ? nextProject : project
-      ));
+      return current.map((project) =>
+        matchesProjectEntry(project, id, data) ? nextProject : project,
+      );
     });
     setActiveProjectId(id);
     setEditingProjectId(id);
@@ -220,7 +223,9 @@ export default function App() {
 
       if (!items) {
         console.error("프로젝트 목록 응답 형식 오류:", list);
-        setProjectsLoadError("프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
+        setProjectsLoadError(
+          "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
         setProjects([]);
         return [];
       }
@@ -245,7 +250,7 @@ export default function App() {
               ...parsedFields,
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -254,8 +259,8 @@ export default function App() {
         .filter(Boolean);
 
       setProjectsLoadError("");
-      setProjects((current) =>
-        mappedProjects.map((mapped) => {
+      setProjects((current) => {
+        const merged = mappedProjects.map((mapped) => {
           const existing = current.find((p) => p.id === mapped.id);
           if (existing?.status === "완료") {
             return {
@@ -270,9 +275,30 @@ export default function App() {
               },
             };
           }
+          // 기존 로컬 전용 필드 보존 (서버에 저장되지 않는 프론트 상태)
+          const localOnlyFields = {};
+          if (existing?.data?.lastScreen) {
+            localOnlyFields.lastScreen = existing.data.lastScreen;
+          }
+          if (existing?.data?.requestTargetIds?.length > 0) {
+            localOnlyFields.requestTargetIds = existing.data.requestTargetIds;
+            localOnlyFields.requestTargets = existing.data.requestTargets ?? [];
+          }
+          if (Object.keys(localOnlyFields).length > 0) {
+            return {
+              ...mapped,
+              data: {
+                ...mapped.data,
+                ...localOnlyFields,
+              },
+            };
+          }
           return mapped;
-        }),
-      );
+        });
+        const mergedIds = new Set(merged.map((p) => p.id));
+        const localOnly = current.filter((p) => !mergedIds.has(p.id));
+        return [...merged, ...localOnly];
+      });
       return mappedProjects;
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
@@ -293,11 +319,13 @@ export default function App() {
     if (!id) return;
     const nextProject = buildProjectListItem(data, id, overrides);
     setProjects((current) => {
-      const exists = current.some((project) => matchesProjectEntry(project, id, data));
+      const exists = current.some((project) =>
+        matchesProjectEntry(project, id, data),
+      );
       if (!exists) return [nextProject, ...current];
-      return current.map((project) => (
-        matchesProjectEntry(project, id, data) ? nextProject : project
-      ));
+      return current.map((project) =>
+        matchesProjectEntry(project, id, data) ? nextProject : project,
+      );
     });
     setActiveProjectId(id);
     setEditingProjectId(id);
@@ -307,8 +335,8 @@ export default function App() {
     const loadedProjects = await loadProjects();
     const cachedProject = loadedProjects.find(
       (project) =>
-        project.id === savedProjectApiId
-        || project.data?.projectApiId === savedProjectApiId,
+        project.id === savedProjectApiId ||
+        project.data?.projectApiId === savedProjectApiId,
     );
     const localProjectData = {
       ...initialProjectData,
@@ -319,7 +347,10 @@ export default function App() {
     };
 
     const serverProject = await fetchProject(savedProjectApiId);
-    let restoredProjectData = mergeServerProjectData(localProjectData, serverProject);
+    let restoredProjectData = mergeServerProjectData(
+      localProjectData,
+      serverProject,
+    );
 
     if (shouldHydrateMatchData(restoredProjectData)) {
       restoredProjectData = await hydrateProjectMatchData(
@@ -343,6 +374,10 @@ export default function App() {
   };
 
   const goHome = async () => {
+    updateProjectData((current) => ({
+      ...current,
+      lastScreen: screen,
+    }));
     await loadProjects();
     setScreen("projects");
     persistAppSession("projects");
@@ -396,7 +431,10 @@ export default function App() {
     const apiProjectId = projectData.projectApiId;
 
     if (screen !== "dashboard" || !apiProjectId) return undefined;
-    if (!shouldHydrateMatchData(projectData) || projectData.matchHydrationAttempted) {
+    if (
+      !shouldHydrateMatchData(projectData) ||
+      projectData.matchHydrationAttempted
+    ) {
       return undefined;
     }
 
@@ -440,7 +478,9 @@ export default function App() {
       console.error("프로젝트 생성 실패:", error);
     }
 
-    const projectId = projectApiId || `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    const projectId =
+      projectApiId ||
+      `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
     const nextData = {
       ...initialProjectData,
       ...draftData,
@@ -518,7 +558,8 @@ export default function App() {
           return;
         } catch (error) {
           setAnalysisErrorMessage(
-            error.message || "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+            error.message ||
+              "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
           );
         }
       }
@@ -579,7 +620,17 @@ export default function App() {
   const startPartnerMatchingFromRequirements = async () => {
     if (partnerMatchingTransition === "loading") return;
 
-    if (projectData.projectApiId && projectData.candidateVendors?.length) {
+    const serverStatus = projectData.serverStatus ?? projectData.status;
+    const alreadyMatched =
+      serverStatus === "partner_matching" ||
+      serverStatus === "partner_matched" ||
+      serverStatus === "quote_uploaded" ||
+      serverStatus === "matched";
+
+    if (
+      projectData.projectApiId &&
+      (projectData.candidateVendors?.length || alreadyMatched)
+    ) {
       setScreen("partnerMatching");
       return;
     }
@@ -602,7 +653,9 @@ export default function App() {
         createdProject?.id;
 
       if (!projectApiId) {
-        throw new Error("프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        throw new Error(
+          "프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
       }
 
       const candidateResponse = await runPartnerMatchingStep(
@@ -693,7 +746,8 @@ export default function App() {
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisErrorMessage(
-        error.message || "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+        error.message ||
+          "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
       );
       setAnalysisState("error");
     }
@@ -701,7 +755,11 @@ export default function App() {
 
   if (restoring) {
     return (
-      <div aria-busy="true" aria-live="polite" className="app-shell app-restoring">
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="app-shell app-restoring"
+      >
         <p>프로젝트를 불러오는 중입니다...</p>
       </div>
     );
@@ -784,7 +842,7 @@ export default function App() {
         <ProjectRequirementsPage
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
           projectData={projectData}
-          onBack={() => setScreen("projects")}
+          onBack={goToProjects}
           onGoHome={goHome}
           onNext={startPartnerMatchingFromRequirements}
           onProjectDataChange={updateProjectData}
@@ -826,7 +884,7 @@ export default function App() {
         projectData={projectData}
         onProjectDataChange={setProjectData}
         onAnalyze={startAnalysisFlow}
-        onBack={() => setScreen("projects")}
+        onBack={goToProjects}
         onGoHome={goHome}
       />
     );
@@ -849,7 +907,13 @@ export default function App() {
     return (
       <PartnerMatchingPage
         projectData={projectData}
-        onBack={() => setScreen("requirements")}
+        onBack={() => {
+          setScreen("requirements");
+          updateProjectData((current) => ({
+            ...current,
+            lastScreen: "requirements",
+          }));
+        }}
         onGoDashboard={goQuoteWaitingFromPartner}
         onGoHome={goHome}
         onProjectDataChange={updateProjectData}
@@ -929,7 +993,10 @@ function mergeServerProjectData(localData, serverProject) {
   const workflowStatus =
     localData.workflowStatus === "완료"
       ? "완료"
-      : getWorkflowStatusFromServerStatus(serverStatus, localData.workflowStatus);
+      : getWorkflowStatusFromServerStatus(
+          serverStatus,
+          localData.workflowStatus,
+        );
   const requestText = serverProject?.request_text ?? localData.requestText;
   const parsedFields = applyParsedRequestTextToProjectData(
     localData,
@@ -962,6 +1029,7 @@ function mergeServerProjectData(localData, serverProject) {
 function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
   if (status === "matched") return "견적 검토";
   if (status === "quote_uploaded") return "견적 비교 분석 중";
+  if (status === "partner_matching") return "파트너 매칭 결과"; // 추가
   if (status === "partner_matched") return "견적서 업로드 대기";
   if (status === "created") return "요구사항";
   return fallback;
@@ -970,6 +1038,7 @@ function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
 function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
   if (status === "matched") return "검토 중";
   if (status === "quote_uploaded") return "검토 중";
+  if (status === "partner_matching") return "진행 중"; // 추가
   if (status === "partner_matched") return "진행 중";
   if (status === "created") return "진행 중";
   return fallback;
@@ -978,6 +1047,7 @@ function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
 function getScreenFromServerStatus(status, fallback = "requirements") {
   if (status === "matched") return "dashboard";
   if (status === "quote_uploaded") return "quoteReviewLoading";
+  if (status === "partner_matching") return fallback;
   if (status === "partner_matched") return fallback;
   if (status === "created") return "requirements";
   return fallback;

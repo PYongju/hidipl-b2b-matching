@@ -132,6 +132,7 @@ def build_candidate_vendors_response(
             "requested_vendor_names": list(
                 candidate_vendor_record.requested_vendor_names
             ),
+            "requested_vendor_ids": getattr(candidate_vendor_record, "requested_vendor_ids", []) or [],
             "candidate_vendors": [
                 build_candidate_vendor_item(candidate, rank=index + 1)
                 for index, candidate in enumerate(all_candidates)
@@ -154,6 +155,7 @@ def build_candidate_vendors_not_found_response(project_id: str) -> dict[str, Any
             "candidate_vendors": [],
             "selected_vendor_names": [],
             "requested_vendor_names": [],
+            "requested_vendor_ids": [],
         },
         "error": "candidate vendors result not found",
     }

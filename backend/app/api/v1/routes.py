@@ -162,6 +162,19 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
+# [P2-1-GET] 파트너 후보 추천 결과 조회
+@router.get("/projects/{project_id}/candidate-vendors")
+async def get_candidate_vendors_result(project_id: str):
+    try:
+        result = demo_routers.get_candidate_vendors(project_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="후보 공급사 데이터가 없습니다.")
+        return {"ok": True, "data": result, "error": None}
+    except HTTPException:
+        raise
+    except KeyError:
+        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+
 #[P2-1] 파트너 후보 추천
 @router.post("/projects/{project_id}/candidate-vendors")
 async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, db: Session = Depends(get_db)):
@@ -397,6 +410,7 @@ class ProjectUpdateRequest(BaseModel):
     deadline: str | None = None
     request_text: str | None = None
     workflow_status: str | None = None
+    requested_vendor_ids: list[str] | None = None
 
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
@@ -426,7 +440,29 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
                 "project_id": project_id,
             }
         )
+
+        if body.requested_vendor_ids is not None:
+            cv_row = db.execute(
+                text(
+                    "SELECT candidate_vendor_id FROM candidate_vendors "
+                    "WHERE project_id = :project_id ORDER BY created_at DESC LIMIT 1"
+                ),
+                {"project_id": project_id},
+            ).fetchone()
+            if cv_row:
+                db.execute(
+                    text(
+                        "UPDATE candidate_vendors SET requested_vendor_ids_json = :ids "
+                        "WHERE candidate_vendor_id = :candidate_vendor_id"
+                    ),
+                    {
+                        "ids": json.dumps(body.requested_vendor_ids, ensure_ascii=False),
+                        "candidate_vendor_id": cv_row.candidate_vendor_id,
+                    },
+                )
+                
         db.commit()
+
         return {
             "ok": True,
             "data": {
