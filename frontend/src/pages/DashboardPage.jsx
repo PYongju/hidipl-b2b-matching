@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
@@ -6,6 +6,12 @@ import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
 import { updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
+import {
+  applyCompareCellOverride,
+  getCompareCellOverrideKey,
+  resolveCompareCellOverrides,
+  saveCompareCellOverridesToStorage,
+} from "../utils/compareCellOverrides";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
 import {
   AI_COMPARE_NOTICE,
@@ -15,6 +21,24 @@ import {
 } from "../constants/uiText";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
+
+/** 미기재로 간주하는 셀 표시값 */
+const MISSING_COMPARE_CELL_VALUES = ["-", "미기재", "—"];
+
+/** 비교 테이블 인라인 편집 제외 행 — 제외할 행이 생기면 이 배열만 수정 */
+const NON_EDITABLE_COMPARE_ROW_LABELS = [];
+
+function isMissingCompareCellValue(value) {
+  if (typeof value !== "string") return false;
+  const displayValue = value.trim() || "—";
+  return MISSING_COMPARE_CELL_VALUES.includes(displayValue);
+}
+
+function isEditableMissingCompareCell(rowLabel, cell) {
+  if (NON_EDITABLE_COMPARE_ROW_LABELS.includes(rowLabel)) return false;
+  if (cell?.status === "missing") return true;
+  return isMissingCompareCellValue(cell?.value);
+}
 
 function SupplierPager({
   canNavigate,
@@ -108,6 +132,9 @@ export default function DashboardPage({
   const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
   const [isMemoEditing, setIsMemoEditing] = useState(false);
   const [supplierStartIndex, setSupplierStartIndex] = useState(0);
+  const [compareCellOverrides, setCompareCellOverrides] = useState(() =>
+    resolveCompareCellOverrides(projectData),
+  );
   const supplierCount = suppliers.length;
   const canNavigateSuppliers = supplierCount > VISIBLE_SUPPLIER_COUNT;
   const maxSupplierStartIndex =
@@ -163,6 +190,10 @@ export default function DashboardPage({
     setDraftMemo(memo);
     setIsMemoEditing(false);
   }, [projectId, projectData.reviewMemo]);
+
+  useEffect(() => {
+    setCompareCellOverrides(resolveCompareCellOverrides(projectData));
+  }, [projectData.projectApiId, projectData.projectId]);
 
   const goPrevSuppliers = () => {
     setSupplierStartIndex((current) =>
@@ -263,10 +294,33 @@ export default function DashboardPage({
   };
 
   const renderCompareCell = (supplier, row) => {
-    const cell = row.cells?.[supplier.id] ?? { value: "—" };
+    const overrideKey = getCompareCellOverrideKey(supplier.id, row.label);
+    const baseCell = row.cells?.[supplier.id] ?? { value: "—" };
+    const overriddenValue = compareCellOverrides[overrideKey];
+    const cell =
+      overriddenValue !== undefined
+        ? { ...baseCell, value: overriddenValue, status: undefined, highlight: undefined }
+        : baseCell;
     const status = cell.status;
     const highlight = cell.highlight;
     const value = cell.value || "—";
+
+    if (
+      isEditableMissingCompareCell(row.label, cell) &&
+      overriddenValue === undefined
+    ) {
+      return (
+        <EditableCompareCell
+          cell={cell}
+          onSave={(nextValue) =>
+            handleCompareCellSave(supplier, row.label, nextValue)
+          }
+          rowLabel={row.label}
+          statusBadge={getStatusBadge(cell.status ?? "missing")}
+        />
+      );
+    }
+
     const cellClasses = [
       "compare-cell",
       status ? `cell-${status}` : "",
@@ -284,6 +338,34 @@ export default function DashboardPage({
         {getStatusBadge(highlight)}
       </div>
     );
+  };
+
+  const handleCompareCellSave = async (supplier, rowLabel, nextValue) => {
+    const overrideKey = getCompareCellOverrideKey(supplier.id, rowLabel);
+    const previousOverrides = compareCellOverrides;
+    const nextOverrides = {
+      ...previousOverrides,
+      [overrideKey]: nextValue,
+    };
+    const apiProjectId = projectData.projectApiId ?? projectData.projectId;
+
+    setCompareCellOverrides(nextOverrides);
+
+    try {
+      onProjectDataChange?.((current) => ({
+        ...current,
+        compareCellOverrides: nextOverrides,
+        lastScreen: "dashboard",
+      }));
+
+      if (apiProjectId) {
+        saveCompareCellOverridesToStorage(apiProjectId, nextOverrides);
+      }
+    } catch (error) {
+      console.error("비교 테이블 셀 저장 실패:", error);
+      setCompareCellOverrides(previousOverrides);
+      throw error;
+    }
   };
 
   const startMemoEdit = () => {
@@ -329,6 +411,7 @@ export default function DashboardPage({
       suppliers,
       comparisonSections,
       totalRows,
+      compareCellOverrides,
     });
   };
 
@@ -990,6 +1073,126 @@ function formatWrappedTextForExcel(value, maxWidth = 52) {
     .join("\n");
 }
 
+function ComparePencilIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="compare-inline-edit-icon"
+      fill="none"
+      height="12"
+      viewBox="0 0 24 24"
+      width="12"
+    >
+      <path
+        d="M4 20h4l10.5-10.5a1.4 1.4 0 0 0 0-2L16.5 5.5a1.4 1.4 0 0 0-2 0L4 16v4Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      />
+      <path
+        d="m13.5 6.5 4 4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      />
+    </svg>
+  );
+}
+
+function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
+  const value = cell.value || "—";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+    }
+  }, [editing]);
+
+  const startEditing = () => {
+    if (saving) return;
+    setDraft("");
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setDraft("");
+    setEditing(false);
+  };
+
+  const commitEdit = async () => {
+    if (saving) return;
+
+    const trimmed = draft.trim();
+    if (!trimmed || isMissingCompareCellValue(trimmed)) {
+      cancelEditing();
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(trimmed);
+      setEditing(false);
+    } catch (error) {
+      setDraft("");
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void commitEdit();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelEditing();
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="compare-cell compare-cell-editing cell-missing">
+        <input
+          className="compare-inline-edit-input"
+          disabled={saving}
+          onBlur={() => {
+            void commitEdit();
+          }}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={`${rowLabel} 입력`}
+          ref={inputRef}
+          type="text"
+          value={draft}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="compare-cell cell-missing compare-inline-edit">
+      <span>{value}</span>
+      {statusBadge}
+      <button
+        aria-label={`${rowLabel} 수정`}
+        className="compare-inline-edit-trigger"
+        onClick={startEditing}
+        type="button"
+      >
+        <ComparePencilIcon />
+      </button>
+    </div>
+  );
+}
+
 function formatExplanationListForExcel(value, maxWidth = 36) {
   const text = String(value ?? "-")
     .trim()
@@ -1045,7 +1248,12 @@ function formatCompareCellValue(cell, rowLabel) {
   return `${value} (${badges.join(", ")})`;
 }
 
-function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
+function buildCompareSheetRows(
+  suppliers,
+  comparisonSections,
+  totalRows,
+  compareCellOverrides = {},
+) {
   const header = [
     "항목(요구사항)",
     ...suppliers.map((supplier) => supplier.name),
@@ -1075,7 +1283,15 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
       rows.push([
         row.label,
         ...suppliers.map((supplier) =>
-          formatCompareCellValue(row.cells?.[supplier.id], row.label),
+          formatCompareCellValue(
+            applyCompareCellOverride(
+              row.cells?.[supplier.id],
+              supplier.id,
+              row.label,
+              compareCellOverrides,
+            ),
+            row.label,
+          ),
         ),
       ]);
       rowKinds.push(EXCEL_ROW_KIND.DATA);
@@ -1094,7 +1310,15 @@ function buildCompareSheetRows(suppliers, comparisonSections, totalRows) {
       rows.push([
         row.label,
         ...suppliers.map((supplier) =>
-          formatCompareCellValue(row.cells?.[supplier.id], row.label),
+          formatCompareCellValue(
+            applyCompareCellOverride(
+              row.cells?.[supplier.id],
+              supplier.id,
+              row.label,
+              compareCellOverrides,
+            ),
+            row.label,
+          ),
         ),
       ]);
       rowKinds.push(EXCEL_ROW_KIND.DATA);
@@ -1398,6 +1622,7 @@ function exportToExcel({
   suppliers,
   comparisonSections,
   totalRows,
+  compareCellOverrides = {},
 }) {
   const workbook = XLSX.utils.book_new();
 
@@ -1409,6 +1634,7 @@ function exportToExcel({
     suppliers,
     comparisonSections,
     totalRows,
+    compareCellOverrides,
   );
   const { rows, rowKinds } = mergeSheetSections(
     explanationSection,

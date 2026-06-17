@@ -32,6 +32,7 @@ import {
   formatProjectSolutions,
   normalizeProjectSolutions,
 } from "./utils/projectRequestText";
+import { resolveCompareCellOverrides } from "./utils/compareCellOverrides";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
 const SESSION_SCREEN_KEY = "hidipl_screen";
@@ -283,6 +284,12 @@ export default function App() {
           if (existing?.data?.requestTargetIds?.length > 0) {
             localOnlyFields.requestTargetIds = existing.data.requestTargetIds;
             localOnlyFields.requestTargets = existing.data.requestTargets ?? [];
+          }
+          if (
+            existing?.data?.compareCellOverrides &&
+            Object.keys(existing.data.compareCellOverrides).length > 0
+          ) {
+            localOnlyFields.compareCellOverrides = existing.data.compareCellOverrides;
           }
           if (Object.keys(localOnlyFields).length > 0) {
             return {
@@ -1002,16 +1009,20 @@ function mergeServerProjectData(localData, serverProject) {
     localData,
     serverProject?.request_text,
   );
-
-  return {
+  const mergedProjectData = {
     ...localData,
     ...parsedFields,
+  };
+
+  return {
+    ...mergedProjectData,
     projectApiId: serverProject?.project_id ?? localData.projectApiId,
     serverStatus,
     companyName: serverProject?.company_name ?? localData.companyName,
     location: serverProject?.location ?? localData.location,
     projectDate: serverProject?.deadline ?? localData.projectDate,
     requestText,
+    compareCellOverrides: resolveCompareCellOverrides(mergedProjectData),
     solutions:
       parsedFields.solutions?.length > 0
         ? parsedFields.solutions
