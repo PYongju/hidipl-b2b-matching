@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from types import SimpleNamespace
 
 from services.api_demo.store import ApiDemoStore
-from services.api_demo.store_persistence import FakeJsonApiDemoPersistence
+from services.api_demo.store_persistence import (
+    FakeJsonApiDemoPersistence,
+    SqlJsonApiDemoPersistence,
+)
 from services.api_demo.store_serialization import (
     deserialize_candidate_vendor_record,
     deserialize_match_record,
@@ -29,6 +33,8 @@ def main() -> None:
     test_store_record_serialization_roundtrip()
     test_in_memory_fallback_without_persistence()
     test_fake_persistence_restart_simulation()
+    test_requested_vendor_ids_restore_and_memory_update()
+    test_candidate_vendor_row_requested_vendor_ids_fallback()
     print("API demo store persistence tests passed")
 
 
@@ -129,6 +135,86 @@ def test_fake_persistence_restart_simulation() -> None:
     assert restored_match_with_explanation is not None
     assert restored_match_with_explanation.explanation_result is not None
     assert restored_match_with_explanation.explanation_result.overall_summary == "효성ITX가 종합 1순위입니다."
+
+
+def test_requested_vendor_ids_restore_and_memory_update() -> None:
+    persistence = FakeJsonApiDemoPersistence()
+    store1 = ApiDemoStore(persistence=persistence)
+    records = _populate_store(store1)
+    project_id = records["project"].project_id
+    candidate_record = records["candidate_vendors"]
+    candidate_record.requested_vendor_ids = ["vendor_a", "vendor_b"]
+    persistence.save_candidate_vendor_record(candidate_record)
+
+    store2 = ApiDemoStore(persistence=persistence)
+    restored = store2.get_candidate_vendors(project_id)
+    assert restored is not None
+    assert restored.requested_vendor_ids == ["vendor_a", "vendor_b"]
+
+    updated = store2.update_candidate_vendor_requested_vendor_ids(
+        project_id,
+        ["vendor_1", "vendor_2", "vendor_3"],
+    )
+    assert updated is True
+    assert store2.get_candidate_vendors(project_id).requested_vendor_ids == [
+        "vendor_1",
+        "vendor_2",
+        "vendor_3",
+    ]
+
+
+def test_candidate_vendor_row_requested_vendor_ids_fallback() -> None:
+    store = ApiDemoStore()
+    records = _populate_store(store)
+    candidate_data = serialize_candidate_vendor_record(records["candidate_vendors"])
+    persistence = SqlJsonApiDemoPersistence(enabled=False)
+
+    row = _candidate_vendor_row(candidate_data, requested_vendor_ids_json='["vendor_a", "vendor_b"]')
+    restored = persistence._row_to_candidate_vendor_record(row)
+    assert restored is not None
+    assert restored.requested_vendor_ids == ["vendor_a", "vendor_b"]
+
+    invalid_row = _candidate_vendor_row(candidate_data, requested_vendor_ids_json="not-json")
+    restored_invalid = persistence._row_to_candidate_vendor_record(invalid_row)
+    assert restored_invalid is not None
+    assert restored_invalid.requested_vendor_ids == []
+
+    null_row = _candidate_vendor_row(candidate_data, requested_vendor_ids_json=None)
+    restored_null = persistence._row_to_candidate_vendor_record(null_row)
+    assert restored_null is not None
+    assert restored_null.requested_vendor_ids == []
+
+
+def _candidate_vendor_row(
+    candidate_data: dict,
+    *,
+    requested_vendor_ids_json,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        candidate_vendor_id=candidate_data["candidate_vendor_id"],
+        project_id=candidate_data["project_id"],
+        requirement_result_json=json.dumps(
+            candidate_data["requirement_result"],
+            ensure_ascii=False,
+        ),
+        candidate_vendor_result_json=json.dumps(
+            candidate_data["candidate_vendor_result"],
+            ensure_ascii=False,
+        ),
+        selected_vendor_names_json=json.dumps(
+            candidate_data["selected_vendor_names"],
+            ensure_ascii=False,
+        ),
+        requested_vendor_names_json=json.dumps(
+            candidate_data["requested_vendor_names"],
+            ensure_ascii=False,
+        ),
+        requested_vendor_ids_json=requested_vendor_ids_json,
+        top_n=candidate_data["top_n"],
+        similarity_threshold=candidate_data["similarity_threshold"],
+        executed_at=candidate_data["executed_at"],
+        created_at=candidate_data["created_at"],
+    )
 
 
 def _populate_store(store: ApiDemoStore) -> dict[str, object]:

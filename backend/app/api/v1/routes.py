@@ -415,6 +415,7 @@ class ProjectUpdateRequest(BaseModel):
 @router.patch("/projects/{project_id}")
 async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
     try:
+        requested_vendor_ids_for_cache = None
         row = db.execute(
             text("SELECT project_id FROM projects WHERE project_id = :project_id"),
             {"project_id": project_id}
@@ -460,8 +461,28 @@ async def update_project(project_id: str, body: ProjectUpdateRequest, db: Sessio
                         "candidate_vendor_id": cv_row.candidate_vendor_id,
                     },
                 )
-                
+                requested_vendor_ids_for_cache = body.requested_vendor_ids
+
         db.commit()
+        if requested_vendor_ids_for_cache is not None:
+            try:
+                updated_memory = demo_store.update_candidate_vendor_requested_vendor_ids(
+                    project_id=project_id,
+                    requested_vendor_ids=requested_vendor_ids_for_cache,
+                )
+                if not updated_memory:
+                    logger.info(
+                        "candidate vendor record not in memory; "
+                        "requested_vendor_ids updated in DB only. project_id=%s count=%s",
+                        project_id,
+                        len(requested_vendor_ids_for_cache),
+                    )
+            except Exception:
+                logger.warning(
+                    "failed to update in-memory requested_vendor_ids cache. project_id=%s",
+                    project_id,
+                    exc_info=True,
+                )
 
         return {
             "ok": True,
@@ -483,6 +504,7 @@ class CandidateVendorUpdateRequest(BaseModel):
     financial_status: str | None = None
     company_location: str | None = None
     installation_count: int | None = None
+    special_notes: str | list[str] | None = None
 
 @router.patch("/projects/{project_id}/candidate-vendors/{vendor_name}")
 async def update_candidate_vendor(
@@ -504,20 +526,23 @@ async def update_candidate_vendor(
             raise HTTPException(status_code=404, detail="후보 공급사 데이터가 없습니다.")
 
         result_json = json.loads(row.candidate_vendor_result_json)
-        candidates = result_json.get("all_candidates", [])
-
-        target = next(
-            (c for c in candidates if c.get("partner_name") == vendor_name),
-            None,
-        )
-        if target is None:
-            raise HTTPException(status_code=404, detail=f"'{vendor_name}' 공급사를 찾을 수 없습니다.")
 
         update_fields = body.model_dump(exclude_none=True)
         if not update_fields:
             raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
 
-        target.update(update_fields)
+        if "special_notes" in update_fields:
+            update_fields["special_notes"] = _normalize_special_notes(
+                update_fields["special_notes"]
+            )
+
+        matched = _update_candidate_vendor_result_json(
+            result_json,
+            vendor_name=vendor_name,
+            update_fields=update_fields,
+        )
+        if not matched:
+            raise HTTPException(status_code=404, detail=f"'{vendor_name}' 공급사를 찾을 수 없습니다.")
 
         db.execute(
             text(
@@ -547,6 +572,73 @@ async def update_candidate_vendor(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _update_candidate_vendor_result_json(
+    result_json: dict,
+    *,
+    vendor_name: str,
+    update_fields: dict,
+) -> bool:
+    matched = False
+    seen_ids = set()
+    for list_name in [
+        "all_candidates",
+        "candidates",
+        "selected_candidates",
+        "filtered_candidates",
+        "candidate_vendors",
+    ]:
+        candidates = result_json.get(list_name)
+        if not isinstance(candidates, list):
+            continue
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            candidate_id = id(candidate)
+            if candidate_id in seen_ids:
+                continue
+            seen_ids.add(candidate_id)
+
+            metadata = candidate.get("metadata")
+            metadata = metadata if isinstance(metadata, dict) else {}
+            if (
+                candidate.get("partner_name") != vendor_name
+                and candidate.get("vendor_name") != vendor_name
+                and metadata.get("partner_name") != vendor_name
+                and metadata.get("vendor_name") != vendor_name
+            ):
+                continue
+
+            matched = True
+            for key, value in update_fields.items():
+                if key == "special_notes":
+                    metadata = candidate.setdefault("metadata", {})
+                    if not isinstance(metadata, dict):
+                        metadata = {}
+                        candidate["metadata"] = metadata
+                    metadata["special_notes"] = value
+                    metadata.setdefault("manual_update", {})["special_notes"] = value
+                    continue
+                candidate[key] = value
+    return matched
+
+
+def _normalize_special_notes(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, list):
+        return [
+            str(item).strip()
+            for item in value
+            if str(item).strip()
+        ]
+    text = str(value).strip()
+    return [text] if text else []
+
 
 # [P8] 프로젝트 상태 조회
 @router.get("/projects/{project_id}")
