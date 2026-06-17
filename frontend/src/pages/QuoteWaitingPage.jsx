@@ -8,7 +8,7 @@ import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
-const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보$/;
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
   if (!projectData?.projectApiId) return false;

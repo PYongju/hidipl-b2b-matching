@@ -12,7 +12,7 @@ import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const DEFAULT_VISIBLE_PARTNERS = 15;
-const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보$/;
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
   if (!projectData?.projectApiId) return false;
@@ -116,8 +116,8 @@ function buildRequestMessage(partner, projectData) {
   const extra = projectData.otherConditions?.trim();
 
   return [
-    `안녕하세요 ${partnerName}님`,
-    "하이디플레이를 통해 견적 요청 드립니다.",
+    `안녕하세요 ${partnerName} 담당자님`,
+    "하이디플을 통해 견적 요청 드립니다.",
     "",
     "[프로젝트 개요]",
     `- 고객사: ${companyName}`,
@@ -144,12 +144,78 @@ function buildRequestMessage(partner, projectData) {
   ].join("\n");
 }
 
+function normalizeLegacyRequestMessage(message = "", partnerName = "") {
+  const escapedName = String(partnerName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let text = String(message)
+    .replace(/하이디플레이를/g, "하이디플을")
+    .replace(/하이디플레이/g, "하이디플");
+
+  if (escapedName) {
+    text = text.replace(
+      new RegExp(`안녕하세요 ${escapedName}님`, "g"),
+      `안녕하세요 ${partnerName} 담당자님`,
+    );
+  }
+
+  return text.replace(
+    /안녕하세요 (.+?)님(?!(\s*담당자님|\n))/g,
+    "안녕하세요 $1 담당자님",
+  );
+}
+
+function resolveRequestMessage(partner, projectData, override) {
+  const defaultMessage = buildRequestMessage(partner, projectData);
+  if (!override) return defaultMessage;
+  return normalizeLegacyRequestMessage(override, partner?.name ?? "");
+}
+
 function SummaryItem({ label, value }) {
   return (
     <article>
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
+  );
+}
+
+function PartnerSearchIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="partner-search-icon"
+      fill="none"
+      height="16"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M16 16l4.5 4.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function PartnerRemoveIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="selected-partner-remove-icon"
+      fill="none"
+      height="12"
+      viewBox="0 0 24 24"
+      width="12"
+    >
+      <path
+        d="M6 6l12 12M18 6 6 18"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
   );
 }
 
@@ -182,6 +248,9 @@ export default function PartnerMatchingPage({
   const [copyModalOpen, setCopyModalOpen] = useState(false);
   const [activePartnerId, setActivePartnerId] = useState("");
   const [copyFeedback, setCopyFeedback] = useState("");
+  const [messageOverrides, setMessageOverrides] = useState({});
+  const [isMessageEditing, setIsMessageEditing] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [premiumFilter, setPremiumFilter] = useState("all");
   const [sortKey, setSortKey] = useState("ai");
@@ -392,10 +461,22 @@ export default function PartnerMatchingPage({
     targetPartners.find((partner) => partner.id === activePartnerId) ??
     targetPartners[0] ??
     null;
-  const requestMessage = useMemo(
+  const defaultRequestMessage = useMemo(
     () => buildRequestMessage(activeMessagePartner, projectData),
     [activeMessagePartner, projectData],
   );
+  const requestMessage = activeMessagePartner
+    ? resolveRequestMessage(
+        activeMessagePartner,
+        projectData,
+        messageOverrides[activeMessagePartner.id],
+      )
+    : defaultRequestMessage;
+  const displayMessage = isMessageEditing ? draftMessage : requestMessage;
+
+  useEffect(() => {
+    setIsMessageEditing(false);
+  }, [activePartnerId]);
   const cautionPartners = useMemo(
     () => partners.filter((partner) => partner.caution),
     [partners],
@@ -473,17 +554,59 @@ export default function PartnerMatchingPage({
     if (!targetPartners.length) return;
     setActivePartnerId(partnerId || targetPartners[0].id);
     setCopyFeedback("");
+    setIsMessageEditing(false);
+    setMessageOverrides((current) => {
+      const entries = Object.entries(current);
+      if (!entries.length) return current;
+
+      const next = {};
+      let changed = false;
+      for (const [id, text] of entries) {
+        const partner = targetPartners.find((item) => item.id === id);
+        const normalized = normalizeLegacyRequestMessage(text, partner?.name ?? "");
+        next[id] = normalized;
+        if (normalized !== text) changed = true;
+      }
+      return changed ? next : current;
+    });
     setCopyModalOpen(true);
   };
 
   const closeCopyModal = () => {
     setCopyModalOpen(false);
     setCopyFeedback("");
+    setIsMessageEditing(false);
+  };
+
+  const startMessageEdit = () => {
+    setDraftMessage(requestMessage);
+    setIsMessageEditing(true);
+  };
+
+  const saveMessageEdit = () => {
+    if (!activeMessagePartner) return;
+    const normalizedMessage = normalizeLegacyRequestMessage(
+      draftMessage,
+      activeMessagePartner.name,
+    );
+    setMessageOverrides((current) => ({
+      ...current,
+      [activeMessagePartner.id]: normalizedMessage,
+    }));
+    setIsMessageEditing(false);
+    setCopyFeedback("문구를 저장했어요.");
+    if (copyFeedbackTimerRef.current) {
+      window.clearTimeout(copyFeedbackTimerRef.current);
+    }
+    copyFeedbackTimerRef.current = window.setTimeout(() => {
+      setCopyFeedback("");
+      copyFeedbackTimerRef.current = null;
+    }, 1800);
   };
 
   const handleCopyMessage = async () => {
     try {
-      await navigator.clipboard.writeText(requestMessage);
+      await navigator.clipboard.writeText(displayMessage);
       setCopyFeedback("문구를 복사했어요.");
       if (copyFeedbackTimerRef.current) {
         window.clearTimeout(copyFeedbackTimerRef.current);
@@ -578,11 +701,15 @@ export default function PartnerMatchingPage({
             </div>
 
             <div className="partner-tools-top compact partner-tools-inline">
-              <input
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="공급사명, 전문 분야 검색"
-                value={searchTerm}
-              />
+              <label className="partner-search-field">
+                <PartnerSearchIcon />
+                <input
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="공급사명, 전문 분야 검색"
+                  type="search"
+                  value={searchTerm}
+                />
+              </label>
               <select
                 onChange={(event) => setPremiumFilter(event.target.value)}
                 value={premiumFilter}
@@ -634,7 +761,6 @@ export default function PartnerMatchingPage({
                   <col className="col-cases" />
                   <col className="col-response" />
                   <col className="col-type" />
-                  <col className="col-reason" />
                   <col className="col-action" />
                 </colgroup>
                 <thead>
@@ -647,14 +773,13 @@ export default function PartnerMatchingPage({
                     <th>사례5+</th>
                     <th>응답</th>
                     <th>구분</th>
-                    <th>사유</th>
                     <th>요청</th>
                   </tr>
                 </thead>
                 <tbody>
                   {displayPartners.length === 0 ? (
                     <tr>
-                      <td className="partner-empty-cell" colSpan={10}>
+                      <td className="partner-empty-cell" colSpan={9}>
                         <b>{candidateEmptyMessage.title}</b>
                         <span>{candidateEmptyMessage.description}</span>
                       </td>
@@ -717,7 +842,6 @@ export default function PartnerMatchingPage({
                                   : "기준 미충족"}
                           </Badge>
                         </td>
-                        <td>{partner.reason}</td>
                         <td>
                           <button
                             className="partner-row-action"
@@ -808,7 +932,7 @@ export default function PartnerMatchingPage({
                         }}
                         type="button"
                       >
-                        ×
+                        <PartnerRemoveIcon />
                       </button>
                     </button>
                   ))}
@@ -906,23 +1030,39 @@ export default function PartnerMatchingPage({
 
             <textarea
               className="request-copy-textarea"
-              readOnly
-              value={requestMessage}
+              onChange={(event) => setDraftMessage(event.target.value)}
+              readOnly={!isMessageEditing}
+              value={displayMessage}
             />
 
             <p className="request-copy-help">
-              업체명은 선택한 공급사 이름으로 자동 반영됩니다. 복사 후 카카오톡이나 메일에 바로
-              붙여 넣어 사용해 주세요.
+              {isMessageEditing
+                ? "문구를 직접 수정한 뒤 저장해 주세요. 업체를 바꾸면 각 업체별 문구가 따로 유지돼요."
+                : "업체명은 선택한 공급사 이름으로 자동 반영됩니다. 복사 후 카카오톡이나 메일에 바로 붙여 넣어 사용해 주세요."}
             </p>
 
             <div className="request-copy-actions">
               {copyFeedback ? <span>{copyFeedback}</span> : <span />}
               <div>
-                <button className="button" onClick={closeCopyModal} type="button">
-                  수정
+                {isMessageEditing ? (
+                  <button
+                    className="button"
+                    onClick={() => setIsMessageEditing(false)}
+                    type="button"
+                  >
+                    취소
+                  </button>
+                ) : null}
+                <button
+                  className="button"
+                  onClick={isMessageEditing ? saveMessageEdit : startMessageEdit}
+                  type="button"
+                >
+                  {isMessageEditing ? "저장" : "수정"}
                 </button>
                 <button
                   className="button action-primary"
+                  disabled={isMessageEditing}
                   onClick={handleCopyMessage}
                   type="button"
                 >
