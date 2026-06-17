@@ -1053,6 +1053,50 @@ button {
   font-weight: 700;
 }
 
+.compare-inline-edit {
+  width: 100%;
+}
+
+.compare-inline-edit-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.compare-inline-edit-trigger:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.compare-cell-editing {
+  justify-content: stretch;
+}
+
+.compare-inline-edit-input {
+  width: 100%;
+  min-width: 72px;
+  padding: 4px 6px;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #0f172a;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.compare-inline-edit-input:disabled {
+  opacity: 0.7;
+}
+
 .cell-parseFail > span:first-child {
   color: #b91c1c;
   font-weight: 800;
