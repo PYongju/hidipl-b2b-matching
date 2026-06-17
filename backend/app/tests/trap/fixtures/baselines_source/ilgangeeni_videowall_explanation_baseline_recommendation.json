@@ -1,11 +1,181 @@
 {
-  "request_id": "baseline-eval-V-05",
+  "request_id": "ilgang_baseline_001",
   "customer_name": "일강이엔아이",
   "top_n": 3,
   "items": [
     {
       "rank": 1,
-      "quote_id": "V-05",
+      "quote_id": "다올씨앤씨_20251210_000000_88fc704c",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        85.35,
+        100.0,
+        84.49,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+      "source_file_path": "일강_비디오월_46인치_다올씨앤씨.pdf",
+      "final_score": 85.35,
+      "spec_score": 84.49,
+      "price_score": 100.0,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.689843708204,
+      "total_supply_price": 9440000,
+      "total_with_vat": 10384000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.49,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 85.35,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_46인치_다올씨앤씨.pdf",
+        "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+        "source_file_hash": "88fc704c1d66a7c9310deea6926b57bf7c47e111827a70d3ac4b678636a5b146",
+        "source_file_hash_short": "88fc704c",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "비디오월"
+      },
+      "product_group": "비디오월"
+    },
+    {
+      "rank": 2,
+      "quote_id": "시스메이트_20251211_000000_3b191b90",
       "partner_name": "시스메이트",
       "partner_found": true,
       "is_premium": false,
@@ -188,176 +358,6 @@
         "rule_warnings": [
           "가격 차이 5% 초과"
         ],
-        "product_group": "비디오월"
-      },
-      "product_group": "비디오월"
-    },
-    {
-      "rank": 2,
-      "quote_id": "다올씨앤씨_20251210_000000_88fc704c",
-      "partner_name": "다올씨앤씨",
-      "partner_found": true,
-      "is_premium": false,
-      "success_rate": 0.04,
-      "response_speed": "normal",
-      "financial_status": "normal",
-      "business_rule_passed": true,
-      "business_stage": "quote_ranking",
-      "filter_reasons": [],
-      "business_sort_key": [
-        1,
-        85.35,
-        100.0,
-        84.49,
-        0,
-        0.04,
-        2,
-        2
-      ],
-      "vendor_name": "다올씨앤씨",
-      "project_name": "일강이앤아이 회의실 디스플레이 (1안)",
-      "source_file_path": "일강_비디오월_46인치_다올씨앤씨.pdf",
-      "final_score": 85.35,
-      "spec_score": 84.49,
-      "price_score": 100.0,
-      "delivery_score": 50.0,
-      "warranty_score": 100.0,
-      "installation_score": 100.0,
-      "cosine_similarity": 0.689843708204,
-      "total_supply_price": 9440000,
-      "total_with_vat": 10384000,
-      "delivery_weeks": null,
-      "delivery_basis_raw": "",
-      "warranty_months": 12,
-      "line_item_count": 3,
-      "check_required": [
-        "납기 정보 미기재",
-        "1차 전기 인입공사 및 통신 공사 별도",
-        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
-        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
-        "견적 납기 미기재"
-      ],
-      "score_breakdown": {
-        "spec_score": 84.49,
-        "spec_weight": 0.3,
-        "price_score": 100.0,
-        "price_weight": 0.3,
-        "delivery_score": 50.0,
-        "delivery_weight": 0.2,
-        "warranty_score": 100.0,
-        "warranty_weight": 0.1,
-        "installation_score": 100.0,
-        "installation_weight": 0.1,
-        "final_score": 85.35,
-        "is_premium": false,
-        "success_rate": 0.04,
-        "response_speed_score": 2,
-        "financial_status_score": 2,
-        "business_rule_passed": true,
-        "specialty_match_score": 2.0
-      },
-      "comparison_risks": [],
-      "special_notes": [
-        "1차 전기 인입공사 및 통신 공사 별도",
-        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
-        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
-      ],
-      "rule_warnings": [],
-      "matched_rules": [],
-      "vendor_snapshot_source": "data/partners.py",
-      "vendor_snapshot_summary": {
-        "vendor_id": null,
-        "vendor_name": "다올씨앤씨",
-        "is_premium_partner": false,
-        "past_success_rate": 0.04,
-        "response_speed_score": 70.0,
-        "response_speed": "normal",
-        "financial_status": "normal",
-        "is_excluded": false,
-        "specialty_tags": [
-          "비디오월",
-          "LED전광판"
-        ],
-        "installation_count": 38,
-        "industry_breakdown": {
-          "문화/공공": 25,
-          "교육": 5,
-          "상업시설": 3,
-          "기업": 3
-        },
-        "solution_breakdown": {
-          "비디오월": 24,
-          "LED전광판": 12
-        },
-        "scale_breakdown": {
-          "엔터프라이즈": 31,
-          "소규모 비즈니스": 7
-        },
-        "avg_projects_3yr": 50,
-        "avg_revenue_3yr": "40억원",
-        "avg_revenue_3yr_million": 4000.0,
-        "years_in_business": 21,
-        "representative": "김승용",
-        "company_age_years": 21,
-        "avg_project_count_3y": 50,
-        "avg_revenue_3y_million": 4000.0,
-        "company_location": "서울특별시 용산구 새창로 181",
-        "source": "data/partners.py"
-      },
-      "metadata": {
-        "file_name": "일강_비디오월_46인치_다올씨앤씨.pdf",
-        "file_stem": "일강_비디오월_46인치_다올씨앤씨",
-        "source_file_hash": "88fc704c1d66a7c9310deea6926b57bf7c47e111827a70d3ac4b678636a5b146",
-        "source_file_hash_short": "88fc704c",
-        "ocr_provider": "AzureDocumnetIntelligenceProvider",
-        "parser_provider": "RuleBasedQuoteParser",
-        "vendor_name_source": "partner_master_text",
-        "vendor_name_confidence": 0.95,
-        "parser_check_required": [
-          "납기 정보 미기재",
-          "1차 전기 인입공사 및 통신 공사 별도",
-          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
-          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
-        ],
-        "parser_quality_notes": [],
-        "project_name_resolution": {
-          "source": "rule_label",
-          "original_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
-          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
-          "file_stem": "일강_비디오월_46인치_다올씨앤씨",
-          "check_required_added": false
-        },
-        "vendor_snapshot": {
-          "vendor_snapshot_source": "data/partners.py",
-          "partner_found": true,
-          "matched_partner_name": "다올씨앤씨",
-          "normalized_vendor_name": "다올씨앤씨",
-          "snapshot_fields": [
-            "is_premium_partner",
-            "past_success_rate",
-            "response_speed_score",
-            "response_speed",
-            "financial_status",
-            "is_excluded",
-            "specialty_tags",
-            "installation_count",
-            "industry_breakdown",
-            "solution_breakdown",
-            "scale_breakdown",
-            "avg_projects_3yr",
-            "avg_revenue_3yr",
-            "years_in_business",
-            "representative",
-            "company_location"
-          ]
-        },
-        "embedding_provider": "AzureOpenAIEmbeddingProvider",
-        "status": "completed",
-        "embedding_status": "completed",
-        "matched_rules": [],
-        "vendor_snapshot_source": "data/partners.py",
-        "is_excluded": false,
-        "rule_warnings": [],
         "product_group": "비디오월"
       },
       "product_group": "비디오월"
@@ -707,7 +707,7 @@
     },
     {
       "rank": 2,
-      "quote_id": "V-05",
+      "quote_id": "시스메이트_20251211_000000_3b191b90",
       "partner_name": "시스메이트",
       "partner_found": true,
       "is_premium": false,
@@ -1858,10 +1858,6 @@
         "raw_text": "LED P1.56, 3,000 x 2,000mm",
         "metadata": {}
       }
-    ],
-    "eval_baseline": true,
-    "eval_source_scenario": "ilgangeeni_videowall",
-    "eval_source_rank": 2,
-    "eval_original_qid": "시스메이트_20251211_000000_3b191b90"
+    ]
   }
 }
