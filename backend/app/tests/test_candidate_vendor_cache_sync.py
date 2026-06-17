@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from api.v1.routes import CandidateVendorUpdateRequest
+from services.api_demo.response_builders import build_candidate_vendors_response
 from services.api_demo.store import ApiDemoStore
 from services.partner_matching.schemas import (
     PartnerMatchCandidate,
@@ -65,6 +67,53 @@ def test_unsupported_fields_are_ignored() -> None:
     assert candidate.response_speed == "fast"
     assert candidate.final_score == 90.0
     assert candidate.business_rule_passed is True
+
+
+def test_special_notes_string_updates_metadata_and_response() -> None:
+    payload = CandidateVendorUpdateRequest(special_notes="전기공사 별도 확인 필요")
+    update_fields = payload.model_dump(exclude_none=True)
+    store = ApiDemoStore(persistence=None)
+    record = _save_candidate_vendors(store)
+    candidate = record.candidate_vendor_result.all_candidates[0]
+
+    updated = store.update_candidate_vendor_fields(
+        "project_test",
+        candidate.partner_name,
+        {
+            **update_fields,
+            "final_score": 0,
+        },
+    )
+    response = build_candidate_vendors_response("project_test", record)
+
+    assert updated is True
+    assert candidate.metadata["special_notes"] == ["전기공사 별도 확인 필요"]
+    assert candidate.metadata["manual_update"]["special_notes"] == ["전기공사 별도 확인 필요"]
+    assert candidate.final_score == 90.0
+    assert response["data"]["candidate_vendors"][0]["special_notes"] == [
+        "전기공사 별도 확인 필요"
+    ]
+
+
+def test_special_notes_list_updates_metadata() -> None:
+    payload = CandidateVendorUpdateRequest(
+        special_notes=["전기공사 별도", "현장 실사 후 비용 변경 가능"]
+    )
+    store = ApiDemoStore(persistence=None)
+    record = _save_candidate_vendors(store)
+    candidate = record.candidate_vendor_result.all_candidates[0]
+
+    updated = store.update_candidate_vendor_fields(
+        "project_test",
+        candidate.partner_name,
+        payload.model_dump(exclude_none=True),
+    )
+
+    assert updated is True
+    assert candidate.metadata["special_notes"] == [
+        "전기공사 별도",
+        "현장 실사 후 비용 변경 가능",
+    ]
 
 
 def test_get_candidate_vendors_returns_updated_cached_record() -> None:
@@ -220,6 +269,8 @@ def main() -> None:
     test_update_candidate_vendor_fields_in_memory()
     test_unknown_vendor_returns_false()
     test_unsupported_fields_are_ignored()
+    test_special_notes_string_updates_metadata_and_response()
+    test_special_notes_list_updates_metadata()
     test_get_candidate_vendors_returns_updated_cached_record()
     test_all_candidate_lists_are_synchronized()
     test_vendor_name_metadata_fallback_matches()

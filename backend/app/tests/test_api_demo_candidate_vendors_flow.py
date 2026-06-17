@@ -101,6 +101,8 @@ def assert_candidate_vendors_full_list_contract(response: dict) -> None:
     assert len(selected) == data["top_n"]
     assert len(not_selected) == metadata["partner_count"] - data["top_n"]
     assert data["selected_vendor_names"] == [vendor["vendor_name"] for vendor in selected]
+    assert "requested_vendor_ids" in data
+    assert isinstance(data["requested_vendor_ids"], list)
     assert ranks == sorted(ranks)
     assert ranks[0] == 1
     assert metadata["candidate_count"] == metadata["partner_count"]
@@ -115,6 +117,8 @@ def assert_candidate_vendors_full_list_contract(response: dict) -> None:
         assert "specialty_match_score" in vendor["score_breakdown"]
         assert "semantic_score" in vendor["score_breakdown"]
         assert "semantic_score_calibrated" in vendor
+        assert "special_notes" in vendor
+        assert isinstance(vendor["special_notes"], list)
 
     top10 = candidate_vendors[:10]
     assert any("LED전광판" in vendor["specialty_tags"] for vendor in top10)

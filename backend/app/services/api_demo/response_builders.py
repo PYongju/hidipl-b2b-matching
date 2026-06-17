@@ -223,6 +223,7 @@ def build_candidate_vendor_item(candidate, *, rank: int) -> dict[str, Any]:
             if getattr(candidate, "installation_count", None) is not None
             else metadata.get("installation_count")
         ),
+        "special_notes": _candidate_special_notes(candidate, metadata),
         "business_rule_passed": candidate.business_rule_passed,
         "business_stage": candidate.business_stage,
         "filter_reasons": list(candidate.filter_reasons),
@@ -245,7 +246,27 @@ def build_filtered_vendor_item(candidate) -> dict[str, Any]:
             if getattr(candidate, "installation_count", None) is not None
             else metadata.get("installation_count")
         ),
+        "special_notes": _candidate_special_notes(candidate, metadata),
     }
+
+
+def _candidate_special_notes(candidate, metadata: dict[str, Any]) -> list[str]:
+    manual_update = metadata.get("manual_update")
+    if not isinstance(manual_update, dict):
+        manual_update = {}
+    value = (
+        getattr(candidate, "special_notes", None)
+        or metadata.get("special_notes")
+        or manual_update.get("special_notes")
+        or []
+    )
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value).strip()
+    return [text] if text else []
 
 
 def build_recommendation_response(recommendation_result) -> dict[str, Any]:

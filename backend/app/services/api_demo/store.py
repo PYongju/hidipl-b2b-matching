@@ -21,6 +21,7 @@ ALLOWED_CANDIDATE_VENDOR_UPDATE_FIELDS = {
     "financial_status",
     "company_location",
     "installation_count",
+    "special_notes",
 }
 
 
@@ -339,13 +340,35 @@ class ApiDemoStore:
             for key, value in (update_fields or {}).items()
             if key in ALLOWED_CANDIDATE_VENDOR_UPDATE_FIELDS
         }
+        has_special_notes = "special_notes" in allowed_updates
+        special_notes = _normalize_special_notes(allowed_updates.pop("special_notes", None))
         for candidate in matched:
+            metadata = getattr(candidate, "metadata", None)
+            if not isinstance(metadata, dict):
+                metadata = {}
+                if hasattr(candidate, "metadata"):
+                    candidate.metadata = metadata
+            if has_special_notes:
+                if hasattr(candidate, "special_notes"):
+                    setattr(candidate, "special_notes", special_notes)
+                metadata["special_notes"] = special_notes
+                metadata.setdefault("manual_update", {})["special_notes"] = special_notes
             for key, value in allowed_updates.items():
                 if hasattr(candidate, key):
                     setattr(candidate, key, value)
-            metadata = getattr(candidate, "metadata", None)
             if isinstance(metadata, dict) and allowed_updates:
                 metadata.setdefault("manual_update", {}).update(allowed_updates)
+        return True
+
+    def update_candidate_vendor_requested_vendor_ids(
+        self,
+        project_id: str,
+        requested_vendor_ids: list[str],
+    ) -> bool:
+        record = self.get_candidate_vendors(project_id)
+        if record is None:
+            return False
+        record.requested_vendor_ids = list(requested_vendor_ids or [])
         return True
 
     def restore_project_record(self, record: ProjectRecord) -> None:
@@ -426,6 +449,22 @@ def _candidate_vendor_name_matches(candidate: Any, vendor_name: str) -> bool:
 
 def _normalize_vendor_name(value: Any) -> str:
     return str(value or "").strip().lower().replace(" ", "")
+
+
+def _normalize_special_notes(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, list):
+        return [
+            str(item).strip()
+            for item in value
+            if str(item).strip()
+        ]
+    text = str(value).strip()
+    return [text] if text else []
 
 
 def _create_default_persistence():
