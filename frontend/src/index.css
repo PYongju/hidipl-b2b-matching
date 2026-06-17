@@ -1384,7 +1384,13 @@ textarea {
 .memo-readonly {
   background: #f8fafc;
   color: #475569;
-  cursor: default;
+  cursor: pointer;
+}
+
+.memo-editing {
+  border-color: #3b82f6;
+  background: #fff;
+  outline: none;
 }
 
 .side-split .compact-panel > .button.full {

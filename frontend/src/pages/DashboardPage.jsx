@@ -426,6 +426,11 @@ export default function DashboardPage({
     showAutoSaveStatus("saving");
     setReviewMemo(draftMemo);
     setIsMemoEditing(false);
+    onProjectDataChange?.((current) => ({
+      ...current,
+      reviewMemo: draftMemo,
+      lastScreen: "dashboard",
+    }));
     showAutoSaveStatus("saved");
   };
 
@@ -964,10 +969,11 @@ export default function DashboardPage({
                   </h3>
                   <div className="compact-panel-body">
                     <textarea
-                      className={isMemoEditing ? "" : "memo-readonly"}
+                      className={isMemoEditing ? "memo-editing" : "memo-readonly"}
                       onChange={(event) =>
                         setDraftMemo(event.target.value.slice(0, maxMemoLength))
                       }
+                      onClick={!isMemoEditing ? startMemoEdit : undefined}
                       placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
                       readOnly={!isMemoEditing}
                       value={memoValue}

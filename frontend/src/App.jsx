@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿﻿﻿﻿import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -11,11 +11,11 @@ import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
   createProject,
-  deleteProjects as deleteProjectsApi, // 6/12 諛깆뿏???묒뾽?먯꽌 異붽?
+  deleteProjects as deleteProjectsApi,
   fetchCandidateVendors,
   fetchProject,
   fetchProjectMatches,
-  fetchProjects, // 6/12 諛깆뿏???묒뾽?먯꽌 異붽?
+  fetchProjects,
   runProjectMatch,
   updateProject,
   uploadProjectQuotes,
@@ -142,7 +142,7 @@ export default function App() {
     return savedSession.screen === "projects" ? "projects" : "login";
   });
   const [projects, setProjects] = useState([]);
-  const [projectData, setProjectData] = useState(initialProjectData); //6/12 異붽?
+  const [projectData, setProjectData] = useState(initialProjectData);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
@@ -251,7 +251,7 @@ export default function App() {
             createdProject.requestId ??
             nextData.requestId,
           createdProject,
-          workflowStatus: nextData.workflowStatus || "?? ?",
+          workflowStatus: nextData.workflowStatus || "진행 중",
         };
       }
 
@@ -271,7 +271,7 @@ export default function App() {
       showAutoSaveStatus("saved");
       return projectApiId;
     } catch (error) {
-      console.error("?먮룞 ????ㅽ뙣:", error);
+      console.error("저장 중 오류:", error);
       showAutoSaveStatus("error");
       return null;
     }
@@ -286,7 +286,7 @@ export default function App() {
         matchHydrationAttempted: true,
       };
     } catch (error) {
-      console.error("留ㅼ묶 寃곌낵 議고쉶 ?ㅽ뙣:", error);
+      console.error("매칭 결과 조회 실패:", error);
       return {
         ...baseData,
         matchHydrationAttempted: true,
@@ -300,9 +300,9 @@ export default function App() {
       const items = normalizeProjectsResponse(list);
 
       if (!items) {
-        console.error("?꾨줈?앺듃 紐⑸줉 ?묐떟 ?뺤떇 ?ㅻ쪟:", list);
+        console.error("프로젝트 목록 응답 형식 오류:", list);
         setProjectsLoadError(
-          "?꾨줈?앺듃 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
+          "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
         );
         setProjects([]);
         return [];
@@ -328,7 +328,7 @@ export default function App() {
               ...parsedFields,
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: item.workflow_status === "completed" ? "?꾨즺" : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -340,20 +340,20 @@ export default function App() {
       setProjects((current) => {
         const merged = mappedProjects.map((mapped) => {
           const existing = current.find((p) => p.id === mapped.id);
-          if (existing?.status === "?꾨즺") {
+          if (existing?.status === "완료") {
             return {
               ...mapped,
-              status: "?꾨즺",
-              statusTone: getProjectStatusTone("?꾨즺"),
+              status: "완료",
+              statusTone: getProjectStatusTone("완료"),
               desc: existing.desc,
               data: {
                 ...mapped.data,
-                workflowStatus: "?꾨즺",
-                currentStage: existing.data?.currentStage ?? "寃???꾨즺",
+                workflowStatus: "완료",
+                currentStage: existing.data?.currentStage ?? "검토 완료",
               },
             };
           }
-          // 湲곗〈 濡쒖뺄 ?꾩슜 ?꾨뱶 蹂댁〈 (?쒕쾭????λ릺吏 ?딅뒗 ?꾨줎???곹깭)
+          // 기존 로컬 전용 필드 보존 (서버에 저장되지 않는 프론트 상태)
           const localOnlyFields = {};
           if (existing?.data?.lastScreen) {
             localOnlyFields.lastScreen = existing.data.lastScreen;
@@ -385,10 +385,10 @@ export default function App() {
       });
       return mappedProjects;
     } catch (error) {
-      console.error("?꾨줈?앺듃 紐⑸줉 議고쉶 ?ㅽ뙣:", error);
-      // 湲곗닠 ?곸꽭(?먮윭 ?먯씤쨌?쒕쾭 二쇱냼)??肄섏넄濡쒕쭔, ?ъ슜?먯뿉寃??됰룞 以묒떖 臾멸뎄 (媛?대뱶 짠9 #9)
+      console.error("프로젝트 목록 조회 실패:", error);
+      // 기존 상태 유지하되 사용자에게 오류 안내
       setProjectsLoadError(
-        "?꾨줈?앺듃 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
+        "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
       setProjects([]);
       return [];
@@ -480,7 +480,7 @@ export default function App() {
             savedSession.screen,
           );
         } catch (error) {
-          console.error("?몄뀡 蹂듭썝 ?ㅽ뙣:", error);
+          console.error("분석 실행 실패:", error);
           if (!ignore) {
             await loadProjects();
             setScreen("projects");
@@ -570,7 +570,7 @@ export default function App() {
       });
       projectApiId = created.project_id;
     } catch (error) {
-      console.error("?꾨줈?앺듃 ?앹꽦 ?ㅽ뙣:", error);
+      console.error("프로젝트 생성 실패:", error);
     }
 
     const projectId =
@@ -618,7 +618,7 @@ export default function App() {
         setProjectData(restoredProjectData);
         syncProjectList(restoredProjectData);
       } catch (error) {
-        console.error("?꾨줈?앺듃 ?섏젙 ?붾㈃ 吏꾩엯 以??쒕쾭 ?곹깭 議고쉶 ?ㅽ뙣:", error);
+        console.error("프로젝트 저장 후 서버 상태 조회 실패:", error);
       }
     }
 
@@ -654,7 +654,7 @@ export default function App() {
         } catch (error) {
           setAnalysisErrorMessage(
             error.message ||
-              "?꾨줈?앺듃 ?곹깭瑜?遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
+              "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
           );
         }
       }
@@ -681,7 +681,7 @@ export default function App() {
     try {
       await deleteProjectsApi(projectIds);
     } catch (error) {
-      console.error("?꾨줈?앺듃 ??젣 ?ㅽ뙣:", error);
+      console.error("프로젝트 삭제 실패:", error);
     }
     setProjects((current) =>
       current.filter((project) => !projectIds.includes(project.id)),
@@ -749,7 +749,7 @@ export default function App() {
 
       if (!projectApiId) {
         throw new Error(
-          "?꾨줈?앺듃 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
+          "프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
         );
       }
 
