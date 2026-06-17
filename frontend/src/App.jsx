@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿﻿﻿﻿import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -11,11 +11,11 @@ import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
   createProject,
-  deleteProjects as deleteProjectsApi, // 6/12 백엔드 작업에서 추가
+  deleteProjects as deleteProjectsApi,
   fetchCandidateVendors,
   fetchProject,
   fetchProjectMatches,
-  fetchProjects, // 6/12 백엔드 작업에서 추가
+  fetchProjects,
   runProjectMatch,
   updateProject,
   uploadProjectQuotes,
@@ -142,7 +142,7 @@ export default function App() {
     return savedSession.screen === "projects" ? "projects" : "login";
   });
   const [projects, setProjects] = useState([]);
-  const [projectData, setProjectData] = useState(initialProjectData); //6/12 추가
+  const [projectData, setProjectData] = useState(initialProjectData);
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
@@ -153,6 +153,27 @@ export default function App() {
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
   const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const autoSaveStatusTimerRef = useRef(null);
+
+  const clearAutoSaveStatusTimer = () => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+  };
+
+  const showAutoSaveStatus = (status) => {
+    clearAutoSaveStatusTimer();
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
     id,
@@ -198,6 +219,62 @@ export default function App() {
       syncProjectList(nextData, listOverrides);
       return nextData;
     });
+  };
+
+  const autoSaveProjectData = async (
+    patchData,
+    nextData,
+    { screenName, listOverrides = {} } = {},
+  ) => {
+    showAutoSaveStatus("saving");
+
+    try {
+      let ensuredData = nextData;
+      let projectApiId = nextData.projectApiId;
+
+      if (!projectApiId) {
+        const createdProject = await createProject(
+          buildProjectRequestPayload(nextData),
+        );
+        projectApiId = createdProject.project_id ?? createdProject.id;
+        const projectId =
+          projectApiId ||
+          nextData.projectId ||
+          `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+
+        ensuredData = {
+          ...nextData,
+          projectApiId,
+          projectId,
+          requestId:
+            createdProject.request_id ??
+            createdProject.requestId ??
+            nextData.requestId,
+          createdProject,
+          workflowStatus: nextData.workflowStatus || "진행 중",
+        };
+      }
+
+      if (projectApiId && patchData) {
+        await updateProject(projectApiId, patchData);
+      }
+
+      updateProjectData(
+        (current) => ({
+          ...current,
+          ...ensuredData,
+          projectApiId,
+          lastScreen: screenName ?? ensuredData.lastScreen ?? current.lastScreen,
+        }),
+        listOverrides,
+      );
+      showAutoSaveStatus("saved");
+      return projectApiId;
+    } catch (error) {
+      console.error("저장 중 오류:", error);
+      showAutoSaveStatus("error");
+      return null;
+    }
   };
 
   const hydrateProjectMatchData = async (apiProjectId, baseData) => {
@@ -309,7 +386,7 @@ export default function App() {
       return mappedProjects;
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
-      // 기술 상세(에러 원인·서버 주소)는 콘솔로만, 사용자에겐 행동 중심 문구 (가이드 §9 #9)
+      // 기존 상태 유지하되 사용자에게 오류 안내
       setProjectsLoadError(
         "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
       );
@@ -376,6 +453,7 @@ export default function App() {
 
   const goToProjects = async () => {
     await loadProjects();
+    setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
   };
@@ -386,6 +464,7 @@ export default function App() {
       lastScreen: screen,
     }));
     await loadProjects();
+    setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
   };
@@ -401,7 +480,7 @@ export default function App() {
             savedSession.screen,
           );
         } catch (error) {
-          console.error("세션 복원 실패:", error);
+          console.error("분석 실행 실패:", error);
           if (!ignore) {
             await loadProjects();
             setScreen("projects");
@@ -427,6 +506,8 @@ export default function App() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => () => clearAutoSaveStatusTimer(), []);
 
   useEffect(() => {
     if (restoring) return;
@@ -467,8 +548,15 @@ export default function App() {
   ]);
   const startNewProject = () => {
     setEditingProjectId("");
-    setProjectData({ ...initialProjectData });
-    setScreen("wizard");
+    setActiveProjectId("");
+    setAutoSaveStatus("idle");
+    setProjectData({
+      ...initialProjectData,
+      projectId: "",
+      projectApiId: null,
+      lastScreen: "requirements",
+    });
+    setScreen("requirements");
   };
 
   const createDraftProject = async (draftData, shouldContinue = false) => {
@@ -530,7 +618,7 @@ export default function App() {
         setProjectData(restoredProjectData);
         syncProjectList(restoredProjectData);
       } catch (error) {
-        console.error("프로젝트 수정 화면 진입 중 서버 상태 조회 실패:", error);
+        console.error("프로젝트 저장 후 서버 상태 조회 실패:", error);
       }
     }
 
@@ -697,7 +785,7 @@ export default function App() {
         {
           status: "진행 중",
           statusTone: "blue",
-          desc: "파트너 추천/요청 대상 검토 중",
+          desc: "파트너 추천/요청 검토 중",
         },
       );
       setPartnerMatchingTransition("idle");
@@ -776,16 +864,16 @@ export default function App() {
     return <LoginPage onLogin={goToProjects} />;
   }
 
-  //6/12 백엔드 작업에서 수정
+  //6/12 諛깆뿏???묒뾽?먯꽌 ?섏젙
   if (screen === "projects") {
     return (
       <ProjectListPage
         loadError={projectsLoadError}
         projects={projects}
         onCreate={startNewProject}
-        onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
+        onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
         onReloadProjects={loadProjects}
       />
@@ -851,21 +939,14 @@ export default function App() {
           projectData={projectData}
           onBack={goToProjects}
           onGoHome={goHome}
+          onGoProjects={goToProjects}
           onNext={startPartnerMatchingFromRequirements}
           onProjectDataChange={updateProjectData}
-          onSaveDraft={() =>
-            saveCurrentProjectScreen("requirements", {
-              currentStage: "요구사항",
-              workflowStatus: "진행 중",
-            })
-          }
           onAutoSave={async (data) => {
-            if (!projectData.projectApiId) return;
-            try {
-              await updateProject(projectData.projectApiId, data);
-            } catch (error) {
-              console.error("자동저장 실패:", error);
-            }
+            await autoSaveProjectData(data, {
+              ...projectData,
+              lastScreen: "requirements",
+            });
           }}
         />
         <PartnerMatchingLoadingModal
@@ -936,12 +1017,6 @@ export default function App() {
         onGoDashboard={goQuoteReviewLoading}
         onGoHome={goHome}
         onProjectDataChange={updateProjectData}
-        onSaveDraft={() =>
-          saveCurrentProjectScreen("quoteWaiting", {
-            currentStage: "견적서 업로드 대기",
-            workflowStatus: "진행 중",
-          })
-        }
       />
     );
   }
@@ -960,6 +1035,7 @@ export default function App() {
 
   return (
     <DashboardPage
+      onBack={() => setScreen("quoteWaiting")}
       projectData={projectData}
       onGoProjects={goToProjects}
       onProjectDataChange={updateProjectData}
@@ -1040,7 +1116,7 @@ function mergeServerProjectData(localData, serverProject) {
 function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
   if (status === "matched") return "견적 검토";
   if (status === "quote_uploaded") return "견적 비교 분석 중";
-  if (status === "partner_matching") return "파트너 매칭 결과"; // 추가
+  if (status === "partner_matching") return "파트너 매칭 결과";
   if (status === "partner_matched") return "견적서 업로드 대기";
   if (status === "created") return "요구사항";
   return fallback;
@@ -1049,7 +1125,7 @@ function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
 function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
   if (status === "matched") return "검토 중";
   if (status === "quote_uploaded") return "검토 중";
-  if (status === "partner_matching") return "진행 중"; // 추가
+  if (status === "partner_matching") return "진행 중";
   if (status === "partner_matched") return "진행 중";
   if (status === "created") return "진행 중";
   return fallback;
@@ -1079,3 +1155,5 @@ function getScreenFromProject(data) {
   }
   return "requirements";
 }
+
+

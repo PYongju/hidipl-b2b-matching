@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
-import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 
@@ -139,6 +138,9 @@ export default function QuoteReviewLoadingPage({
         trail="프로젝트 상세 > 견적 비교 분석"
         action={
           <>
+            <button className="button action-secondary" onClick={onGoHome} type="button">
+              목록
+            </button>
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
@@ -150,7 +152,6 @@ export default function QuoteReviewLoadingPage({
 
       <main className="matching-loading-main">
         <section className="matching-loading-card">
-          <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onBack} />
           <div
             className={`matching-loading-symbol${
               analysisState === "error" ? " is-error" : isComplete ? " is-complete" : ""
@@ -215,8 +216,8 @@ export default function QuoteReviewLoadingPage({
           </div>
 
           <div className="matching-loading-actions">
-            <button className="button" onClick={onBack} type="button">
-              견적 수신으로 돌아가기
+            <button className="button action-secondary" onClick={onBack} type="button">
+              이전
             </button>
             {analysisState === "error" ? (
               <button className="button button-blue" onClick={runQuoteReviewAnalysis} type="button">
@@ -229,7 +230,7 @@ export default function QuoteReviewLoadingPage({
               onClick={onComplete}
               type="button"
             >
-              견적 검토 화면 보기
+              다음: 견적 검토 결과
             </button>
           </div>
         </section>

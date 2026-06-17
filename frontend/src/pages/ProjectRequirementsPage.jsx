@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -24,32 +25,70 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
-  onSaveDraft = () => {},
   onAutoSave,
   isPartnerMatchingLoading = false,
   onGoHome,
 }) {
   const autoSaveTimerRef = useRef(null);
+  const autoSaveStatusTimerRef = useRef(null);
+  const lastAutoSavePayloadRef = useRef("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   useEffect(() => {
-    if (!onAutoSave || !projectData.projectApiId) return;
+    if (!onAutoSave) return;
+
+    const payload = buildProjectRequestPayload(projectData);
+    const payloadSnapshot = JSON.stringify(payload);
+
+    if (!lastAutoSavePayloadRef.current) {
+      lastAutoSavePayloadRef.current = payloadSnapshot;
+      return;
+    }
+
+    if (lastAutoSavePayloadRef.current === payloadSnapshot) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    autoSaveTimerRef.current = setTimeout(() => {
-      onAutoSave(buildProjectRequestPayload(projectData));
-    }, 1500);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      showAutoSaveStatus("saving");
+      try {
+        await onAutoSave(payload);
+        lastAutoSavePayloadRef.current = payloadSnapshot;
+        showAutoSaveStatus("saved");
+      } catch (error) {
+        console.error("? ? ?:", error);
+        showAutoSaveStatus("error");
+      }
+    }, 1200);
 
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
+      if (autoSaveStatusTimerRef.current) {
+        clearTimeout(autoSaveStatusTimerRef.current);
+      }
     };
   }, [
     onAutoSave,
-    projectData.projectApiId,
     projectData.companyName,
     projectData.location,
     projectData.projectDate,
@@ -75,9 +114,14 @@ export default function ProjectRequirementsPage({
   const readinessMessage = getReadinessMessage(readiness, checks);
   const displayUnit = projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
   const isDisplayInch = displayUnit === "inch";
-  const displayWidthValue = projectData.displayWidth ?? parseDisplayDimension(projectData.displaySize, "width");
-  const displayHeightValue = projectData.displayHeight ?? parseDisplayDimension(projectData.displaySize, "height");
-  const displayInchValue = projectData.displayInch ?? parseDisplayInch(projectData.displaySize);
+  const displayWidthValue =
+    projectData.displayWidth ??
+    parseDisplayDimension(projectData.displaySize, "width");
+  const displayHeightValue =
+    projectData.displayHeight ??
+    parseDisplayDimension(projectData.displaySize, "height");
+  const displayInchValue =
+    projectData.displayInch ?? parseDisplayInch(projectData.displaySize);
 
   const selectedSolutions = normalizeProjectSolutions(projectData);
 
@@ -90,10 +134,14 @@ export default function ProjectRequirementsPage({
 
   const updateDisplaySize = (nextValues) => {
     onProjectDataChange((current) => {
-      const nextUnit = nextValues.displayUnit ?? current.displayUnit ?? displayUnit;
-      const nextWidth = nextValues.displayWidth ?? current.displayWidth ?? displayWidthValue;
-      const nextHeight = nextValues.displayHeight ?? current.displayHeight ?? displayHeightValue;
-      const nextInch = nextValues.displayInch ?? current.displayInch ?? displayInchValue;
+      const nextUnit =
+        nextValues.displayUnit ?? current.displayUnit ?? displayUnit;
+      const nextWidth =
+        nextValues.displayWidth ?? current.displayWidth ?? displayWidthValue;
+      const nextHeight =
+        nextValues.displayHeight ?? current.displayHeight ?? displayHeightValue;
+      const nextInch =
+        nextValues.displayInch ?? current.displayInch ?? displayInchValue;
       const nextDisplaySize =
         nextUnit === "inch"
           ? formatInchSize(nextInch)
@@ -117,6 +165,7 @@ export default function ProjectRequirementsPage({
         trail="프로젝트 상세 > 요구사항"
         action={
           <>
+            <AutoSaveStatus status={autoSaveStatus} />
             <button className="button action-secondary" onClick={onBack} type="button">
               목록
             </button>
@@ -201,7 +250,7 @@ export default function ProjectRequirementsPage({
                 </label>
               </div>
               <label>
-                <span>활용 용도 및 디스플레이 요구사항</span>
+                <span>활용 용도 및 디스플레이 요구사항 *</span>
                 <textarea
                   onChange={(event) => updateField("usage", event.target.value)}
                   placeholder="예: 사내 브리핑/방문객 안내용 디스플레이, 설치 환경, 화면 밝기, 운영 조건 등을 입력해주세요."
@@ -367,18 +416,10 @@ export default function ProjectRequirementsPage({
                   value={projectData.otherConditions || ""}
                 />
               </label>
-              <label>
-                <span>첨부 메모</span>
-                <textarea
-                  onChange={(event) => updateField("attachmentMemo", event.target.value)}
-                  placeholder="도면, 사진, 기존 견적서, 담당자 요청사항 등 첨부 자료에 대한 메모"
-                  value={projectData.attachmentMemo || ""}
-                />
-              </label>
             </section>
           </form>
 
-          <aside className="matching-check-panel refined">
+          <aside className="matching-check-panel refined panel-sticky">
             <div className="requirements-section-title">
               <div>
                 <h2>매칭 가능성 체크</h2>
@@ -423,8 +464,8 @@ export default function ProjectRequirementsPage({
       <footer className="requirements-bottom-actions">
         <span>요구사항은 빈 값이어도 저장할 수 있어요.</span>
         <div>
-          <button className="button action-secondary" onClick={onSaveDraft} type="button">
-            임시 저장
+          <button className="button action-secondary" onClick={onBack} type="button">
+            이전
           </button>
           <button
             className="button action-primary"
@@ -450,15 +491,9 @@ function hasDisplayDimension(data) {
 
 function getMatchingChecks(data) {
   const stage = data.currentStage || "";
-  const schedule = getScheduleState(data.projectDate);
   const hasCompany = Boolean(data.companyName?.trim());
   const hasLocation = Boolean(data.location?.trim());
   const hasUsage = Boolean(data.usage?.trim());
-  const hasDisplay = hasDisplayDimension(data);
-  const hasQuantity = Boolean(data.quantity?.trim());
-  const hasBudget = Boolean(data.budgetAmount?.trim());
-  const hasSolutions = normalizeProjectSolutions(data).length > 0;
-  const solutionsLabel = formatProjectSolutions(data, "");
 
   const requiredFilledCount = [hasCompany, hasLocation, hasUsage].filter(Boolean).length;
 
@@ -479,36 +514,6 @@ function getMatchingChecks(data) {
       message: stage.includes("정보 탐색")
         ? "정보 탐색 단계는 자동 매칭이 제한될 수 있어요."
         : "현재 단계 기준으로 파트너 매칭 검토가 가능해요.",
-    },
-    {
-      title: "일정 6개월 이내",
-      weight: 20,
-      level: schedule.level,
-      message: schedule.message,
-    },
-    {
-      title: "스펙/예산 보완",
-      weight: 24,
-      level: hasDisplay && hasQuantity && hasBudget ? "ok" : "warn",
-      message: (() => {
-        if (hasDisplay && hasQuantity && hasBudget) {
-          return "디스플레이 스펙, 수량, 예산 조건이 입력됐어요.";
-        }
-        const missing = [
-          hasDisplay ? null : "디스플레이 크기",
-          hasQuantity ? null : "수량",
-          hasBudget ? null : "예산",
-        ].filter(Boolean);
-        return `${missing.join(", ")}을(를) 입력하면 후보군을 더 정확히 좁힐 수 있어요.`;
-      })(),
-    },
-    {
-      title: "솔루션 적합성",
-      weight: 16,
-      level: hasSolutions ? "ok" : "warn",
-      message: hasSolutions
-        ? `${solutionsLabel} 공급사 풀과 매칭할 수 있어요.`
-        : "솔루션을 선택하면 후보군을 더 정확히 좁힐 수 있어요.",
     },
   ];
 }
