@@ -159,12 +159,16 @@ def main() -> None:
     print("recommendation count:", len(recommendation["items"]))
     assert recommendation["items"]
     product_group_filter = recommendation["metadata"]["product_group_filter"]
-    assert product_group_filter["source"] == "requirement"
-    assert product_group_filter["selected_product_groups"] == ["LED전광판"]
+    assert product_group_filter["source"] == "grouped_product_group"
+    assert product_group_filter["enabled"] is False
     assert product_group_filter["input_quote_count"] == quote_response["processed_count"]
-    assert len(recommendation["all_items"]) == product_group_filter["ranking_quote_count"]
-    assert product_group_filter["excluded_quote_count"] >= 1
-    assert recommendation["metadata"]["product_group_excluded_candidates"]
+    assert len(recommendation["all_items"]) == quote_response["processed_count"]
+    assert recommendation["metadata"]["grouped_by_product_group"] is True
+    assert match_response["recommendation_groups"]
+    assert sum(
+        group["quote_count"]
+        for group in match_response["recommendation_groups"]
+    ) == quote_response["processed_count"]
     assert match_response["metadata"]["candidate_vendor_filter_applied"] is False
     assert recommendation["metadata"]["candidate_vendor_filter_applied"] is False
     assert all(item["business_rule_passed"] is True for item in recommendation["all_items"])
@@ -175,6 +179,7 @@ def main() -> None:
     assert dashboard_response["project_id"] == project_id
     assert dashboard_response["match_id"] == match_id
     assert dashboard_response["recommendation"]["items"]
+    assert dashboard_response["recommendation_groups"]
     full_result["dashboard"] = dashboard_response
 
     print("\n========== 6. Explanation 조회 ==========")
@@ -195,12 +200,12 @@ def main() -> None:
     print("\n========== 7. Compare 생성 ==========")
     compare_response = compare_quotes(project_id, CompareRequest())
     print("rows:", len(compare_response["rows"]))
-    compare_filter = compare_response["metadata"]["product_group_filter"]
-    assert compare_filter["selected_product_groups"] == ["LED전광판"]
-    assert len(compare_response["rows"]) == compare_filter["ranking_quote_count"]
-    assert compare_response["metadata"]["excluded_candidates"]
+    assert compare_response["metadata"]["grouped_by_product_group"] is True
+    assert len(compare_response["rows"]) == quote_response["processed_count"]
+    assert compare_response["groups"]
     expected_install_location = project_response["region"]
     for row in compare_response["rows"]:
+        assert row.get("product_group")
         assert "candidate_vendor_link" in row
         assert "comparison_risks" in row
         assert row.get("install_location") == expected_install_location
@@ -295,7 +300,7 @@ def collect_status_values(obj) -> list[str]:
 
 
 def validate_compare_statuses(compare_response) -> None:
-    statuses = collect_status_values(compare_response)
+    statuses = collect_status_values(compare_response["rows"])
     assert statuses
     assert all(status in ALLOWED_STATUSES for status in statuses)
 
