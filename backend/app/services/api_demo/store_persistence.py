@@ -87,16 +87,24 @@ class ApiDemoPersistence(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def load_candidate_vendor_record(self, project_id: str) -> CandidateVendorRecord | None:
+    def load_candidate_vendor_record(
+        self, project_id: str
+    ) -> CandidateVendorRecord | None:
         raise NotImplementedError
 
-    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+    def load_recent_project_records(
+        self, *, limit: int | None = None
+    ) -> list[ProjectRecord]:
         return []
 
-    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+    def load_recent_quote_pool_records(
+        self, *, limit: int | None = None
+    ) -> list[QuotePoolRecord]:
         return []
 
-    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+    def load_recent_match_records(
+        self, *, limit: int | None = None
+    ) -> list[MatchRecord]:
         return []
 
     def load_recent_candidate_vendor_records(
@@ -125,7 +133,9 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
         return deserialize_project_record(deepcopy(data)) if data else None
 
     def save_quote_pool_record(self, record: QuotePoolRecord) -> None:
-        self.quote_pools[record.quote_pool_id] = deepcopy(serialize_quote_pool_record(record))
+        self.quote_pools[record.quote_pool_id] = deepcopy(
+            serialize_quote_pool_record(record)
+        )
         self.project_quote_pool_index[record.project_id] = record.quote_pool_id
 
     def load_quote_pool_record(self, project_id: str) -> QuotePoolRecord | None:
@@ -161,7 +171,9 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
         data = self.matches.get(match_id)
         if not data or data.get("project_id") != project_id:
             return
-        data["explanation_result"] = deepcopy(sanitize_for_db_storage(explanation_result))
+        data["explanation_result"] = deepcopy(
+            sanitize_for_db_storage(explanation_result)
+        )
 
     def update_project_requirement_result(
         self,
@@ -172,12 +184,15 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
         data = self.projects.get(project_id)
         if not data:
             return
-        data["requirement_result"] = deepcopy(sanitize_for_db_storage(requirement_result))
-        data["request_id"] = data["requirement_result"].get("request_id") or data.get("request_id")
-        data["requirement_source"] = (
-            (data["requirement_result"].get("metadata") or {}).get("requirement_source")
-            or data.get("requirement_source")
+        data["requirement_result"] = deepcopy(
+            sanitize_for_db_storage(requirement_result)
         )
+        data["request_id"] = data["requirement_result"].get("request_id") or data.get(
+            "request_id"
+        )
+        data["requirement_source"] = (
+            data["requirement_result"].get("metadata") or {}
+        ).get("requirement_source") or data.get("requirement_source")
 
     def load_project_scalar_snapshot(self, project_id: str) -> dict[str, Any] | None:
         data = self.projects.get(project_id)
@@ -197,26 +212,36 @@ class FakeJsonApiDemoPersistence(ApiDemoPersistence):
         self.candidate_vendors[record.candidate_vendor_id] = deepcopy(
             serialize_candidate_vendor_record(record)
         )
-        self.project_candidate_vendor_index[record.project_id] = record.candidate_vendor_id
+        self.project_candidate_vendor_index[record.project_id] = (
+            record.candidate_vendor_id
+        )
 
-    def load_candidate_vendor_record(self, project_id: str) -> CandidateVendorRecord | None:
+    def load_candidate_vendor_record(
+        self, project_id: str
+    ) -> CandidateVendorRecord | None:
         candidate_vendor_id = self.project_candidate_vendor_index.get(project_id)
         data = self.candidate_vendors.get(candidate_vendor_id or "")
         return deserialize_candidate_vendor_record(deepcopy(data)) if data else None
 
-    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+    def load_recent_project_records(
+        self, *, limit: int | None = None
+    ) -> list[ProjectRecord]:
         values = list(self.projects.values())
         if limit is not None:
             values = values[-limit:]
         return [deserialize_project_record(deepcopy(data)) for data in values]
 
-    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+    def load_recent_quote_pool_records(
+        self, *, limit: int | None = None
+    ) -> list[QuotePoolRecord]:
         values = list(self.quote_pools.values())
         if limit is not None:
             values = values[-limit:]
         return [deserialize_quote_pool_record(deepcopy(data)) for data in values]
 
-    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+    def load_recent_match_records(
+        self, *, limit: int | None = None
+    ) -> list[MatchRecord]:
         values = list(self.matches.values())
         if limit is not None:
             values = values[-limit:]
@@ -463,8 +488,12 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             {
                 "match_id": record.match_id,
                 "project_id": record.project_id,
-                "recommendation_result_json": _json_dumps(data.get("recommendation_result")),
-                "explanation_result_json": _json_dumps_or_none(data.get("explanation_result")),
+                "recommendation_result_json": _json_dumps(
+                    data.get("recommendation_result")
+                ),
+                "explanation_result_json": _json_dumps_or_none(
+                    data.get("explanation_result")
+                ),
                 "created_at": _to_db_datetime(record.created_at),
             },
             "save_match_record",
@@ -531,7 +560,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             {
                 "project_id": project_id,
                 "match_id": match_id,
-                "explanation_result_json": _json_dumps(sanitize_for_db_storage(explanation_result)),
+                "explanation_result_json": _json_dumps(
+                    sanitize_for_db_storage(explanation_result)
+                ),
             },
             "update_match_explanation",
         )
@@ -605,7 +636,10 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                     data.get("candidate_vendor_result")
                 ),
                 "selected_vendor_names_json": _json_dumps(record.selected_vendor_names),
-                "requested_vendor_names_json": _json_dumps(record.requested_vendor_names),
+                "requested_vendor_names_json": _json_dumps(
+                    record.requested_vendor_names
+                ),
+                "requested_vendor_ids_json": _json_dumps(record.requested_vendor_ids),
                 "top_n": record.top_n,
                 "similarity_threshold": record.similarity_threshold,
                 "executed_at": _to_db_datetime(record.executed_at),
@@ -614,7 +648,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             "save_candidate_vendor_record",
         )
 
-    def load_candidate_vendor_record(self, project_id: str) -> CandidateVendorRecord | None:
+    def load_candidate_vendor_record(
+        self, project_id: str
+    ) -> CandidateVendorRecord | None:
         if not self.enabled:
             return None
         row = self._fetch_one(
@@ -668,9 +704,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             return False
         try:
             with self.session_factory() as session:
-                rows = session.execute(
-                    text(
-                        """
+                rows = session.execute(text("""
                         SELECT table_name, column_name
                         FROM information_schema.columns
                         WHERE table_schema = DATABASE()
@@ -681,9 +715,7 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
                             OR (table_name = 'match_results' AND column_name = 'explanation_result_json')
                             OR (table_name = 'candidate_vendors' AND column_name = 'candidate_vendor_result_json')
                           )
-                        """
-                    )
-                ).fetchall()
+                        """)).fetchall()
             found = {(row.table_name, row.column_name) for row in rows}
             required = {
                 ("projects", "requirement_result_json"),
@@ -697,7 +729,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             logger.warning("API demo MySQL persistence schema check failed: %s", exc)
             return False
 
-    def load_recent_project_records(self, *, limit: int | None = None) -> list[ProjectRecord]:
+    def load_recent_project_records(
+        self, *, limit: int | None = None
+    ) -> list[ProjectRecord]:
         rows = self._fetch_all(
             f"""
             SELECT
@@ -721,7 +755,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             if record is not None
         ]
 
-    def load_recent_quote_pool_records(self, *, limit: int | None = None) -> list[QuotePoolRecord]:
+    def load_recent_quote_pool_records(
+        self, *, limit: int | None = None
+    ) -> list[QuotePoolRecord]:
         rows = self._fetch_all(
             f"""
             SELECT
@@ -757,7 +793,9 @@ class SqlJsonApiDemoPersistence(ApiDemoPersistence):
             )
         return records
 
-    def load_recent_match_records(self, *, limit: int | None = None) -> list[MatchRecord]:
+    def load_recent_match_records(
+        self, *, limit: int | None = None
+    ) -> list[MatchRecord]:
         rows = self._fetch_all(
             f"""
             SELECT
