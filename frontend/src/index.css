@@ -2,7 +2,7 @@
   color: #111827;
   background: #f8fafc;
   font-family:
-    Inter, "Pretendard", "Noto Sans KR", "Segoe UI", system-ui, -apple-system,
+    "Noto Sans KR", "Pretendard", Inter, "Segoe UI", system-ui, -apple-system,
     BlinkMacSystemFont, sans-serif;
   font-synthesis: none;
   text-rendering: geometricPrecision;
@@ -156,6 +156,40 @@ button {
   gap: 16px;
   color: #475569;
   font-size: 13px;
+}
+
+.auto-save-indicator {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid #d7dde8;
+  border-radius: 999px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.auto-save-indicator.saving {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.auto-save-indicator.saved {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.auto-save-indicator.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.ui-hidden {
+  display: none !important;
 }
 
 .bell {
@@ -1866,11 +1900,17 @@ textarea {
   color: #d97706 !important;
 }
 
+.project-tools-wrap {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .project-tools {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 9px;
-  margin-bottom: 20px;
 }
 
 .project-tools input {
@@ -1912,6 +1952,33 @@ textarea {
   color: #b91c1c;
 }
 
+.destructive-manage-chip {
+  border: 2px solid #ef4444;
+  background: #fff;
+  color: #b91c1c;
+  font-weight: 850;
+  box-shadow: none;
+}
+
+.destructive-manage-chip:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #fff5f5;
+  color: #991b1b;
+}
+
+.neutral-chip {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.project-manage-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .project-card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1935,7 +2002,9 @@ textarea {
 .new-project-card {
   position: relative;
   min-height: 184px;
+  border: 1px solid #d7dde8;
   border-radius: 10px;
+  background: #fff;
   padding: 18px;
   text-align: left;
   transition:
@@ -1951,6 +2020,19 @@ textarea {
   transform: translateY(-1px);
 }
 
+.history-card.manage-mode {
+  cursor: pointer;
+}
+
+.history-card.manage-mode:hover {
+  border-color: #bfd6ff;
+}
+
+.history-card.selected {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
 .history-card-top {
   display: flex;
   align-items: center;
@@ -1958,10 +2040,25 @@ textarea {
   gap: 12px;
 }
 
+.history-card-title-row,
+.history-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-card-id {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
 .project-select-check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   color: #64748b;
   font-size: 12px;
   font-weight: 750;
@@ -1970,6 +2067,7 @@ textarea {
 .project-select-check input {
   width: 16px;
   height: 16px;
+  margin: 0;
   accent-color: #2563eb;
 }
 
@@ -2005,10 +2103,14 @@ textarea {
   color: #0f172a;
 }
 
+.project-menu-wrap {
+  position: relative;
+}
+
 .project-menu {
   position: absolute;
-  top: 48px;
-  right: 14px;
+  top: 36px;
+  right: 0;
   z-index: 5;
   display: grid;
   min-width: 112px;
@@ -2035,16 +2137,6 @@ textarea {
   background: #f8fafc;
 }
 
-.project-menu button:last-child {
-  color: #b91c1c;
-}
-
-.history-card > div:first-child > span {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 750;
-}
-
 .history-card h2 {
   margin: 18px 0 9px;
   color: #0f172a;
@@ -2064,6 +2156,71 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+}
+
+.action-danger {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #fff;
+}
+
+.confirm-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+}
+
+.confirm-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: rgba(15, 23, 42, 0.46);
+  box-shadow: none;
+}
+
+.confirm-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(460px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+}
+
+.confirm-modal-header p {
+  margin: 0 0 8px;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.confirm-modal-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.confirm-modal-description {
+  margin: 14px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
 }
 
 .new-project-card {
@@ -4902,6 +5059,11 @@ textarea {
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 14px;
   align-items: start;
+}
+
+.panel-sticky {
+  position: sticky;
+  top: 76px;
 }
 
 .requirements-form,

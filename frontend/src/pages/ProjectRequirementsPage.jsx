@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -24,32 +25,70 @@ export default function ProjectRequirementsPage({
   onBack,
   onNext,
   onProjectDataChange,
-  onSaveDraft = () => {},
   onAutoSave,
   isPartnerMatchingLoading = false,
   onGoHome,
 }) {
   const autoSaveTimerRef = useRef(null);
+  const autoSaveStatusTimerRef = useRef(null);
+  const lastAutoSavePayloadRef = useRef("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   useEffect(() => {
-    if (!onAutoSave || !projectData.projectApiId) return;
+    if (!onAutoSave) return;
+
+    const payload = buildProjectRequestPayload(projectData);
+    const payloadSnapshot = JSON.stringify(payload);
+
+    if (!lastAutoSavePayloadRef.current) {
+      lastAutoSavePayloadRef.current = payloadSnapshot;
+      return;
+    }
+
+    if (lastAutoSavePayloadRef.current === payloadSnapshot) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    autoSaveTimerRef.current = setTimeout(() => {
-      onAutoSave(buildProjectRequestPayload(projectData));
-    }, 1500);
+    autoSaveTimerRef.current = setTimeout(async () => {
+      showAutoSaveStatus("saving");
+      try {
+        await onAutoSave(payload);
+        lastAutoSavePayloadRef.current = payloadSnapshot;
+        showAutoSaveStatus("saved");
+      } catch (error) {
+        console.error("??? ???????:", error);
+        showAutoSaveStatus("error");
+      }
+    }, 1200);
 
     return () => {
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
       }
+      if (autoSaveStatusTimerRef.current) {
+        clearTimeout(autoSaveStatusTimerRef.current);
+      }
     };
   }, [
     onAutoSave,
-    projectData.projectApiId,
     projectData.companyName,
     projectData.location,
     projectData.projectDate,
@@ -117,6 +156,7 @@ export default function ProjectRequirementsPage({
         trail="프로젝트 상세 > 요구사항"
         action={
           <>
+            <AutoSaveStatus status={autoSaveStatus} />
             <button className="button action-secondary" onClick={onBack} type="button">
               목록
             </button>
@@ -378,7 +418,7 @@ export default function ProjectRequirementsPage({
             </section>
           </form>
 
-          <aside className="matching-check-panel refined">
+          <aside className="matching-check-panel refined panel-sticky">
             <div className="requirements-section-title">
               <div>
                 <h2>매칭 가능성 체크</h2>
@@ -423,8 +463,8 @@ export default function ProjectRequirementsPage({
       <footer className="requirements-bottom-actions">
         <span>요구사항은 빈 값이어도 저장할 수 있어요.</span>
         <div>
-          <button className="button action-secondary" onClick={onSaveDraft} type="button">
-            임시 저장
+          <button className="button action-secondary" onClick={onBack} type="button">
+            이전
           </button>
           <button
             className="button action-primary"

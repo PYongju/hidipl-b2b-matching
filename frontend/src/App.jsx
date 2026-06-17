@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -11,11 +11,11 @@ import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
   createProject,
-  deleteProjects as deleteProjectsApi, // 6/12 백엔드 작업에서 추가
+  deleteProjects as deleteProjectsApi, // 6/12 諛깆뿏???묒뾽?먯꽌 異붽?
   fetchCandidateVendors,
   fetchProject,
   fetchProjectMatches,
-  fetchProjects, // 6/12 백엔드 작업에서 추가
+  fetchProjects, // 6/12 諛깆뿏???묒뾽?먯꽌 異붽?
   runProjectMatch,
   updateProject,
   uploadProjectQuotes,
@@ -142,7 +142,7 @@ export default function App() {
     return savedSession.screen === "projects" ? "projects" : "login";
   });
   const [projects, setProjects] = useState([]);
-  const [projectData, setProjectData] = useState(initialProjectData); //6/12 추가
+  const [projectData, setProjectData] = useState(initialProjectData); //6/12 異붽?
   const [editingProjectId, setEditingProjectId] = useState("");
   const [activeProjectId, setActiveProjectId] = useState("");
   const [analysisState, setAnalysisState] = useState("idle");
@@ -153,20 +153,41 @@ export default function App() {
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
   const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const autoSaveStatusTimerRef = useRef(null);
+
+  const clearAutoSaveStatusTimer = () => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+  };
+
+  const showAutoSaveStatus = (status) => {
+    clearAutoSaveStatusTimer();
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
     id,
-    name: data.projectName || `${data.companyName || "신규 고객"} 프로젝트`,
-    status: overrides.status || data.workflowStatus || "진행 중",
+    name: data.projectName || `${data.companyName || "?좉퇋 怨좉컼"} ?꾨줈?앺듃`,
+    status: overrides.status || data.workflowStatus || "?? ?",
     statusTone:
       overrides.statusTone ||
       getProjectStatusTone(overrides.status || data.workflowStatus),
     desc:
-      overrides.desc || data.currentStage || data.usage || "요구사항 정리 중",
+      overrides.desc || data.currentStage || data.usage || "???? ?? ?",
     meta: [
-      data.projectDate || "일정 미정",
-      data.budgetAmount ? `${data.budgetAmount} 이하` : "예산 미정",
-      formatProjectSolutions(data, "솔루션 미정"),
+      data.projectDate || "?쇱젙 誘몄젙",
+      data.budgetAmount ? `${data.budgetAmount} ?댄븯` : "?덉궛 誘몄젙",
+      formatProjectSolutions(data, "?붾（??誘몄젙"),
     ],
     data: {
       ...data,
@@ -200,6 +221,62 @@ export default function App() {
     });
   };
 
+  const autoSaveProjectData = async (
+    patchData,
+    nextData,
+    { screenName, listOverrides = {} } = {},
+  ) => {
+    showAutoSaveStatus("saving");
+
+    try {
+      let ensuredData = nextData;
+      let projectApiId = nextData.projectApiId;
+
+      if (!projectApiId) {
+        const createdProject = await createProject(
+          buildProjectRequestPayload(nextData),
+        );
+        projectApiId = createdProject.project_id ?? createdProject.id;
+        const projectId =
+          projectApiId ||
+          nextData.projectId ||
+          `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+
+        ensuredData = {
+          ...nextData,
+          projectApiId,
+          projectId,
+          requestId:
+            createdProject.request_id ??
+            createdProject.requestId ??
+            nextData.requestId,
+          createdProject,
+          workflowStatus: nextData.workflowStatus || "?? ?",
+        };
+      }
+
+      if (projectApiId && patchData) {
+        await updateProject(projectApiId, patchData);
+      }
+
+      updateProjectData(
+        (current) => ({
+          ...current,
+          ...ensuredData,
+          projectApiId,
+          lastScreen: screenName ?? ensuredData.lastScreen ?? current.lastScreen,
+        }),
+        listOverrides,
+      );
+      showAutoSaveStatus("saved");
+      return projectApiId;
+    } catch (error) {
+      console.error("?먮룞 ????ㅽ뙣:", error);
+      showAutoSaveStatus("error");
+      return null;
+    }
+  };
+
   const hydrateProjectMatchData = async (apiProjectId, baseData) => {
     try {
       const matchesResponse = await fetchProjectMatches(apiProjectId);
@@ -209,7 +286,7 @@ export default function App() {
         matchHydrationAttempted: true,
       };
     } catch (error) {
-      console.error("매칭 결과 조회 실패:", error);
+      console.error("留ㅼ묶 寃곌낵 議고쉶 ?ㅽ뙣:", error);
       return {
         ...baseData,
         matchHydrationAttempted: true,
@@ -223,9 +300,9 @@ export default function App() {
       const items = normalizeProjectsResponse(list);
 
       if (!items) {
-        console.error("프로젝트 목록 응답 형식 오류:", list);
+        console.error("?꾨줈?앺듃 紐⑸줉 ?묐떟 ?뺤떇 ?ㅻ쪟:", list);
         setProjectsLoadError(
-          "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+          "?꾨줈?앺듃 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
         );
         setProjects([]);
         return [];
@@ -251,7 +328,7 @@ export default function App() {
               ...parsedFields,
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: item.workflow_status === "completed" ? "?꾨즺" : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -263,20 +340,20 @@ export default function App() {
       setProjects((current) => {
         const merged = mappedProjects.map((mapped) => {
           const existing = current.find((p) => p.id === mapped.id);
-          if (existing?.status === "완료") {
+          if (existing?.status === "?꾨즺") {
             return {
               ...mapped,
-              status: "완료",
-              statusTone: getProjectStatusTone("완료"),
+              status: "?꾨즺",
+              statusTone: getProjectStatusTone("?꾨즺"),
               desc: existing.desc,
               data: {
                 ...mapped.data,
-                workflowStatus: "완료",
-                currentStage: existing.data?.currentStage ?? "검토 완료",
+                workflowStatus: "?꾨즺",
+                currentStage: existing.data?.currentStage ?? "寃???꾨즺",
               },
             };
           }
-          // 기존 로컬 전용 필드 보존 (서버에 저장되지 않는 프론트 상태)
+          // 湲곗〈 濡쒖뺄 ?꾩슜 ?꾨뱶 蹂댁〈 (?쒕쾭????λ릺吏 ?딅뒗 ?꾨줎???곹깭)
           const localOnlyFields = {};
           if (existing?.data?.lastScreen) {
             localOnlyFields.lastScreen = existing.data.lastScreen;
@@ -308,10 +385,10 @@ export default function App() {
       });
       return mappedProjects;
     } catch (error) {
-      console.error("프로젝트 목록 조회 실패:", error);
-      // 기술 상세(에러 원인·서버 주소)는 콘솔로만, 사용자에겐 행동 중심 문구 (가이드 §9 #9)
+      console.error("?꾨줈?앺듃 紐⑸줉 議고쉶 ?ㅽ뙣:", error);
+      // 湲곗닠 ?곸꽭(?먮윭 ?먯씤쨌?쒕쾭 二쇱냼)??肄섏넄濡쒕쭔, ?ъ슜?먯뿉寃??됰룞 以묒떖 臾멸뎄 (媛?대뱶 짠9 #9)
       setProjectsLoadError(
-        "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+        "?꾨줈?앺듃 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
       );
       setProjects([]);
       return [];
@@ -376,6 +453,7 @@ export default function App() {
 
   const goToProjects = async () => {
     await loadProjects();
+    setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
   };
@@ -386,6 +464,7 @@ export default function App() {
       lastScreen: screen,
     }));
     await loadProjects();
+    setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
   };
@@ -401,7 +480,7 @@ export default function App() {
             savedSession.screen,
           );
         } catch (error) {
-          console.error("세션 복원 실패:", error);
+          console.error("?몄뀡 蹂듭썝 ?ㅽ뙣:", error);
           if (!ignore) {
             await loadProjects();
             setScreen("projects");
@@ -427,6 +506,8 @@ export default function App() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => () => clearAutoSaveStatusTimer(), []);
 
   useEffect(() => {
     if (restoring) return;
@@ -467,22 +548,29 @@ export default function App() {
   ]);
   const startNewProject = () => {
     setEditingProjectId("");
-    setProjectData({ ...initialProjectData });
-    setScreen("wizard");
+    setActiveProjectId("");
+    setAutoSaveStatus("idle");
+    setProjectData({
+      ...initialProjectData,
+      projectId: "",
+      projectApiId: null,
+      lastScreen: "requirements",
+    });
+    setScreen("requirements");
   };
 
   const createDraftProject = async (draftData, shouldContinue = false) => {
     let projectApiId = null;
     try {
       const created = await createProject({
-        company_name: draftData.companyName || "미입력",
+        company_name: draftData.companyName || "???",
         location: draftData.location || null,
         deadline: draftData.projectDate || null,
         request_text: draftData.usage || "",
       });
       projectApiId = created.project_id;
     } catch (error) {
-      console.error("프로젝트 생성 실패:", error);
+      console.error("?꾨줈?앺듃 ?앹꽦 ?ㅽ뙣:", error);
     }
 
     const projectId =
@@ -493,15 +581,15 @@ export default function App() {
       ...draftData,
       projectId,
       projectApiId,
-      currentStage: draftData.currentStage || "요구사항",
-      workflowStatus: "진행 중",
+      currentStage: draftData.currentStage || "????",
+      workflowStatus: "?? ?",
       lastScreen: "requirements",
     };
 
     upsertProjectInList(nextData, projectApiId || projectId, {
-      status: "진행 중",
+      status: "?? ?",
       statusTone: "blue",
-      desc: shouldContinue ? "요구사항 작성 중" : "요구사항 정리 중",
+      desc: shouldContinue ? "???? ?? ?" : "???? ?? ?",
     });
     setProjectData(nextData);
     setActiveProjectId(projectId);
@@ -530,7 +618,7 @@ export default function App() {
         setProjectData(restoredProjectData);
         syncProjectList(restoredProjectData);
       } catch (error) {
-        console.error("프로젝트 수정 화면 진입 중 서버 상태 조회 실패:", error);
+        console.error("?꾨줈?앺듃 ?섏젙 ?붾㈃ 吏꾩엯 以??쒕쾭 ?곹깭 議고쉶 ?ㅽ뙣:", error);
       }
     }
 
@@ -566,7 +654,7 @@ export default function App() {
         } catch (error) {
           setAnalysisErrorMessage(
             error.message ||
-              "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+              "?꾨줈?앺듃 ?곹깭瑜?遺덈윭?ㅼ? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
           );
         }
       }
@@ -593,7 +681,7 @@ export default function App() {
     try {
       await deleteProjectsApi(projectIds);
     } catch (error) {
-      console.error("프로젝트 삭제 실패:", error);
+      console.error("?꾨줈?앺듃 ??젣 ?ㅽ뙣:", error);
     }
     setProjects((current) =>
       current.filter((project) => !projectIds.includes(project.id)),
@@ -661,7 +749,7 @@ export default function App() {
 
       if (!projectApiId) {
         throw new Error(
-          "프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+          "?꾨줈?앺듃 ?뺣낫瑜??뺤씤?섏? 紐삵뻽?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
         );
       }
 
@@ -690,14 +778,14 @@ export default function App() {
           candidateVendors,
           candidateVendorsLoaded: true,
           candidateVendorsResponse: candidateResponse,
-          currentStage: "요청 대상 검토중",
-          workflowStatus: "진행 중",
+          currentStage: "??? ??",
+          workflowStatus: "?? ?",
           lastScreen: "partnerMatching",
         }),
         {
-          status: "진행 중",
+          status: "?? ?",
           statusTone: "blue",
-          desc: "파트너 추천/요청 대상 검토 중",
+          desc: "??? ??/?? ?? ?",
         },
       );
       setPartnerMatchingTransition("idle");
@@ -706,7 +794,7 @@ export default function App() {
       setPartnerMatchingTransition("error");
       setPartnerMatchingError(
         error.message ||
-          "요구사항 저장 또는 공급사 추천 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+          "?붽뎄?ы빆 ????먮뒗 怨듦툒??異붿쿇 以?臾몄젣媛 ?앷꼈?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
       );
     }
   };
@@ -754,7 +842,7 @@ export default function App() {
     } catch (error) {
       setAnalysisErrorMessage(
         error.message ||
-          "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+          "AI 遺꾩꽍 以?臾몄젣媛 ?앷꼈?댁슂. ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??",
       );
       setAnalysisState("error");
     }
@@ -767,7 +855,7 @@ export default function App() {
         aria-live="polite"
         className="app-shell app-restoring"
       >
-        <p>프로젝트를 불러오는 중입니다...</p>
+        <p>?꾨줈?앺듃瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎...</p>
       </div>
     );
   }
@@ -776,16 +864,16 @@ export default function App() {
     return <LoginPage onLogin={goToProjects} />;
   }
 
-  //6/12 백엔드 작업에서 수정
+  //6/12 諛깆뿏???묒뾽?먯꽌 ?섏젙
   if (screen === "projects") {
     return (
       <ProjectListPage
         loadError={projectsLoadError}
         projects={projects}
         onCreate={startNewProject}
-        onCreateDraft={createDraftProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
+        onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
         onReloadProjects={loadProjects}
       />
@@ -796,14 +884,14 @@ export default function App() {
     updateProjectData(
       (current) => ({
         ...current,
-        currentStage: "견적서 업로드 대기",
-        workflowStatus: "진행 중",
+        currentStage: "?? ?? ??",
+        workflowStatus: "?? ?",
         lastScreen: "quoteWaiting",
       }),
       {
-        status: "진행 중",
+        status: "?? ?",
         statusTone: "blue",
-        desc: "견적서 업로드 대기",
+        desc: "?? ?? ??",
       },
     );
     setScreen("quoteWaiting");
@@ -813,14 +901,14 @@ export default function App() {
     updateProjectData(
       (current) => ({
         ...current,
-        currentStage: "견적 비교 분석 중",
-        workflowStatus: "검토 중",
+        currentStage: "?? ?? ?? ?",
+        workflowStatus: "?? ?",
         lastScreen: "quoteReviewLoading",
       }),
       {
-        status: "검토 중",
+        status: "?? ?",
         statusTone: "orange",
-        desc: "견적 비교 분석 중",
+        desc: "?? ?? ?? ?",
       },
     );
     setScreen("quoteReviewLoading");
@@ -830,14 +918,14 @@ export default function App() {
     updateProjectData(
       (current) => ({
         ...current,
-        currentStage: "견적 검토",
-        workflowStatus: "검토 중",
+        currentStage: "?? ??",
+        workflowStatus: "?? ?",
         lastScreen: "dashboard",
       }),
       {
-        status: "검토 중",
+        status: "?? ?",
         statusTone: "orange",
-        desc: "견적 검토 중",
+        desc: "?? ?? ?",
       },
     );
     openDashboard();
@@ -851,21 +939,14 @@ export default function App() {
           projectData={projectData}
           onBack={goToProjects}
           onGoHome={goHome}
+          onGoProjects={goToProjects}
           onNext={startPartnerMatchingFromRequirements}
           onProjectDataChange={updateProjectData}
-          onSaveDraft={() =>
-            saveCurrentProjectScreen("requirements", {
-              currentStage: "요구사항",
-              workflowStatus: "진행 중",
-            })
-          }
           onAutoSave={async (data) => {
-            if (!projectData.projectApiId) return;
-            try {
-              await updateProject(projectData.projectApiId, data);
-            } catch (error) {
-              console.error("자동저장 실패:", error);
-            }
+            await autoSaveProjectData(data, {
+              ...projectData,
+              lastScreen: "requirements",
+            });
           }}
         />
         <PartnerMatchingLoadingModal
@@ -877,7 +958,7 @@ export default function App() {
             partnerMatchingTransition === "loading" ||
             partnerMatchingTransition === "error"
           }
-          category={formatProjectSolutions(projectData, "미선택")}
+          category={formatProjectSolutions(projectData, "???")}
           companyName={projectData.companyName}
           status={partnerMatchingTransition === "error" ? "error" : "loading"}
         />
@@ -936,12 +1017,6 @@ export default function App() {
         onGoDashboard={goQuoteReviewLoading}
         onGoHome={goHome}
         onProjectDataChange={updateProjectData}
-        onSaveDraft={() =>
-          saveCurrentProjectScreen("quoteWaiting", {
-            currentStage: "견적서 업로드 대기",
-            workflowStatus: "진행 중",
-          })
-        }
       />
     );
   }
@@ -985,8 +1060,8 @@ function resolveRestoredScreen(projectData, savedScreen) {
 }
 
 function getProjectStatusTone(status) {
-  if (status === "완료") return "green";
-  if (status === "검토 중") return "orange";
+  if (status === "?꾨즺") return "green";
+  if (status === "?? ?") return "orange";
   return "blue";
 }
 
@@ -998,8 +1073,8 @@ function mergeServerProjectData(localData, serverProject) {
     localData.lastScreen,
   );
   const workflowStatus =
-    localData.workflowStatus === "완료"
-      ? "완료"
+    localData.workflowStatus === "?꾨즺"
+      ? "?꾨즺"
       : getWorkflowStatusFromServerStatus(
           serverStatus,
           localData.workflowStatus,
@@ -1037,21 +1112,21 @@ function mergeServerProjectData(localData, serverProject) {
   };
 }
 
-function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
-  if (status === "matched") return "견적 검토";
-  if (status === "quote_uploaded") return "견적 비교 분석 중";
-  if (status === "partner_matching") return "파트너 매칭 결과"; // 추가
-  if (status === "partner_matched") return "견적서 업로드 대기";
-  if (status === "created") return "요구사항";
+function getCurrentStageFromServerStatus(status, fallback = "?붽뎄?ы빆") {
+  if (status === "matched") return "?? ??";
+  if (status === "quote_uploaded") return "?? ?? ?? ?";
+  if (status === "partner_matching") return "??? ?? ??";
+  if (status === "partner_matched") return "?? ?? ??";
+  if (status === "created") return "????";
   return fallback;
 }
 
-function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
-  if (status === "matched") return "검토 중";
-  if (status === "quote_uploaded") return "검토 중";
-  if (status === "partner_matching") return "진행 중"; // 추가
-  if (status === "partner_matched") return "진행 중";
-  if (status === "created") return "진행 중";
+function getWorkflowStatusFromServerStatus(status, fallback = "?? ?") {
+  if (status === "matched") return "?? ?";
+  if (status === "quote_uploaded") return "?? ?";
+  if (status === "partner_matching") return "?? ?";
+  if (status === "partner_matched") return "?? ?";
+  if (status === "created") return "?? ?";
   return fallback;
 }
 
@@ -1079,3 +1154,5 @@ function getScreenFromProject(data) {
   }
   return "requirements";
 }
+
+

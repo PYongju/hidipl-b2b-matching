@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -107,10 +108,39 @@ export default function PartnerMatchingPage({
     projectData.requestTargetIds ?? [],
   );
   const [showAllPartners, setShowAllPartners] = useState(true);
+  const [requestMemo, setRequestMemo] = useState(projectData.requestMemo ?? "");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const autoSaveStatusTimerRef = useRef(null);
+
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   useEffect(() => {
     setTargetIds(projectData.requestTargetIds ?? []);
   }, [projectData.requestTargetIds]);
+
+  useEffect(() => {
+    setRequestMemo(projectData.requestMemo ?? "");
+  }, [projectData.requestMemo]);
+
+  useEffect(() => () => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -277,20 +307,44 @@ export default function PartnerMatchingPage({
   const cautionPartners = partners.filter((partner) => partner.caution);
   const candidateEmptyMessage = getCandidateEmptyMessage(candidateStatus);
 
+  useEffect(() => {
+    const currentMemo = projectData.requestMemo ?? "";
+    if (requestMemo === currentMemo) return undefined;
+
+    showAutoSaveStatus("saving");
+    const timer = window.setTimeout(() => {
+      onProjectDataChange?.((current) => ({
+        ...current,
+        requestMemo,
+      }));
+      showAutoSaveStatus("saved");
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [projectData.requestMemo, requestMemo, onProjectDataChange]);
+
   const persistRequestTargets = (nextTargetIds, partnersList = partners) => {
+    showAutoSaveStatus("saving");
     onProjectDataChange?.((current) => ({
       ...current,
       requestTargetIds: nextTargetIds,
       requestTargets: partnersList.filter((partner) =>
         nextTargetIds.includes(partner.id),
       ),
+      requestMemo,
     }));
     const apiProjectId = projectData.projectApiId;
     if (apiProjectId) {
-      updateProject(apiProjectId, { requested_vendor_ids: nextTargetIds }).catch(
-        () => {},
-      );
+      updateProject(apiProjectId, { requested_vendor_ids: nextTargetIds }).then(
+        () => {
+          showAutoSaveStatus("saved");
+        },
+      ).catch(() => {
+        showAutoSaveStatus("error");
+      });
+      return;
     }
+    showAutoSaveStatus("saved");
   };
 
   const updateRequestTargets = (updater) => {
@@ -361,12 +415,13 @@ export default function PartnerMatchingPage({
         trail="프로젝트 상세 > 파트너 매칭/견적 요청"
         action={
           <>
+            <AutoSaveStatus status={autoSaveStatus} />
             <button
               className="button action-secondary"
-              onClick={handleGoBack}
+              onClick={onGoHome}
               type="button"
             >
-              이전
+              목록
             </button>
             <div className="avatar" />
             <div className="user-name">
@@ -596,7 +651,7 @@ export default function PartnerMatchingPage({
             </div>
           </div>
 
-          <aside className="request-panel">
+          <aside className="request-panel panel-sticky">
             <div className="request-card">
               <div className="request-card-head">
                 <div>
@@ -655,7 +710,11 @@ export default function PartnerMatchingPage({
 
             <label className="request-memo">
               <span>발송 전 메모</span>
-              <textarea placeholder="공급사에 전달할 견적 요청 메모를 입력해 주세요." />
+              <textarea
+                onChange={(event) => setRequestMemo(event.target.value)}
+                placeholder="공급사에 전달할 견적 요청 메모를 입력해 주세요."
+                value={requestMemo}
+              />
             </label>
           </aside>
         </section>
@@ -668,13 +727,13 @@ export default function PartnerMatchingPage({
         <div>
           <button
             className="button action-secondary"
-            onClick={savePartnerDraft}
+            onClick={handleGoBack}
             type="button"
           >
-            임시 저장
+            이전
           </button>
           <button
-            className="button button-blue"
+            className="button button-blue ui-hidden"
             disabled
             title="요청 대상 저장은 곧 사용할 수 있어요."
             type="button"
@@ -687,7 +746,7 @@ export default function PartnerMatchingPage({
             onClick={handleGoQuoteWaiting}
             type="button"
           >
-            견적 요청 발송
+            다음: 견적 수신
           </button>
         </div>
       </footer>

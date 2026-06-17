@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
@@ -27,11 +28,13 @@ export default function QuoteWaitingPage({
   onBack,
   onGoDashboard,
   onProjectDataChange,
-  onSaveDraft,
   onGoHome,
 }) {
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [errorMessage, setErrorMessage] = useState("");
+  const [note, setNote] = useState(projectData.quoteNote ?? "");
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const autoSaveStatusTimerRef = useRef(null);
   const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
   const canCompare = selectedFiles.length > 0;
   const receivedCount = selectedFiles.length;
@@ -39,6 +42,22 @@ export default function QuoteWaitingPage({
     () => resolveRequestTargets(projectData),
     [projectData],
   );
+
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -77,6 +96,45 @@ export default function QuoteWaitingPage({
     projectData.matchResult,
     projectData.matchHydrationAttempted,
   ]);
+
+  useEffect(() => {
+    setNote(projectData.quoteNote ?? "");
+  }, [projectData.quoteNote]);
+
+  useEffect(() => () => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    const sameFiles =
+      (projectData.quoteFiles ?? []).length === selectedFiles.length &&
+      (projectData.quoteFiles ?? []).every((file, index) => {
+        const target = selectedFiles[index];
+        return (
+          target &&
+          target.name === file.name &&
+          target.lastModified === file.lastModified &&
+          target.size === file.size
+        );
+      });
+    const sameNote = (projectData.quoteNote ?? "") === note;
+
+    if (sameFiles && sameNote) return undefined;
+
+    showAutoSaveStatus("saving");
+    const timer = window.setTimeout(() => {
+      onProjectDataChange((current) => ({
+        ...current,
+        quoteFiles: selectedFiles,
+        quoteNote: note,
+      }));
+      showAutoSaveStatus("saved");
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [note, onProjectDataChange, projectData.quoteFiles, projectData.quoteNote, selectedFiles]);
 
   const updateFiles = (files) => {
     setSelectedFiles(files);
@@ -121,8 +179,9 @@ export default function QuoteWaitingPage({
         trail="프로젝트 상세 > 견적 수신"
         action={
           <>
-            <button className="button action-secondary" onClick={onBack} type="button">
-              이전
+            <AutoSaveStatus status={autoSaveStatus} />
+            <button className="button action-secondary" onClick={onGoHome} type="button">
+              목록
             </button>
             <div className="avatar" />
             <div className="user-name">
@@ -225,7 +284,7 @@ export default function QuoteWaitingPage({
             ) : null}
           </div>
 
-          <aside className="quote-ops-panel">
+          <aside className="quote-ops-panel panel-sticky">
             <div className="quote-panel-title quote-ops-panel-title">
               <div>
                 <h2>추가 작업</h2>
@@ -297,7 +356,10 @@ export default function QuoteWaitingPage({
 
             <label className="request-memo">
               <span>내부 메모</span>
-              <textarea defaultValue="현재는 견적서를 프로젝트 단위로 업로드해요. 공급사명은 견적서 내용 추출 결과에서 확인할 예정이에요." />
+              <textarea
+                onChange={(event) => setNote(event.target.value)}
+                value={note}
+              />
             </label>
           </aside>
         </section>
@@ -312,14 +374,14 @@ export default function QuoteWaitingPage({
               : "견적서를 업로드하면 비교 검토를 시작할 수 있어요."}
         </span>
         <div>
-          <button className="button action-secondary" onClick={onSaveDraft} type="button">임시 저장</button>
+          <button className="button action-secondary" onClick={onBack} type="button">이전</button>
           <button
             className="button action-primary"
             disabled={!canCompare}
             onClick={goToQuoteReview}
             type="button"
           >
-            업로드 후 비교 분석
+            다음: 견적 검토
           </button>
         </div>
       </footer>
