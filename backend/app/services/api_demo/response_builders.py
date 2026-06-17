@@ -17,6 +17,21 @@ from services.recommendation.product_group_filter import (
 )
 
 
+INTERNAL_COMPARE_NOTE_PATTERNS = [
+    "요구 납기 정규화 필요",
+    "납기 정보 미기재",
+    "납기 정규화",
+    "요구사항",
+    "파싱",
+    "parser",
+    "fallback",
+    "quote_date_missing",
+    "spec_sanitized",
+    "display_resolution_missing",
+    "display_screen_size_missing",
+]
+
+
 def build_project_response(project_record) -> dict[str, Any]:
     result = project_record.requirement_result
     if result is None:
@@ -613,16 +628,21 @@ def _build_compare_row(
 ) -> dict[str, Any]:
     quote = result.quote
     snapshot = quote.vendor_snapshot
-    check_required = list(getattr(score_item, "check_required", []) or [])
+    raw_check_required = list(getattr(score_item, "check_required", []) or [])
     parser_check_required = list(
         (getattr(result, "metadata", {}) or {}).get("parser_check_required") or []
     )
+    visible_check_required, parser_quality_notes = _split_visible_compare_notes(
+        [*raw_check_required, *parser_check_required]
+    )
     rule_warnings = list(getattr(score_item, "rule_warnings", []) or [])
     check_required, comparison_risks = split_comparison_risks(
-        [*check_required, *parser_check_required],
+        visible_check_required,
         getattr(score_item, "comparison_risks", []) or [],
         rule_warnings,
     )
+    check_required = _filter_visible_compare_notes(check_required)
+    comparison_risks = _filter_visible_compare_notes(comparison_risks)
     matched_rules = list(getattr(score_item, "matched_rules", []) or [])
     installation_included = _quote_document_installation_included(quote, score_item)
     install_location = _resolve_install_location(
@@ -666,6 +686,9 @@ def _build_compare_row(
         "response_speed_score": getattr(snapshot, "response_speed_score", None),
         "financial_status": getattr(snapshot, "financial_status", None),
         "vendor_snapshot": build_vendor_snapshot_summary(snapshot),
+        "metadata": {
+            "parser_quality_notes": parser_quality_notes,
+        },
     }
     row["company_info"] = _build_company_info(snapshot)
     row["hardware"] = _build_hardware_section(quote)
@@ -1299,15 +1322,7 @@ def _build_conditions_section(
     parser_raw_matches = parser_raw_matches or {}
     payment_terms = parser_raw_matches.get("payment_terms")
     special_notes = clean_special_notes(
-        [
-            *(parser_raw_matches.get("special_notes") or []),
-            *check_required,
-            *[
-                warning
-                for warning in rule_warnings
-                if not split_comparison_risks([], [], [warning])[1]
-            ],
-        ],
+        _filter_visible_special_notes(parser_raw_matches.get("special_notes") or []),
         payment_terms=payment_terms,
     )
     return {
@@ -1345,6 +1360,44 @@ def _extract_as_method(text: str) -> str:
     if any(keyword in text for keyword in ["택배", "입고", "센터"]):
         return "택배/입고 수리"
     return "미기재"
+
+
+def _split_visible_compare_notes(values: list[Any]) -> tuple[list[str], list[str]]:
+    visible = []
+    internal = []
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        if _is_internal_parser_note(text):
+            if text not in internal:
+                internal.append(text)
+        elif text not in visible:
+            visible.append(text)
+    return visible, internal
+
+
+def _filter_visible_compare_notes(values: list[Any]) -> list[str]:
+    visible, _ = _split_visible_compare_notes(list(values or []))
+    return visible
+
+
+def _filter_visible_special_notes(values: list[Any]) -> list[str]:
+    return [
+        note
+        for note in _filter_visible_compare_notes(list(values or []))
+        if note
+    ]
+
+
+def _is_internal_parser_note(value: str | None) -> bool:
+    if not value:
+        return True
+    text = str(value).strip()
+    if not text:
+        return True
+    lower = text.lower()
+    return any(pattern.lower() in lower for pattern in INTERNAL_COMPARE_NOTE_PATTERNS)
 
 
 def _compact_notes(values: list[str]) -> list[str]:
