@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 
@@ -55,7 +56,7 @@ export default function QuoteReviewLoadingPage({
       if (!quoteIds.length) {
         const quoteFiles = projectData.quoteFiles ?? [];
         if (!quoteFiles.length) {
-          throw new Error("업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 업로드해 주세요.");
+          throw new Error("업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 선택해 주세요.");
         }
 
         const uploadResult = await uploadProjectQuotes(projectApiId, quoteFiles);
@@ -88,7 +89,7 @@ export default function QuoteReviewLoadingPage({
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisState("error");
-      setErrorMessage(error.message || "견적 비교 분석 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.");
+      setErrorMessage(error.message || "견적 비교 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.");
     }
   };
 
@@ -138,9 +139,6 @@ export default function QuoteReviewLoadingPage({
         trail="프로젝트 상세 > 견적 비교 분석"
         action={
           <>
-            <button className="button action-secondary" onClick={onGoHome} type="button">
-              목록
-            </button>
             <div className="avatar" />
             <div className="user-name">
               <b>김담당자</b>
@@ -152,6 +150,7 @@ export default function QuoteReviewLoadingPage({
 
       <main className="matching-loading-main">
         <section className="matching-loading-card">
+          <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onBack} />
           <div
             className={`matching-loading-symbol${
               analysisState === "error" ? " is-error" : isComplete ? " is-complete" : ""
@@ -161,7 +160,7 @@ export default function QuoteReviewLoadingPage({
             {analysisState === "error" ? (
               <span>!</span>
             ) : isComplete ? (
-              <span>완료</span>
+              <span>✓</span>
             ) : (
               <span />
             )}
@@ -177,7 +176,7 @@ export default function QuoteReviewLoadingPage({
             {analysisState === "error"
               ? "견적 비교 분석을 완료하지 못했어요"
               : isComplete
-                ? "모든 분석이 마무리됐어요."
+                ? "모든 분석을 마쳤어요."
                 : "수신한 견적서를 비교 분석하고 있어요"}
           </h1>
           <p>
@@ -185,8 +184,8 @@ export default function QuoteReviewLoadingPage({
               <span aria-live="polite">{redirectCountdown ?? 3}초 후 검토 화면으로 이동해요.</span>
             ) : (
               <>
-                {projectData.projectName || projectData.companyName || "프로젝트"}에 업로드된 견적서를
-                기준으로 비교하고 추천 사유를 정리하고 있어요.
+                {projectData.projectName || projectData.companyName || "프로젝트"}의 업로드된 견적서를
+                기준으로 비교표와 추천 사유를 준비해요.
               </>
             )}
           </p>
@@ -205,7 +204,7 @@ export default function QuoteReviewLoadingPage({
                   className={`${isDone ? "done" : ""} ${isActive ? "active" : ""}`}
                   key={step.title}
                 >
-                  <span>{isDone ? "완료" : index + 1}</span>
+                  <span>{isDone ? "✓" : index + 1}</span>
                   <div>
                     <b>{step.title}</b>
                     <small>{step.detail}</small>
@@ -217,7 +216,7 @@ export default function QuoteReviewLoadingPage({
 
           <div className="matching-loading-actions">
             <button className="button" onClick={onBack} type="button">
-              이전 단계로 돌아가기
+              견적 수신으로 돌아가기
             </button>
             {analysisState === "error" ? (
               <button className="button button-blue" onClick={runQuoteReviewAnalysis} type="button">
@@ -230,7 +229,7 @@ export default function QuoteReviewLoadingPage({
               onClick={onComplete}
               type="button"
             >
-              견적 검토 화면 바로가기
+              견적 검토 화면 보기
             </button>
           </div>
         </section>

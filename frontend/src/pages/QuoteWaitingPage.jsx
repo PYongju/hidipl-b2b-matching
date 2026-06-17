@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Badge from "../components/Badge";
-import { fetchProjectMatches } from "../api/apiClient";
-import FlowBottomBar from "../components/FlowBottomBar";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
-import useAutoSaveStatus from "../hooks/useAutoSaveStatus";
+import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
-import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
 
@@ -18,8 +15,8 @@ function shouldRestoreMatchData(projectData) {
     Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
   const hasExplanationSource = Boolean(
     projectData.matchId ||
-      projectData.cachedExplanation ||
-      projectData.matchResult,
+    projectData.cachedExplanation ||
+    projectData.matchResult,
   );
 
   return !hasQuoteIds || !hasExplanationSource;
@@ -30,15 +27,14 @@ export default function QuoteWaitingPage({
   onBack,
   onGoDashboard,
   onProjectDataChange,
+  onSaveDraft,
   onGoHome,
 }) {
-  const { statusMessage, notifyAutoSave } = useAutoSaveStatus();
-  const [selectedFiles, setSelectedFiles] = useState(
-    projectData.quoteFiles ?? [],
-  );
+  const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [errorMessage, setErrorMessage] = useState("");
   const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
   const canCompare = selectedFiles.length > 0;
+  const receivedCount = selectedFiles.length;
   const requestTargets = useMemo(
     () => resolveRequestTargets(projectData),
     [projectData],
@@ -61,7 +57,8 @@ export default function QuoteWaitingPage({
           matchHydrationAttempted: true,
         }));
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("매칭 결과 조회 실패:", error);
         if (ignore) return;
         onProjectDataChange((current) => ({
           ...current,
@@ -73,7 +70,6 @@ export default function QuoteWaitingPage({
       ignore = true;
     };
   }, [
-    onProjectDataChange,
     projectData.projectApiId,
     projectData.matchId,
     projectData.quoteIds,
@@ -87,9 +83,7 @@ export default function QuoteWaitingPage({
     onProjectDataChange((current) => ({
       ...current,
       quoteFiles: files,
-      lastScreen: "quoteWaiting",
     }));
-    notifyAutoSave();
   };
 
   const handleFiles = (event) => {
@@ -127,12 +121,8 @@ export default function QuoteWaitingPage({
         trail="프로젝트 상세 > 견적 수신"
         action={
           <>
-            <button
-              className="button action-secondary"
-              onClick={onGoHome}
-              type="button"
-            >
-              목록
+            <button className="button action-secondary" onClick={onBack} type="button">
+              이전
             </button>
             <div className="avatar" />
             <div className="user-name">
@@ -147,7 +137,7 @@ export default function QuoteWaitingPage({
         <section className="partner-head">
           <div>
             <button className="partner-back" onClick={onBack} type="button">
-              &lt;
+              ‹
             </button>
             <span>견적 수신</span>
           </div>
@@ -156,27 +146,26 @@ export default function QuoteWaitingPage({
         <ProjectStepTabs
           activeStep={3}
           onGoPartnerMatching={onBack}
-          onGoQuoteReview={
-            canCompare || hasUploadedQuotes ? goToQuoteReview : undefined
-          }
+          onGoQuoteReview={canCompare || hasUploadedQuotes ? goToQuoteReview : undefined}
         />
 
-        <section className="partner-project-summary six">
-          <SummaryItem label="회사명" value={projectData.companyName || "미입력"} />
-          <SummaryItem label="위치" value={projectData.location || "미입력"} />
-          <SummaryItem
-            label="일정"
-            value={projectData.projectDate || "일정 미정"}
-          />
-          <SummaryItem
-            label="발주처 유형"
-            value={projectData.clientType || "미입력"}
-          />
-          <SummaryItem
-            label="솔루션"
-            value={formatProjectSolutions(projectData, "미선택")}
-          />
-          <SummaryItem label="상태" value="견적 수신" />
+        <section className="quote-status-bar">
+          <article>
+            <span>현재 상태</span>
+            <strong>{hasUploadedQuotes ? "견적서 업로드 완료" : "견적서 업로드 대기"}</strong>
+          </article>
+          <article>
+            <span>견적서 업로드</span>
+            <strong>{selectedFiles.length}개 선택됨</strong>
+          </article>
+          <article>
+            <span>업로드 방식</span>
+            <strong>프로젝트 단위</strong>
+          </article>
+          <article>
+            <span>마지막 업데이트</span>
+            <strong>{hasUploadedQuotes ? "업로드 완료" : "업로드 전"}</strong>
+          </article>
         </section>
 
         <section className="quote-waiting-layout">
@@ -184,16 +173,11 @@ export default function QuoteWaitingPage({
             <div className="quote-panel-title with-progress">
               <div>
                 <h2>견적서 업로드</h2>
-                <p>
-                  공급사로부터 견적서를 받은 뒤에 업로드해 주세요. 업로드한 파일은 프로젝트
-                  비교에 사용됩니다.
-                </p>
+                <p>공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트 단위로 업로드돼요.</p>
               </div>
               <div className="quote-progress">
-                <span>{selectedFiles.length}개 업로드</span>
-                <div>
-                  <i style={{ width: selectedFiles.length ? "100%" : "0%" }} />
-                </div>
+                <span>{selectedFiles.length}개 선택</span>
+                <div><i style={{ width: selectedFiles.length ? "100%" : "0%" }} /></div>
               </div>
             </div>
 
@@ -204,27 +188,24 @@ export default function QuoteWaitingPage({
                 onChange={handleFiles}
                 type="file"
               />
-              <b>파일을 드래그하거나 클릭해서 업로드</b>
-              <span>PDF, Excel, 이미지 파일 지원 · 여러 개 동시 선택 가능</span>
+              <b>파일을 드래그하거나 클릭하여 업로드</b>
+              <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
             </label>
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
                 <div className="empty-file-row">
-                  아직 업로드한 견적서가 없어요.
+                  아직 업로드할 견적서가 없어요.
                 </div>
               ) : (
                 selectedFiles.map((file) => (
-                  <div
-                    className="file-row"
-                    key={`${file.name}-${file.lastModified}-${file.size}`}
-                  >
+                  <div className="file-row" key={`${file.name}-${file.lastModified}-${file.size}`}>
                     <div>
                       <span className="file-row-name">{file.name}</span>
                       <small>{formatFileSize(file.size)}</small>
                     </div>
                     <div className="file-row-actions">
-                      <Badge tone="green">업로드 완료</Badge>
+                      <Badge tone="green">선택 완료</Badge>
                       <button
                         aria-label={`${file.name} 삭제`}
                         className="icon-button file-remove-button"
@@ -244,72 +225,105 @@ export default function QuoteWaitingPage({
             ) : null}
           </div>
 
-          <aside className="quote-ops-panel sticky-column">
+          <aside className="quote-ops-panel">
             <div className="quote-panel-title quote-ops-panel-title">
               <div>
-                <h2>확인 정보</h2>
-                <p>견적 수신 화면에서 필요한 정보를 간단히 확인해요.</p>
+                <h2>추가 작업</h2>
+                <p>견적 수신 단계에서 필요한 후속 작업을 해요.</p>
               </div>
             </div>
 
             <section>
               <h3>
-                견적 요청 발송 대상{" "}
+                견적 요청 발송 대상
                 {requestTargets.length > 0 ? (
                   <Badge tone="blue">{requestTargets.length}</Badge>
                 ) : null}
               </h3>
               {requestTargets.length === 0 ? (
                 <div className="quote-request-empty">
-                  파트너 매칭 화면에서 업로드된 견적 요청 대상이 없어요.
-                  <span>이전 화면에서 발송 대상 공급사를 선택해 주세요.</span>
+                  파트너 매칭 단계에서 선택한 견적 요청 대상이 없어요.
+                  <span>이전 단계에서 발송 대상 공급사를 선택해 주세요.</span>
                 </div>
               ) : (
                 <div className="selected-partner-list quote-request-target-list">
                   {requestTargets.map((partner) => (
-                    <div
-                      className="selected-partner-pill quote-request-target-pill"
-                      key={partner.id}
-                    >
+                    <div className="selected-partner-pill quote-request-target-pill" key={partner.id}>
                       <span>
                         <b>{partner.name}</b>
                         <small>
-                          {partner.score != null
-                            ? `AI 추천 점수 ${partner.score}`
-                            : "점수 미확인"}
+                          {partner.score != null ? `AI 추천 점수 ${partner.score}` : "점수 미확인"}
                           {partner.response ? ` · 응답 ${partner.response}` : ""}
                         </small>
                       </span>
-                      {partner.caution ? (
-                        <Badge tone="orange">주의</Badge>
-                      ) : null}
+                      {partner.caution ? <Badge tone="orange">주의</Badge> : null}
                     </div>
                   ))}
                 </div>
               )}
             </section>
+
+            <section>
+              <h3>업로드 안내</h3>
+              <button
+                className="quote-action-button"
+                disabled
+                title="현재 버전에서는 프로젝트 단위 업로드만 사용해요."
+                type="button"
+              >
+                프로젝트 단위 일괄 업로드 <Badge tone="blue">{selectedFiles.length}</Badge>
+              </button>
+              <button
+                className="quote-action-button"
+                disabled
+                title="공급사명 연결은 견적서 내용 추출 후 확인할 수 있어요."
+                type="button"
+              >
+                공급사명은 견적서 내용 추출 후 확인
+              </button>
+            </section>
+
+            <section>
+              <h3>후속 작업</h3>
+              <button
+                className="quote-action-button"
+                disabled
+                title="아래 ‘업로드 후 비교 분석’ 버튼을 사용해 주세요."
+                type="button"
+              >
+                업로드 완료 후 비교 분석
+              </button>
+            </section>
+
+            <label className="request-memo">
+              <span>내부 메모</span>
+              <textarea defaultValue="현재는 견적서를 프로젝트 단위로 업로드해요. 공급사명은 견적서 내용 추출 결과에서 확인할 예정이에요." />
+            </label>
           </aside>
         </section>
       </main>
 
-      <FlowBottomBar
-        backLabel="이전 단계"
-        nextDisabled={!canCompare && !hasUploadedQuotes}
-        nextLabel="다음: 견적 비교 검토"
-        onBack={onBack}
-        onNext={goToQuoteReview}
-        statusMessage={statusMessage}
-      />
+      <footer className="quote-waiting-bottom-actions">
+        <span>
+          {hasUploadedQuotes
+            ? "견적서 업로드 완료"
+            : selectedFiles.length
+              ? `견적서 ${receivedCount}개 선택됨`
+              : "견적서를 업로드하면 비교 검토를 시작할 수 있어요."}
+        </span>
+        <div>
+          <button className="button action-secondary" onClick={onSaveDraft} type="button">임시 저장</button>
+          <button
+            className="button action-primary"
+            disabled={!canCompare}
+            onClick={goToQuoteReview}
+            type="button"
+          >
+            업로드 후 비교 분석
+          </button>
+        </div>
+      </footer>
     </div>
-  );
-}
-
-function SummaryItem({ label, value }) {
-  return (
-    <article>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
   );
 }
 
@@ -336,8 +350,7 @@ function resolveRequestTargets(projectData) {
       }
       return {
         id: targetId,
-        name:
-          raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
+        name: raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
         score:
           typeof raw.semantic_similarity_score === "number"
             ? raw.semantic_similarity_score <= 1
@@ -345,11 +358,9 @@ function resolveRequestTargets(projectData) {
               : Math.round(raw.semantic_similarity_score)
             : null,
         response:
-          typeof raw.response_speed === "number"
-            ? `${raw.response_speed}시간`
-            : raw.response_speed ?? "미확인",
+          typeof raw.response_speed === "number" ? `${raw.response_speed}시간` : raw.response_speed ?? "미확인",
         caution: (raw.filter_reasons ?? []).some(
-          (reason) => !/^상위 \d+개 추천 후보/.test(String(reason ?? "").trim()),
+          (reason) => !/^상위 \d+개 추천 후보 외$/.test(String(reason ?? "").trim()),
         ),
       };
     })

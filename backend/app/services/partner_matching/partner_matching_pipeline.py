@@ -19,10 +19,12 @@ class PartnerMatchingPipeline:
         embedding_provider,
         similarity_provider,
         partner_profiles: list[PartnerProfile],
+        partner_embedding_path=PARTNER_EMBEDDINGS_PATH,
     ) -> None:
         self.embedding_provider = embedding_provider
         self.similarity_provider = similarity_provider
         self.partner_profiles = partner_profiles
+        self.partner_embedding_path = partner_embedding_path
 
     def run(
         self,
@@ -34,10 +36,25 @@ class PartnerMatchingPipeline:
         if not requirement_result.embedding_vector:
             raise ValueError("요구사항 임베딩이 없어 PartnerMatching을 실행할 수 없습니다.")
 
+        expected_dimension = len(requirement_result.embedding_vector)
+        cache_existed_before = self.partner_embedding_path.exists()
         partner_embeddings = get_or_create_partner_embeddings(
             self.partner_profiles,
             self.embedding_provider,
+            path=self.partner_embedding_path,
+            expected_dimension=expected_dimension,
         )
+        invalid_dimensions = {
+            partner_name: len(record.embedding_vector or [])
+            for partner_name, record in partner_embeddings.items()
+            if len(record.embedding_vector or []) != expected_dimension
+        }
+        if invalid_dimensions:
+            sample_dimension = next(iter(invalid_dimensions.values()))
+            raise RuntimeError(
+                "Partner embedding dimension mismatch after rebuild: "
+                f"expected={expected_dimension}, actual={sample_dimension}"
+            )
         provider = PartnerMatchingProvider(
             partners=self.partner_profiles,
             partner_embeddings=partner_embeddings,
@@ -55,7 +72,9 @@ class PartnerMatchingPipeline:
                 "provider": provider.__class__.__name__,
                 "embedding_provider": self.embedding_provider.__class__.__name__,
                 "similarity_provider": self.similarity_provider.__class__.__name__,
-                "embedding_cache_used": PARTNER_EMBEDDINGS_PATH.exists(),
+                "embedding_cache_used": cache_existed_before,
+                "expected_embedding_dimension": expected_dimension,
+                "partner_vector_count": len(partner_embeddings),
             }
         )
         return result

@@ -19,12 +19,22 @@ async function request(endpoint, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(getApiErrorMessage(payload, "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."));
+    throw new Error(
+      getApiErrorMessage(
+        payload,
+        "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+      ),
+    );
   }
 
   if (payload && typeof payload === "object" && "ok" in payload) {
     if (!payload.ok) {
-      throw new Error(getApiErrorMessage(payload, "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."));
+      throw new Error(
+        getApiErrorMessage(
+          payload,
+          "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        ),
+      );
     }
     return payload.data;
   }
@@ -160,10 +170,17 @@ function deleteProjects(projectIds) {
   });
 }
 
+function getCandidateVendors(projectId) {
+  return request(`/api/v1/projects/${projectId}/candidate-vendors`, {
+    method: "GET",
+  });
+}
+
 export {
   createProject,
   deleteProjects, // 6/12 백엔드 작업에서 추가
   fetchCandidateVendors,
+  getCandidateVendors,
   fetchCompare,
   fetchExplanation,
   fetchProject,
