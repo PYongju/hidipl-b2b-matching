@@ -5,8 +5,10 @@ import FlowTopbar from "../components/FlowTopbar";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
+import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보$/;
 
 function shouldRestoreMatchData(projectData) {
   if (!projectData?.projectApiId) return false;
@@ -16,11 +18,20 @@ function shouldRestoreMatchData(projectData) {
     Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
   const hasExplanationSource = Boolean(
     projectData.matchId ||
-    projectData.cachedExplanation ||
-    projectData.matchResult,
+      projectData.cachedExplanation ||
+      projectData.matchResult,
   );
 
   return !hasQuoteIds || !hasExplanationSource;
+}
+
+function SummaryItem({ label, value }) {
+  return (
+    <article>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  );
 }
 
 export default function QuoteWaitingPage({
@@ -32,7 +43,6 @@ export default function QuoteWaitingPage({
 }) {
   const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
   const [errorMessage, setErrorMessage] = useState("");
-  const [note, setNote] = useState(projectData.quoteNote ?? "");
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
   const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
@@ -89,23 +99,23 @@ export default function QuoteWaitingPage({
       ignore = true;
     };
   }, [
-    projectData.projectApiId,
-    projectData.matchId,
-    projectData.quoteIds,
+    onProjectDataChange,
     projectData.cachedExplanation,
-    projectData.matchResult,
     projectData.matchHydrationAttempted,
+    projectData.matchId,
+    projectData.matchResult,
+    projectData.projectApiId,
+    projectData.quoteIds,
   ]);
 
-  useEffect(() => {
-    setNote(projectData.quoteNote ?? "");
-  }, [projectData.quoteNote]);
-
-  useEffect(() => () => {
-    if (autoSaveStatusTimerRef.current) {
-      window.clearTimeout(autoSaveStatusTimerRef.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (autoSaveStatusTimerRef.current) {
+        window.clearTimeout(autoSaveStatusTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const sameFiles =
@@ -119,22 +129,20 @@ export default function QuoteWaitingPage({
           target.size === file.size
         );
       });
-    const sameNote = (projectData.quoteNote ?? "") === note;
 
-    if (sameFiles && sameNote) return undefined;
+    if (sameFiles) return undefined;
 
     showAutoSaveStatus("saving");
     const timer = window.setTimeout(() => {
       onProjectDataChange((current) => ({
         ...current,
         quoteFiles: selectedFiles,
-        quoteNote: note,
       }));
       showAutoSaveStatus("saved");
     }, 500);
 
     return () => window.clearTimeout(timer);
-  }, [note, onProjectDataChange, projectData.quoteFiles, projectData.quoteNote, selectedFiles]);
+  }, [onProjectDataChange, projectData.quoteFiles, selectedFiles]);
 
   const updateFiles = (files) => {
     setSelectedFiles(files);
@@ -208,23 +216,22 @@ export default function QuoteWaitingPage({
           onGoQuoteReview={canCompare || hasUploadedQuotes ? goToQuoteReview : undefined}
         />
 
-        <section className="quote-status-bar">
-          <article>
-            <span>현재 상태</span>
-            <strong>{hasUploadedQuotes ? "견적서 업로드 완료" : "견적서 업로드 대기"}</strong>
-          </article>
-          <article>
-            <span>견적서 업로드</span>
-            <strong>{selectedFiles.length}개 선택됨</strong>
-          </article>
-          <article>
-            <span>업로드 방식</span>
-            <strong>프로젝트 단위</strong>
-          </article>
-          <article>
-            <span>마지막 업데이트</span>
-            <strong>{hasUploadedQuotes ? "업로드 완료" : "업로드 전"}</strong>
-          </article>
+        <section className="partner-project-summary six quote-request-summary">
+          <SummaryItem label="회사명" value={projectData.companyName || "미입력"} />
+          <SummaryItem label="위치" value={projectData.location || "미입력"} />
+          <SummaryItem
+            label="일정"
+            value={projectData.projectDate || "일정 미정"}
+          />
+          <SummaryItem
+            label="발주처 유형"
+            value={projectData.clientType || "미입력"}
+          />
+          <SummaryItem
+            label="솔루션"
+            value={formatProjectSolutions(projectData, "미선택")}
+          />
+          <SummaryItem label="상태" value="요청 대상 검토중" />
         </section>
 
         <section className="quote-waiting-layout">
@@ -236,7 +243,9 @@ export default function QuoteWaitingPage({
               </div>
               <div className="quote-progress">
                 <span>{selectedFiles.length}개 선택</span>
-                <div><i style={{ width: selectedFiles.length ? "100%" : "0%" }} /></div>
+                <div>
+                  <i style={{ width: selectedFiles.length ? "100%" : "0%" }} />
+                </div>
               </div>
             </div>
 
@@ -253,9 +262,7 @@ export default function QuoteWaitingPage({
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
-                <div className="empty-file-row">
-                  아직 업로드할 견적서가 없어요.
-                </div>
+                <div className="empty-file-row">아직 업로드한 견적서가 없어요.</div>
               ) : (
                 selectedFiles.map((file) => (
                   <div className="file-row" key={`${file.name}-${file.lastModified}-${file.size}`}>
@@ -266,7 +273,7 @@ export default function QuoteWaitingPage({
                     <div className="file-row-actions">
                       <Badge tone="green">선택 완료</Badge>
                       <button
-                        aria-label={`${file.name} 삭제`}
+                        aria-label={`${file.name} 제거`}
                         className="icon-button file-remove-button"
                         onClick={() => removeFile(file)}
                         type="button"
@@ -279,25 +286,21 @@ export default function QuoteWaitingPage({
               )}
             </div>
 
-            {errorMessage ? (
-              <div className="quote-upload-error">{errorMessage}</div>
-            ) : null}
+            {errorMessage ? <div className="quote-upload-error">{errorMessage}</div> : null}
           </div>
 
           <aside className="quote-ops-panel panel-sticky">
             <div className="quote-panel-title quote-ops-panel-title">
               <div>
-                <h2>추가 작업</h2>
-                <p>견적 수신 단계에서 필요한 후속 작업을 해요.</p>
+                <h2>견적 요청 발송 대상</h2>
+                <p>이전 단계에서 선택한 공급사를 다시 확인해요.</p>
               </div>
             </div>
 
             <section>
               <h3>
                 견적 요청 발송 대상
-                {requestTargets.length > 0 ? (
-                  <Badge tone="blue">{requestTargets.length}</Badge>
-                ) : null}
+                {requestTargets.length > 0 ? <Badge tone="blue">{requestTargets.length}</Badge> : null}
               </h3>
               {requestTargets.length === 0 ? (
                 <div className="quote-request-empty">
@@ -321,46 +324,6 @@ export default function QuoteWaitingPage({
                 </div>
               )}
             </section>
-
-            <section>
-              <h3>업로드 안내</h3>
-              <button
-                className="quote-action-button"
-                disabled
-                title="현재 버전에서는 프로젝트 단위 업로드만 사용해요."
-                type="button"
-              >
-                프로젝트 단위 일괄 업로드 <Badge tone="blue">{selectedFiles.length}</Badge>
-              </button>
-              <button
-                className="quote-action-button"
-                disabled
-                title="공급사명 연결은 견적서 내용 추출 후 확인할 수 있어요."
-                type="button"
-              >
-                공급사명은 견적서 내용 추출 후 확인
-              </button>
-            </section>
-
-            <section>
-              <h3>후속 작업</h3>
-              <button
-                className="quote-action-button"
-                disabled
-                title="아래 ‘업로드 후 비교 분석’ 버튼을 사용해 주세요."
-                type="button"
-              >
-                업로드 완료 후 비교 분석
-              </button>
-            </section>
-
-            <label className="request-memo">
-              <span>내부 메모</span>
-              <textarea
-                onChange={(event) => setNote(event.target.value)}
-                value={note}
-              />
-            </label>
           </aside>
         </section>
       </main>
@@ -374,7 +337,9 @@ export default function QuoteWaitingPage({
               : "견적서를 업로드하면 비교 검토를 시작할 수 있어요."}
         </span>
         <div>
-          <button className="button action-secondary" onClick={onBack} type="button">이전</button>
+          <button className="button action-secondary" onClick={onBack} type="button">
+            이전
+          </button>
           <button
             className="button action-primary"
             disabled={!canCompare}
@@ -407,9 +372,11 @@ function resolveRequestTargets(projectData) {
             candidate.partner_id ??
             candidate.partner_name) === targetId,
       );
+
       if (!raw) {
         return { id: targetId, name: String(targetId) };
       }
+
       return {
         id: targetId,
         name: raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
@@ -420,9 +387,11 @@ function resolveRequestTargets(projectData) {
               : Math.round(raw.semantic_similarity_score)
             : null,
         response:
-          typeof raw.response_speed === "number" ? `${raw.response_speed}시간` : raw.response_speed ?? "미확인",
+          typeof raw.response_speed === "number"
+            ? `${raw.response_speed}시간`
+            : raw.response_speed ?? "미확인",
         caution: (raw.filter_reasons ?? []).some(
-          (reason) => !/^상위 \d+개 추천 후보 외$/.test(String(reason ?? "").trim()),
+          (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
         ),
       };
     })

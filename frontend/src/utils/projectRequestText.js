@@ -121,7 +121,9 @@ export function mapDisplaySizeFields(displaySizeText) {
   const displayWidth = parseDisplayDimension(displaySize, "width");
   const displayHeight = parseDisplayDimension(displaySize, "height");
   return {
-    displaySize: formatDimensionSize(displayWidth, displayHeight, displayUnit) || displaySize,
+    displaySize:
+      formatDimensionSize(displayWidth, displayHeight, displayUnit) ||
+      displaySize,
     displayUnit,
     displayWidth,
     displayHeight,
@@ -148,7 +150,9 @@ export function parseProjectFieldsFromRequestText(requestText) {
     if (!key) continue;
 
     fields[key] =
-      key === "solutions" ? parseSolutionsValue(value) : normalizeRequestValue(value);
+      key === "solutions"
+        ? parseSolutionsValue(value)
+        : normalizeRequestValue(value);
   }
 
   return fields;

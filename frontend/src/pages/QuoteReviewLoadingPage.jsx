@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
-import ProjectStepTabs from "../components/ProjectStepTabs";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 
@@ -153,7 +152,6 @@ export default function QuoteReviewLoadingPage({
 
       <main className="matching-loading-main">
         <section className="matching-loading-card">
-          <ProjectStepTabs activeStep={4} onGoQuoteWaiting={onBack} />
           <div
             className={`matching-loading-symbol${
               analysisState === "error" ? " is-error" : isComplete ? " is-complete" : ""

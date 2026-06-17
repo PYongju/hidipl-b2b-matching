@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
+import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
@@ -82,6 +83,7 @@ function SupplierPager({
 
 export default function DashboardPage({
   projectData,
+  onBack,
   onGoProjects,
   onProjectDataChange,
 }) {
@@ -91,6 +93,8 @@ export default function DashboardPage({
   const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId =
     projectData.projectId || projectData.projectApiId || "프로젝트";
+  const projectTitle =
+    projectData.projectName?.trim() || `프로젝트 ${projectId}`;
   const {
     compareErrorMessage,
     compareState,
@@ -131,6 +135,13 @@ export default function DashboardPage({
   const [reviewMemo, setReviewMemo] = useState(projectData.reviewMemo ?? "");
   const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
   const [isMemoEditing, setIsMemoEditing] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const [isProjectNameEditing, setIsProjectNameEditing] = useState(false);
+  const [draftProjectName, setDraftProjectName] = useState(
+    projectData.projectName ?? "",
+  );
+  const [isProjectNameSaving, setIsProjectNameSaving] = useState(false);
+  const autoSaveStatusTimerRef = useRef(null);
   const [supplierStartIndex, setSupplierStartIndex] = useState(0);
   const [compareCellOverrides, setCompareCellOverrides] = useState(() =>
     resolveCompareCellOverrides(projectData),
@@ -162,6 +173,22 @@ export default function DashboardPage({
   const canGoNextSuppliers =
     canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
 
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
+
   useEffect(() => {
     setSupplierStartIndex(0);
   }, [supplierCount]);
@@ -192,8 +219,23 @@ export default function DashboardPage({
   }, [projectId, projectData.reviewMemo]);
 
   useEffect(() => {
+    setDraftProjectName(projectData.projectName ?? "");
+    setIsProjectNameEditing(false);
+    setIsProjectNameSaving(false);
+  }, [projectId, projectData.projectName]);
+
+  useEffect(() => {
     setCompareCellOverrides(resolveCompareCellOverrides(projectData));
   }, [projectData.projectApiId, projectData.projectId]);
+
+  useEffect(
+    () => () => {
+      if (autoSaveStatusTimerRef.current) {
+        window.clearTimeout(autoSaveStatusTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const goPrevSuppliers = () => {
     setSupplierStartIndex((current) =>
@@ -353,6 +395,7 @@ export default function DashboardPage({
     };
     const apiProjectId = projectData.projectApiId ?? projectData.projectId;
 
+    showAutoSaveStatus("saving");
     setCompareCellOverrides(nextOverrides);
 
     try {
@@ -365,9 +408,11 @@ export default function DashboardPage({
       if (apiProjectId) {
         saveCompareCellOverridesToStorage(apiProjectId, nextOverrides);
       }
+      showAutoSaveStatus("saved");
     } catch (error) {
       console.error("비교 테이블 셀 저장 실패:", error);
       setCompareCellOverrides(previousOverrides);
+      showAutoSaveStatus("error");
       throw error;
     }
   };
@@ -378,8 +423,60 @@ export default function DashboardPage({
   };
 
   const saveMemo = () => {
+    showAutoSaveStatus("saving");
     setReviewMemo(draftMemo);
     setIsMemoEditing(false);
+    showAutoSaveStatus("saved");
+  };
+
+  const startProjectNameEdit = () => {
+    if (isProjectNameSaving) return;
+    setDraftProjectName(projectData.projectName ?? "");
+    setIsProjectNameEditing(true);
+  };
+
+  const cancelProjectNameEdit = () => {
+    setDraftProjectName(projectData.projectName ?? "");
+    setIsProjectNameEditing(false);
+  };
+
+  const saveProjectName = async () => {
+    if (isProjectNameSaving) return;
+
+    const trimmed = draftProjectName.trim();
+    if (!trimmed) {
+      cancelProjectNameEdit();
+      return;
+    }
+
+    const previousName = projectData.projectName ?? "";
+    const apiProjectId = projectData.projectApiId ?? projectData.projectId;
+
+    setIsProjectNameSaving(true);
+    showAutoSaveStatus("saving");
+    onProjectDataChange?.((current) => ({
+      ...current,
+      projectName: trimmed,
+      lastScreen: "dashboard",
+    }));
+
+    try {
+      if (apiProjectId) {
+        await updateProject(apiProjectId, { project_name: trimmed });
+      }
+      setIsProjectNameEditing(false);
+      showAutoSaveStatus("saved");
+    } catch (error) {
+      console.error("프로젝트명 저장 실패:", error);
+      onProjectDataChange?.((current) => ({
+        ...current,
+        projectName: previousName,
+      }));
+      setDraftProjectName(previousName);
+      showAutoSaveStatus("error");
+    } finally {
+      setIsProjectNameSaving(false);
+    }
   };
 
   const memoValue = isMemoEditing ? draftMemo : reviewMemo;
@@ -428,6 +525,11 @@ export default function DashboardPage({
           <BrandHomeButton onClick={onGoProjects} />
           <Badge tone="gray">v1.3.2</Badge>
           <div className="top-divider" />
+          <span className="dashboard-breadcrumb-live">프로젝트 목록</span>
+          <span className="dashboard-breadcrumb-live-arrow">›</span>
+          <span className="dashboard-breadcrumb-live-current">
+            프로젝트 <b>{projectTitle}</b>
+          </span>
           <span className="breadcrumb-muted">프로젝트 목록</span>
           <span className="breadcrumb-arrow">›</span>
           <span className="breadcrumb-current">
@@ -435,6 +537,7 @@ export default function DashboardPage({
           </span>
         </div>
         <div className="user-zone">
+          <AutoSaveStatus status={autoSaveStatus} />
           <div className="avatar" />
           <div className="user-name">
             <b>김담당자</b>
@@ -446,6 +549,51 @@ export default function DashboardPage({
       <main className="dashboard">
         <section className="project-head">
           <div className="project-title">
+            <div className="project-title-edit-shell">
+              {isProjectNameEditing ? (
+                <div className="project-title-edit">
+                  <input
+                    className="project-title-input"
+                    disabled={isProjectNameSaving}
+                    onChange={(event) => setDraftProjectName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void saveProjectName();
+                      }
+                      if (event.key === "Escape") {
+                        event.preventDefault();
+                        cancelProjectNameEdit();
+                      }
+                    }}
+                    type="text"
+                    value={draftProjectName}
+                  />
+                  <button
+                    className="button button-small"
+                    disabled={isProjectNameSaving}
+                    onClick={() => {
+                      void saveProjectName();
+                    }}
+                    type="button"
+                  >
+                    저장
+                  </button>
+                </div>
+              ) : (
+                <div className="project-title-display">
+                  <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
+                  <button
+                    className="icon-button project-title-edit-button"
+                    onClick={startProjectNameEdit}
+                    title="프로젝트 이름 수정"
+                    type="button"
+                  >
+                    ✎
+                  </button>
+                </div>
+              )}
+            </div>
             <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
             <button
               className="icon-button"
@@ -884,6 +1032,13 @@ export default function DashboardPage({
 
       {compareState === "ready" && (
         <footer className="bottom-actions">
+          <button
+            className="button action-secondary"
+            onClick={onBack ?? onGoProjects}
+            type="button"
+          >
+            이전
+          </button>
           <button
             className="button action-secondary"
             disabled
