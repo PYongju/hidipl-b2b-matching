@@ -6,6 +6,11 @@ from types import SimpleNamespace
 from typing import Any
 
 from services.api_demo.enums import CellStatus
+from services.parser.rule_hardware_spec_context import (
+    clean_hardware_spec_preview,
+    collect_hardware_spec_context,
+    select_hardware_spec_context_text,
+)
 from services.parser.schemas import LineItemCategory
 from services.parser.rule_note_extractor import clean_special_notes
 from services.explanation.explanation_text_policy import split_comparison_risks
@@ -533,6 +538,18 @@ def build_grouped_compare_response(
             project_install_location=project_install_location,
         )
         rows = group_response["rows"]
+        group_result_by_id = {
+            result.quote_id or result.quote.quote_id: result
+            for result in group_quote_results
+        }
+        for row in rows:
+            row["product_group"] = group_name
+            result = group_result_by_id.get(row.get("quote_id"))
+            if result is not None:
+                row["hardware"] = _build_hardware_section(
+                    result.quote,
+                    product_group=group_name,
+                )
         flat_rows.extend(rows)
         product_group_counts[group_name] = len(group_quote_results)
         groups.append(
@@ -691,7 +708,7 @@ def _build_compare_row(
         },
     }
     row["company_info"] = _build_company_info(snapshot)
-    row["hardware"] = _build_hardware_section(quote)
+    row["hardware"] = _build_hardware_section(quote, product_group=product_group)
     row["cost_breakdown"] = _build_cost_breakdown(quote, check_required, rule_warnings)
     row["conditions"] = _build_conditions_section(
         quote,
@@ -726,20 +743,30 @@ def _build_company_info(snapshot) -> dict[str, Any]:
     }
 
 
-def _build_hardware_section(quote) -> dict[str, Any]:
+def _build_hardware_section(quote, *, product_group: str | None = None) -> dict[str, Any]:
     item = _select_representative_hardware_item(quote.line_items)
     item_spec_raw = getattr(item, "spec_raw", "") if item else ""
-    preview_source = _find_spec_preview_source(quote, item)
+    preview_source = _find_spec_preview_source(quote, item, product_group=product_group)
+    group_preview_source = select_hardware_spec_context_text(
+        preview_source or item_spec_raw,
+        product_group_hint=product_group,
+    )
     spec_raw = " ".join(
         value
         for value in [
-            item_spec_raw,
-            preview_source,
+            group_preview_source or preview_source or item_spec_raw,
             getattr(quote, "notes_raw", ""),
         ]
         if value
     )
-    spec_parsed = getattr(item, "spec_parsed", {}) if item else {}
+    context = collect_hardware_spec_context(
+        spec_raw,
+        product_group_hint=product_group,
+    )
+    spec_parsed = {
+        **(getattr(item, "spec_parsed", {}) if item else {}),
+        **(context.spec_parsed or {}),
+    }
     item_name = getattr(item, "name", None) if item else None
 
     raw_hardware = {
@@ -786,7 +813,9 @@ def _build_hardware_section(quote) -> dict[str, Any]:
         "free_maintenance_period": (
             f"{quote.warranty_months}개월" if quote.warranty_months else None
         ),
-        "source_spec_raw_preview": _clean_spec_preview(preview_source),
+        "source_spec_raw_preview": _clean_spec_preview(
+            group_preview_source or context.spec_raw or preview_source
+        ),
     }
     return _sanitize_hardware_section(raw_hardware, spec_parsed, spec_raw)
 
@@ -844,6 +873,9 @@ def _sanitize_hardware_section(
 def _clean_spec_preview(value: str | None) -> str | None:
     if not value:
         return None
+    cleaned = clean_hardware_spec_preview(value)
+    if cleaned:
+        value = cleaned
     lines = []
     for raw_line in str(value).splitlines():
         line = re.sub(r":?unselected:?", " ", raw_line, flags=re.IGNORECASE)
@@ -886,7 +918,7 @@ def _clean_spec_preview(value: str | None) -> str | None:
     return preview[:300] if preview else None
 
 
-def _find_spec_preview_source(quote, representative_item) -> str | None:
+def _find_spec_preview_source(quote, representative_item, *, product_group: str | None = None) -> str | None:
     candidates = []
     if representative_item is not None:
         candidates.append(getattr(representative_item, "spec_raw", "") or "")
@@ -908,6 +940,13 @@ def _find_spec_preview_source(quote, representative_item) -> str | None:
     notes_raw = getattr(quote, "notes_raw", "") or ""
     if notes_raw and _has_spec_keyword(notes_raw):
         candidates.append(notes_raw)
+    if product_group:
+        grouped = select_hardware_spec_context_text(
+            " ".join(candidates),
+            product_group_hint=product_group,
+        )
+        if _clean_spec_preview(grouped):
+            return grouped
     for value in candidates:
         if _clean_spec_preview(value):
             return value
@@ -967,11 +1006,17 @@ def _has_spec_keyword(value: str | None) -> bool:
         "kw",
         "cabinet",
         "module",
+        "smd",
+        "cob",
+        "flexible",
+        "die-casting",
         "fhd",
         "uhd",
         "4k",
     ]
-    return any(keyword in text for keyword in keywords)
+    return any(keyword in text for keyword in keywords) or bool(
+        re.search(r"\bp\s*\d+(?:\.\d+)?\b", text)
+    )
 
 
 def _dimension_pair(value: Any) -> tuple[float, float] | None:
@@ -995,13 +1040,37 @@ def _as_float(value: Any) -> float | None:
 def _select_representative_hardware_item(line_items):
     if not line_items:
         return None
-    line_items = [
+    non_residual_items = [
         item
         for item in line_items
         if not (getattr(item, "spec_parsed", {}) or {}).get("reconciliation_residual")
     ]
-    if not line_items:
-        return None
+    if non_residual_items:
+        line_items = non_residual_items
+    else:
+        line_items = [
+            item
+            for item in line_items
+            if getattr(item, "category", None) == LineItemCategory.DISPLAY
+            and (
+                _has_spec_keyword(getattr(item, "spec_raw", "") or "")
+                or any(
+                    (getattr(item, "spec_parsed", {}) or {}).get(key)
+                    for key in [
+                        "screen_size_mm",
+                        "full_screen_size_mm",
+                        "resolution",
+                        "pixel_pitch_mm",
+                        "brightness_cd_m2",
+                        "brightness_nit",
+                        "power_consumption_kw",
+                        "refresh_rate_hz",
+                    ]
+                )
+            )
+        ]
+        if not line_items:
+            return None
     display_items = [
         item for item in line_items if item.category == LineItemCategory.DISPLAY
     ]

@@ -26,6 +26,10 @@ from services.parser.rule_display_spec_extractor import (
     extract_display_specs,
     sanitize_display_spec_parsed,
 )
+from services.parser.rule_hardware_spec_context import (
+    collect_hardware_spec_context,
+    merge_hardware_spec_context,
+)
 from services.parser.rule_line_item_parser import (
     align_profile_item_roles,
     assign_amount_pairs_by_order,
@@ -332,8 +336,8 @@ class RuleBasedQuoteParser(ParserProvider):
             text=normalized_text,
             raw_matches=raw_matches,
         )
-        if tax_amount is not None:
-            raw_matches["quoted_tax_amount"] = tax_amount
+        if quote_document.tax_amount is not None:
+            raw_matches["quoted_tax_amount"] = quote_document.tax_amount
 
         category_normalization = []
         for item in quote_document.line_items:
@@ -352,7 +356,7 @@ class RuleBasedQuoteParser(ParserProvider):
         delivery_validation = apply_delivery_normalization(quote_document)
         amount_validation = build_amount_validation(
             quote_document,
-            quoted_tax_amount=tax_amount,
+            quoted_tax_amount=quote_document.tax_amount,
         )
         multi_option_detection = detect_multi_option(
             quote_document,
@@ -400,6 +404,7 @@ class RuleBasedQuoteParser(ParserProvider):
         raw_matches: dict[str, Any],
     ) -> None:
         if not self._legacy_sample_patches_enabled():
+            document_context = collect_hardware_spec_context(source_text)
             enrichments = []
             for item in quote_document.line_items:
                 if item.category != LineItemCategory.DISPLAY:
@@ -411,6 +416,15 @@ class RuleBasedQuoteParser(ParserProvider):
                 item.spec_parsed = sanitize_display_spec_parsed(
                     {**before_parsed, **extracted.spec_parsed},
                     spec_raw=item.spec_raw,
+                )
+                merge_hardware_spec_context(
+                    item,
+                    document_context,
+                    source=(
+                        "residual_document_context"
+                        if item.spec_parsed.get("reconciliation_residual")
+                        else "document_spec_context"
+                    ),
                 )
                 if before_raw != item.spec_raw or before_parsed != item.spec_parsed:
                     enrichments.append(
@@ -673,6 +687,46 @@ class RuleBasedQuoteParser(ParserProvider):
             delivery_fee_included=delivery_fee_included,
         )
         line_items = [self._quote_item_to_line_item(item) for item in items]
+        if (
+            not line_items
+            and total_amount is not None
+            and total_supply_price > 0
+            and total_amount > total_supply_price * 1.5
+        ):
+            total_supply_price = round(total_amount / 1.1)
+            raw_matches["supply_amount_reconciled_from_total"] = {
+                "source": "total_with_vat_reverse_vat",
+                "original_supply_amount": supply_amount,
+                "total_amount": total_amount,
+                "reconciled_supply_amount": total_supply_price,
+            }
+        if not line_items and total_supply_price > 0:
+            line_items = self._build_residual_line_items(
+                total_supply_price=total_supply_price,
+                source_text=text,
+                project_name=project_name,
+                raw_matches=raw_matches,
+            )
+        line_items, total_supply_price = self._reconcile_line_item_sum(
+            line_items=line_items,
+            total_supply_price=total_supply_price,
+            source_text=text,
+            project_name=project_name,
+            raw_matches=raw_matches,
+        )
+        if total_supply_price > 0:
+            expected_total = round(total_supply_price * 1.1)
+            if (
+                total_amount is None
+                or total_amount <= total_supply_price
+                or abs(total_amount - expected_total) > max(50_000, int(total_supply_price * 0.02))
+            ):
+                raw_matches["total_amount_reconciled_from_supply"] = {
+                    "source": "supply_amount_plus_standard_vat",
+                    "original_total_amount": total_amount,
+                    "reconciled_total_amount": expected_total,
+                }
+                total_amount = expected_total
 
         confidence = 0.8
         if not safe_vendor_name or total_supply_price == 0 or not line_items:
@@ -695,6 +749,101 @@ class RuleBasedQuoteParser(ParserProvider):
             extraction_confidence=confidence,
             line_items=line_items,
         )
+
+    def _build_residual_line_items(
+        self,
+        *,
+        total_supply_price: int,
+        source_text: str,
+        project_name: str,
+        raw_matches: dict[str, Any],
+    ) -> list[LineItem]:
+        text = " ".join([source_text or "", project_name or ""]).lower()
+        if any(keyword in text for keyword in ["led", "전광판", "비디오월", "display", "screen", "디스플레이"]):
+            category = LineItemCategory.DISPLAY
+            name = "Display hardware"
+            normalized_cost_type = "DISPLAY"
+        else:
+            category = LineItemCategory.ETC
+            name = "견적 품목"
+            normalized_cost_type = "ETC"
+
+        raw_matches["line_item_reconciliation"] = {
+            "source": "summary_amount_residual_item",
+            "reason": "line item table was not reconstructed but supply amount exists",
+            "amount": total_supply_price,
+        }
+        parser_checks = raw_matches.get("parser_check_required") or []
+        parser_checks.append("일부 금액이 개별 품목으로 복원되지 않아 확인 필요")
+        raw_matches["parser_check_required"] = list(dict.fromkeys(parser_checks))
+
+        context = collect_hardware_spec_context(source_text, project_name)
+        spec_raw = context.spec_raw or "summary amount reconciliation"
+        spec_parsed = {
+            "normalized_cost_type": normalized_cost_type,
+            "reconciliation_residual": True,
+            **(context.spec_parsed or {}),
+        }
+        spec_parsed["hardware_spec_source"] = (
+            "residual_document_context" if context.spec_raw else "summary_amount_residual_item"
+        )
+
+        return [
+            LineItem(
+                name=name,
+                category=category,
+                quantity=1.0,
+                unit="식",
+                unit_price=total_supply_price,
+                total_price=total_supply_price,
+                is_optional=False,
+                spec_raw=spec_raw,
+                spec_parsed=spec_parsed,
+                extraction_confidence=0.45,
+            )
+        ]
+
+    def _reconcile_line_item_sum(
+        self,
+        *,
+        line_items: list[LineItem],
+        total_supply_price: int,
+        source_text: str,
+        project_name: str,
+        raw_matches: dict[str, Any],
+    ) -> tuple[list[LineItem], int]:
+        line_sum = sum(item.total_price or 0 for item in line_items)
+        if not line_items or not total_supply_price or not line_sum:
+            return line_items, total_supply_price
+
+        difference = total_supply_price - line_sum
+        tolerance = max(10_000, int(total_supply_price * 0.03))
+        if abs(difference) <= tolerance:
+            return line_items, total_supply_price
+
+        raw_matches["line_item_sum_reconciliation"] = {
+            "source": "generic_amount_reconciliation",
+            "original_supply_amount": total_supply_price,
+            "line_items_sum": line_sum,
+            "difference": difference,
+        }
+        parser_checks = raw_matches.get("parser_check_required") or []
+        parser_checks.append("일부 금액이 개별 품목으로 복원되지 않아 확인 필요")
+        raw_matches["parser_check_required"] = list(dict.fromkeys(parser_checks))
+
+        if difference > 0:
+            line_items = [
+                *line_items,
+                self._build_residual_line_items(
+                    total_supply_price=difference,
+                    source_text=source_text,
+                    project_name=project_name,
+                    raw_matches=raw_matches,
+                )[0],
+            ]
+            return line_items, total_supply_price
+
+        return line_items, line_sum
 
     def _parse_received_at(self, quote_date: str | None) -> datetime:
         if quote_date:

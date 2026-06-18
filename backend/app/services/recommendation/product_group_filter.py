@@ -52,7 +52,16 @@ PRODUCT_GROUP_ORDER = [
     "사이니지",
     "키오스크",
 ]
-GENERIC_DISPLAY_KEYWORDS = {"디스플레이", "display", "DID"}
+GENERIC_DISPLAY_KEYWORDS = {
+    "디스플레이",
+    "display",
+    "DID",
+    "전자칠판",
+    "프로젝터",
+    "모니터",
+    "회의실모니터",
+    "displayhardware",
+}
 
 
 def resolve_requirement_product_groups(requirement: RequirementInfo) -> set[str]:
@@ -79,7 +88,7 @@ def resolve_requirement_product_groups(requirement: RequirementInfo) -> set[str]
                 getattr(product, "raw_text", None),
             ]
         )
-    return _resolve_product_groups_from_values(values, include_generic_display=False)
+    return _resolve_product_groups_from_values(values, include_generic_display=True)
 
 
 def resolve_quote_product_groups(quote_or_result: QuoteDocument | QuoteIngestionResult) -> set[str]:
@@ -122,7 +131,7 @@ def resolve_quote_product_groups(quote_or_result: QuoteDocument | QuoteIngestion
                 (getattr(item, "spec_parsed", {}) or {}).get("hardware_type"),
             ]
         )
-    return _resolve_product_groups_from_values(values, include_generic_display=False)
+    return _resolve_product_groups_from_values(values, include_generic_display=True)
 
 
 def infer_dominant_quote_product_groups(
@@ -275,6 +284,8 @@ def group_quotes_by_product_group(
         quote_groups = resolve_quote_product_groups(quote_result)
         if not quote_groups:
             quote_groups = {UNCATEGORIZED_PRODUCT_GROUP}
+        elif len(quote_groups) > 1 and not _is_split_child(quote_result):
+            quote_groups = {_primary_product_group(quote_groups)}
 
         for product_group in sorted(quote_groups, key=_group_sort_key):
             groups.setdefault(product_group, []).append(quote_result)
@@ -376,6 +387,10 @@ def _canonical_product_group(value: Any, *, include_generic_display: bool) -> st
     text = str(value or "").lower().replace(" ", "")
     if not text:
         return None
+    if _looks_like_videowall(text):
+        return "비디오월"
+    if _looks_like_led_display(text):
+        return "LED전광판"
     for canonical in PRODUCT_GROUP_ORDER:
         for synonym in PRODUCT_GROUP_SYNONYMS[canonical]:
             if synonym.lower().replace(" ", "") in text:
@@ -385,6 +400,53 @@ def _canonical_product_group(value: Any, *, include_generic_display: bool) -> st
     ):
         return "디스플레이"
     return None
+
+
+def _primary_product_group(groups: set[str]) -> str:
+    preferred_order = ["비디오월", "LED전광판", "디스플레이"]
+    for group in preferred_order:
+        if group in groups:
+            return group
+    return sorted(groups, key=_group_sort_key)[0]
+
+
+def _looks_like_videowall(text: str) -> bool:
+    return any(
+        token in text
+        for token in [
+            "비디오월",
+            "videowall",
+            "multiwall",
+            "lcdwall",
+            "멀티비전",
+            "멀티디스플레이",
+            "3x3",
+            "3×3",
+            "2x2",
+            "2×2",
+            "4x4",
+            "4×4",
+        ]
+    )
+
+
+def _looks_like_led_display(text: str) -> bool:
+    if any(
+        token in text
+        for token in [
+            "led전광판",
+            "전광판",
+            "leddisplay",
+            "ledscreen",
+            "led모듈",
+            "led디스플레이",
+            "pixelpitch",
+        ]
+    ):
+        return True
+    import re
+
+    return bool(re.search(r"\bp\d+(?:\.\d+)?\b", text))
 
 
 def _as_list(value: Any) -> list[Any]:
