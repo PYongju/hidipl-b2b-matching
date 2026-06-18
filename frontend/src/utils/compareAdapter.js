@@ -155,7 +155,7 @@ function toComparisonRow(rowDef, rows) {
     label: rowDef.label,
     cells: rows.reduce((cells, quoteRow, index) => {
       const cell = rowDef.costKey
-        ? getCostCell(quoteRow, rowDef.costKey)
+        ? getCostCell(quoteRow, rowDef.costKey, rowDef.label)
         : getValueCell(quoteRow, rowDef);
       cells[getSupplierId(quoteRow, index)] = cell;
       return cells;
@@ -163,24 +163,56 @@ function toComparisonRow(rowDef, rows) {
   };
 }
 
-function getCostCell(row, costKey) {
+function getCostCell(row, costKey, rowLabel) {
   const item = row.cost_breakdown?.[costKey];
   const value = formatCostValue(item);
   const status =
     normalizeApiStatus(item?.status) ?? getDisplayStatus(value);
   // 추출 실패 셀: 값은 "-"로 두고 배지("수정 필요")와 보조 안내로 원인을 전달
-  return {
+  const cell = normalizeMissingCompareCell({
     value: status === "parseFail" ? "-" : value,
     status,
-  };
+  });
+
+  if (rowLabel === "출장비" && cell.status === "toBeDiscussed") {
+    return {
+      value: cell.value === "-" ? "확인 필요" : cell.value,
+      highlight: cell.highlight,
+    };
+  }
+
+  return cell;
 }
 
 function getValueCell(row, rowDef) {
+  if (rowDef.label === "특이사항") {
+    return { value: "", status: "editable" };
+  }
+
   const rawValue = getByPath(row, rowDef.path);
   const value = rowDef.format ? rowDef.format(rawValue) : formatEmpty(rawValue);
   const status = getDisplayStatus(value);
   const highlight = rowDef.highlight && row.highlights?.[rowDef.highlight] ? "bestValue" : undefined;
-  return { value, status, highlight };
+  return normalizeMissingCompareCell({ value, status, highlight });
+}
+
+function normalizeMissingCompareCell(cell) {
+  if (!cell) {
+    return { value: "-", status: "missing" };
+  }
+
+  const { value, status, ...rest } = cell;
+  const isMissing =
+    status === "missing" ||
+    value === "미기재" ||
+    value === "-" ||
+    value === "—";
+
+  if (isMissing) {
+    return { ...rest, value: "-", status: "missing" };
+  }
+
+  return cell;
 }
 
 function getDerivedStatus(value) {
@@ -190,10 +222,14 @@ function getDerivedStatus(value) {
 
 function formatCostValue(item) {
   if (!item) return "-";
+  const normalizedStatus = normalizeApiStatus(item?.status);
+  if (normalizedStatus === "missing") return "-";
   if (typeof item.amount === "number") {
     return formatWon(item.amount);
   }
-  return getStatusUi(item.status)?.badge ?? item.status ?? "-";
+  const statusUi = getStatusUi(item.status);
+  if (!statusUi || statusUi.badge === "미기재") return "-";
+  return statusUi.badge ?? item.status ?? "-";
 }
 
 function getDisplayStatus(value) {
@@ -211,7 +247,17 @@ function formatWon(value) {
 
 function formatTotalDisplayText(value) {
   if (value === null || value === undefined || value === "") return "-";
-  return String(value).replace(/VAT 포함/g, "VAT 미포함");
+  const stripped = stripVatAnnotation(String(value));
+  return stripped || "-";
+}
+
+function stripVatAnnotation(text) {
+  return String(text)
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .trim();
 }
 
 function formatNotes(value) {

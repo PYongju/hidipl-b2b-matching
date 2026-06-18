@@ -14,6 +14,7 @@ import {
   saveCompareCellOverridesToStorage,
 } from "../utils/compareCellOverrides";
 import { saveReviewMemoToStorage as persistReviewMemoToStorage } from "../utils/reviewMemoStorage";
+import { buildProjectInfoSummary } from "../utils/projectRequestText";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
 import {
   AI_COMPARE_NOTICE,
@@ -35,9 +36,51 @@ function isMissingCompareCellValue(value) {
   return MISSING_COMPARE_CELL_VALUES.includes(displayValue);
 }
 
+function isMissingCompareCell(cell) {
+  if (!cell) return true;
+  return (
+    cell.status === "missing" ||
+    cell.value === "미기재" ||
+    isMissingCompareCellValue(cell.value)
+  );
+}
+
+function getCompareCellDisplayValue(cell, rowLabel) {
+  if (rowLabel === "특이사항") {
+    const value = cell?.value;
+    if (!value || isMissingCompareCellValue(value)) return "";
+    return value;
+  }
+
+  let value;
+  if (isMissingCompareCell(cell)) {
+    value = "-";
+  } else {
+    value = cell?.value || "-";
+  }
+
+  return stripVatFromAmountDisplay(value);
+}
+
+function stripVatFromAmountDisplay(value) {
+  if (typeof value !== "string" || !/VAT\s*(미포함|포함)/i.test(value)) {
+    return value;
+  }
+
+  const stripped = value
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .trim();
+
+  return stripped || "-";
+}
+
 function isEditableMissingCompareCell(rowLabel, cell) {
   if (NON_EDITABLE_COMPARE_ROW_LABELS.includes(rowLabel)) return false;
-  if (cell?.status === "missing") return true;
+  if (rowLabel === "특이사항" && cell?.status === "editable") return true;
+  if (cell?.status === "missing" || cell?.status === "editable") return true;
   return isMissingCompareCellValue(cell?.value);
 }
 
@@ -90,7 +133,6 @@ export default function DashboardPage({
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     projectData.selectedSupplierId ?? "",
   );
-  const isFailureScenario = Boolean(projectData.failureScenario);
   const projectId =
     projectData.projectId || projectData.projectApiId || "프로젝트";
   const projectTitle =
@@ -117,11 +159,11 @@ export default function DashboardPage({
       comparisonSections.reduce(
         (sections, section) => ({
           ...sections,
-          [section.id]: isFailureScenario ? true : section.defaultOpen,
+          [section.id]: section.defaultOpen,
         }),
         { total: true },
       ),
-    [comparisonSections, isFailureScenario],
+    [comparisonSections],
   );
   const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -346,7 +388,7 @@ export default function DashboardPage({
         : baseCell;
     const status = cell.status;
     const highlight = cell.highlight;
-    const value = cell.value || "—";
+    const displayValue = getCompareCellDisplayValue(cell, row.label);
     const canEditCompareCell =
       overriddenValue !== undefined ||
       isEditableMissingCompareCell(row.label, baseCell);
@@ -354,14 +396,18 @@ export default function DashboardPage({
     if (canEditCompareCell) {
       return (
         <EditableCompareCell
-          cell={cell}
+          cell={{ ...cell, value: displayValue }}
           onSave={(nextValue) =>
             handleCompareCellSave(supplier, row.label, nextValue)
           }
           rowLabel={row.label}
           statusBadge={
             overriddenValue === undefined
-              ? getStatusBadge(baseCell.status ?? "missing")
+              ? getStatusBadge(
+                  row.label === "특이사항"
+                    ? "editable"
+                    : (baseCell.status ?? "missing"),
+                )
               : null
           }
         />
@@ -371,6 +417,11 @@ export default function DashboardPage({
     const cellClasses = [
       "compare-cell",
       status ? `cell-${status}` : "",
+      row.label === "출장비" &&
+      displayValue === "확인 필요" &&
+      overriddenValue === undefined
+        ? "cell-toBeDiscussed"
+        : "",
       highlight ? `cell-${highlight}` : "",
     ]
       .filter(Boolean)
@@ -379,7 +430,7 @@ export default function DashboardPage({
     return (
       <div className={cellClasses}>
         <span className={highlight === "bestPrice" ? "price-best" : ""}>
-          {value}
+          {displayValue}
         </span>
         {getStatusBadge(status)}
         {getStatusBadge(highlight)}
@@ -552,6 +603,7 @@ export default function DashboardPage({
   };
 
   const canExportReport = explanationState === "ready";
+  const projectInfoSummary = buildProjectInfoSummary(projectData);
 
   return (
     <div className="app-shell">
@@ -572,6 +624,23 @@ export default function DashboardPage({
           </span>
         </div>
         <div className="user-zone">
+          <div className="topbar-actions">
+            <button
+              className="button action-secondary"
+              onClick={onGoProjects}
+              type="button"
+            >
+              프로젝트 목록
+            </button>
+            <button
+              className="button action-secondary"
+              disabled
+              title="상태는 화면 진행에 따라 자동으로 반영돼요."
+              type="button"
+            >
+              {selectionFinalized ? "검토 완료" : "검토 진행 중"}
+            </button>
+          </div>
           <AutoSaveStatus status={autoSaveStatus} />
           <div className="avatar" />
           <div className="user-name">
@@ -617,7 +686,25 @@ export default function DashboardPage({
                 </div>
               ) : (
                 <div className="project-title-display">
-                  <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
+                  <h1 className="project-title-with-meta">
+                    <span className="project-title-name">
+                      {projectData.projectName || `프로젝트 ${projectId}`}
+                    </span>
+                    {projectInfoSummary ? (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="project-title-inline-divider"
+                        >
+                          {" "}
+                          ·{" "}
+                        </span>
+                        <span className="project-title-inline-meta">
+                          {projectInfoSummary}
+                        </span>
+                      </>
+                    ) : null}
+                  </h1>
                   <button
                     className="icon-button project-title-edit-button"
                     onClick={startProjectNameEdit}
@@ -640,70 +727,6 @@ export default function DashboardPage({
             </button>
             <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
-          <div className="project-actions">
-            <button
-              className="button action-secondary"
-              onClick={onGoProjects}
-              type="button"
-            >
-              프로젝트 목록
-            </button>
-            <button
-              className={
-                selectionFinalized
-                  ? "button button-green"
-                  : "button button-blue"
-              }
-              disabled
-              title="상태는 화면 진행에 따라 자동으로 반영돼요."
-              type="button"
-            >
-              {selectionFinalized ? "검토 완료" : "검토 진행 중"}
-            </button>
-          </div>
-        </section>
-
-        <section className="panel meta-panel">
-          <div className="panel-title">프로젝트 정보</div>
-          <div className="meta-grid">
-            <div className="meta-item">
-              <span>회사명</span>
-              <strong>{projectData.companyName}</strong>
-            </div>
-            <div className="meta-item">
-              <span>설치 위치</span>
-              <strong>{projectData.location}</strong>
-            </div>
-            <div className="meta-item">
-              <span>프로젝트 일정</span>
-              <input
-                aria-label="프로젝트 일정"
-                className="meta-date-input"
-                readOnly
-                type="date"
-                value={projectData.projectDate}
-              />
-            </div>
-            <div className="meta-item">
-              <span>활용 용도</span>
-              <strong>{projectData.usage}</strong>
-            </div>
-            <div className="meta-item">
-              <span>현재 단계</span>
-              <strong>
-                {selectionFinalized ? "검토 완료" : projectData.currentStage}
-              </strong>
-            </div>
-            <div className="meta-item">
-              <span>예산/프리셋</span>
-              <strong>
-                {projectData.budgetAmount
-                  ? `${projectData.budgetAmount}원`
-                  : "예산 미정"}{" "}
-                · {projectData.reviewPreset}
-              </strong>
-            </div>
-          </div>
         </section>
 
         {compareState === "loading" && <CompareLoadingState />}
@@ -714,24 +737,6 @@ export default function DashboardPage({
             onGoProjects={onGoProjects}
             onRetry={() => window.location.reload()}
           />
-        )}
-
-        {compareState === "ready" && isFailureScenario && (
-          <section className="failure-scenario-panel">
-            <div>
-              <b>실패 상태 표시 점검용 예시 데이터</b>
-              <span>
-                업로드 실패, 내용 추출 실패, 총액 미확정, 기본 요약이 어떻게
-                보이는지 확인하는 프로젝트예요.
-              </span>
-            </div>
-            <div className="failure-state-row">
-              <Badge tone="red">업로드 실패</Badge>
-              <Badge tone="red">수정 필요</Badge>
-              <Badge tone="gray">총액 미확정</Badge>
-              <Badge tone="orange">기본 요약</Badge>
-            </div>
-          </section>
         )}
 
         {compareState === "ready" && (
@@ -761,11 +766,6 @@ export default function DashboardPage({
                         <div className="supplier-row">
                           <div className="supplier-name">
                             <span className="rank">{supplier.rank}</span>
-                            <span
-                              className={`supplier-logo ${supplier.logoClass}`}
-                            >
-                              {supplier.logo}
-                            </span>
                             <b>{supplier.name}</b>
                           </div>
                           <div className="fit">
@@ -788,27 +788,13 @@ export default function DashboardPage({
                         <div className="supplier-foot">
                           <div>
                             <small>제출 상태</small>
-                            <span
-                              className={
-                                isFailureScenario && supplier.id === "c"
-                                  ? "submitted submitted-warning"
-                                  : "submitted"
-                              }
-                            >
-                              {isFailureScenario && supplier.id === "c"
-                                ? "△ 일부 항목 인식 실패 · 2개 항목 수정 필요"
-                                : `○ ${supplier.submitted}`}
+                            <span className="submitted">
+                              {`○ ${supplier.submitted}`}
                             </span>
                           </div>
                           <div>
                             <small>과거 성과</small>
                             <div className="badge-row">
-                              {isFailureScenario && supplier.id === "b" && (
-                                <Badge tone="orange">인식 신뢰도 낮음</Badge>
-                              )}
-                              {isFailureScenario && supplier.id === "c" && (
-                                <Badge tone="gray">총액 미확정</Badge>
-                              )}
                               {supplier.badges
                                 .filter((badge) => badge !== "프리미엄 파트너")
                                 .map((badge, index) => (
@@ -964,11 +950,6 @@ export default function DashboardPage({
                         key={supplier.quoteId ?? supplier.vendorName}
                       >
                         <div className="pros-brand">
-                          <span
-                            className={`supplier-logo ${supplier.logoClass}`}
-                          >
-                            {supplier.logo}
-                          </span>
                           <b>{supplier.vendorName}</b>
                         </div>
                         <div className="pros-detail">
@@ -1294,7 +1275,11 @@ function ComparePencilIcon() {
 }
 
 function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
-  const value = cell.value || "—";
+  const displayValue = getCompareCellDisplayValue(cell, rowLabel);
+  const isMissing =
+    rowLabel === "특이사항"
+      ? cell?.status === "editable" && !displayValue
+      : isMissingCompareCell(cell);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1309,8 +1294,8 @@ function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
   const startEditing = () => {
     if (saving) return;
     const initialDraft =
-      typeof value === "string" && !isMissingCompareCellValue(value)
-        ? value
+      typeof displayValue === "string" && !isMissingCompareCellValue(displayValue)
+        ? displayValue
         : "";
     setDraft(initialDraft);
     setEditing(true);
@@ -1378,12 +1363,12 @@ function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
       className={[
         "compare-cell",
         "compare-inline-edit",
-        statusBadge ? "cell-missing" : "",
+        isMissing || statusBadge ? "cell-missing" : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <span>{value}</span>
+      <span>{displayValue || null}</span>
       {statusBadge}
       <button
         aria-label={`${rowLabel} 수정`}

@@ -6,7 +6,7 @@ import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
-import { formatProjectSolutions } from "../utils/projectRequestText";
+import { buildProjectInfoSummary } from "../utils/projectRequestText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
@@ -27,15 +27,6 @@ function shouldRestoreMatchData(projectData) {
   );
 
   return !hasQuoteIds || !hasExplanationSource;
-}
-
-function SummaryItem({ label, value }) {
-  return (
-    <article>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  );
 }
 
 export default function QuoteWaitingPage({
@@ -189,6 +180,10 @@ export default function QuoteWaitingPage({
     onGoDashboard();
   };
 
+  const projectInfoSummary = buildProjectInfoSummary(projectData, {
+    includeLocation: true,
+  });
+
   return (
     <div className="flow-page quote-waiting-page">
       <FlowTopbar
@@ -215,6 +210,7 @@ export default function QuoteWaitingPage({
 
       <main className="quote-waiting-main">
         <ProjectDetailHeader
+          infoSummary={projectInfoSummary}
           onBack={onBack}
           projectName={projectData.projectName || "새 프로젝트"}
         />
@@ -226,27 +222,6 @@ export default function QuoteWaitingPage({
             canCompare || hasUploadedQuotes ? goToQuoteReview : undefined
           }
         />
-
-        <section className="partner-project-summary six quote-request-summary">
-          <SummaryItem
-            label="회사명"
-            value={projectData.companyName || "미입력"}
-          />
-          <SummaryItem label="위치" value={projectData.location || "미입력"} />
-          <SummaryItem
-            label="일정"
-            value={projectData.projectDate || "일정 미정"}
-          />
-          <SummaryItem
-            label="발주처 유형"
-            value={projectData.clientType || "미입력"}
-          />
-          <SummaryItem
-            label="솔루션"
-            value={formatProjectSolutions(projectData, "미선택")}
-          />
-          <SummaryItem label="상태" value="요청 대상 검토중" />
-        </section>
 
         <section className="quote-waiting-layout">
           <div className="quote-board-panel">

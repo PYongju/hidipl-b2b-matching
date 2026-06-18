@@ -7,26 +7,41 @@ import { saveQuoteIdsToStorage } from "../utils/projectQuoteIds";
 
 const REVIEW_STEPS = [
   {
-    title: "견적서 파일 확인",
-    detail: "업로드된 견적서와 공급사 정보를 비교 검토 대상으로 정리해요.",
+    id: "upload",
+    title: "견적서 업로드",
+    detail: "선택한 견적서를 서버에 업로드하고 비교 대상을 등록해요.",
+    skippedDetail: "이미 업로드된 견적서를 사용해요.",
   },
   {
-    title: "견적서 내용 추출 결과 평가",
-    detail: "금액, 납기, 보증, 별도 비용 항목을 추출하고 누락된 값을 확인해요.",
-  },
-  {
-    title: "비교 항목 기준 통일",
-    detail: "공급사별 표현 차이를 같은 비교 기준으로 맞춰요.",
-  },
-  {
-    title: "AI 추천 기준 분석",
-    detail: "예산, 납기, 유지보수, 리스크 조건을 함께 반영해요.",
-  },
-  {
-    title: "검토 화면 구성",
-    detail: "비교표, 추천 사유, 확인 필요 항목을 화면에 표시할 준비를 해요.",
+    id: "match",
+    title: "견적 비교 분석",
+    detail: "견적서를 매칭하고 AI 추천·비교 데이터를 생성해요.",
   },
 ];
+
+function getStepVisualState({
+  index,
+  activeStep,
+  analysisState,
+  uploadSkipped,
+}) {
+  const isComplete = analysisState === "ready";
+  const isError = analysisState === "error";
+
+  if (isComplete || index < activeStep) {
+    return "done";
+  }
+  if (isError && index === activeStep) {
+    return "error";
+  }
+  if (index === activeStep && analysisState === "loading") {
+    return "active";
+  }
+  if (index === 0 && uploadSkipped && activeStep === 1 && analysisState === "loading") {
+    return "done";
+  }
+  return "pending";
+}
 
 export default function QuoteReviewLoadingPage({
   projectData,
@@ -36,15 +51,15 @@ export default function QuoteReviewLoadingPage({
   onGoHome,
 }) {
   const [activeStep, setActiveStep] = useState(0);
-  const [timerDone, setTimerDone] = useState(false);
+  const [uploadSkipped, setUploadSkipped] = useState(false);
   const [analysisState, setAnalysisState] = useState("loading");
   const [errorMessage, setErrorMessage] = useState("");
   const [redirectCountdown, setRedirectCountdown] = useState(null);
-  const isComplete = timerDone && analysisState === "ready";
+  const isComplete = analysisState === "ready";
 
   const runQuoteReviewAnalysis = async () => {
     setActiveStep(0);
-    setTimerDone(false);
+    setUploadSkipped(false);
     setRedirectCountdown(null);
     setAnalysisState("loading");
     setErrorMessage("");
@@ -61,6 +76,7 @@ export default function QuoteReviewLoadingPage({
       let quoteIds;
 
       if (quoteFiles.length) {
+        setActiveStep(0);
         const uploadResult = await uploadProjectQuotes(projectApiId, quoteFiles);
         quoteIds =
           uploadResult.quote_ids ??
@@ -75,6 +91,7 @@ export default function QuoteReviewLoadingPage({
         }));
       } else if (projectData.quoteIds?.length) {
         quoteIds = projectData.quoteIds;
+        setUploadSkipped(true);
       } else {
         throw new Error(
           "업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 다시 선택해 주세요.",
@@ -87,6 +104,7 @@ export default function QuoteReviewLoadingPage({
         );
       }
 
+      setActiveStep(1);
       const matchResult = await runProjectMatch(projectApiId);
       const matchViewModel = createMatchViewModel(matchResult);
       const matchId = matchViewModel.matchId;
@@ -105,23 +123,6 @@ export default function QuoteReviewLoadingPage({
       );
     }
   };
-
-  useEffect(() => {
-    if (analysisState !== "loading") return undefined;
-
-    const timer = window.setInterval(() => {
-      setActiveStep((current) => {
-        if (current >= REVIEW_STEPS.length - 1) {
-          window.clearInterval(timer);
-          window.setTimeout(() => setTimerDone(true), 350);
-          return current;
-        }
-        return current + 1;
-      });
-    }, 900);
-
-    return () => window.clearInterval(timer);
-  }, [analysisState]);
 
   useEffect(() => {
     runQuoteReviewAnalysis();
@@ -219,7 +220,7 @@ export default function QuoteReviewLoadingPage({
             ) : (
               <>
                 {projectData.projectName || projectData.companyName || "프로젝트"}
-                의 업로드된 견적서를 기준으로 비교표와 추천 사유를 준비해요.
+                의 견적서를 업로드한 뒤 비교·추천 데이터를 준비해요.
               </>
             )}
           </p>
@@ -234,18 +235,29 @@ export default function QuoteReviewLoadingPage({
           {analysisState !== "error" ? (
             <div className="matching-loading-steps">
               {REVIEW_STEPS.map((step, index) => {
-                const isDone = isComplete || index < activeStep;
-                const isActive = !isComplete && index === activeStep;
+                const visualState = getStepVisualState({
+                  index,
+                  activeStep,
+                  analysisState,
+                  uploadSkipped,
+                });
+                const isDone = visualState === "done";
+                const isActive = visualState === "active";
+                const isErrorStep = visualState === "error";
+                const detail =
+                  index === 0 && uploadSkipped && (isDone || isActive)
+                    ? step.skippedDetail
+                    : step.detail;
 
                 return (
                   <article
-                    className={`${isDone ? "done" : ""} ${isActive ? "active" : ""}`.trim()}
-                    key={step.title}
+                    className={`${isDone ? "done" : ""} ${isActive ? "active" : ""} ${isErrorStep ? "error" : ""}`.trim()}
+                    key={step.id}
                   >
-                    <span>{isDone ? "✓" : index + 1}</span>
+                    <span>{isDone ? "✓" : isErrorStep ? "!" : index + 1}</span>
                     <div>
                       <b>{step.title}</b>
-                      <small>{step.detail}</small>
+                      <small>{detail}</small>
                     </div>
                   </article>
                 );

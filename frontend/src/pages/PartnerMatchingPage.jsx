@@ -10,7 +10,10 @@ import {
   updateProject,
 } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
-import { formatProjectSolutions } from "../utils/projectRequestText";
+import {
+  buildProjectInfoSummary,
+  formatProjectSolutions,
+} from "../utils/projectRequestText";
 
 const DEFAULT_VISIBLE_PARTNERS = 15;
 const REQUEST_PANEL_SCROLL_THRESHOLD = 7;
@@ -42,12 +45,6 @@ function normalizeSimilarityScore(value) {
 function normalizeResponseSpeed(value) {
   if (typeof value === "number") return `${value}시간`;
   return value ?? "미확인";
-}
-
-function parseResponseHours(value) {
-  if (typeof value === "number") return value;
-  const parsed = parseFloat(String(value ?? ""));
-  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 }
 
 function hasRealCaution(filterReasons) {
@@ -169,15 +166,6 @@ function resolveRequestMessage(partner, projectData, override) {
   const defaultMessage = buildRequestMessage(partner, projectData);
   if (!override) return defaultMessage;
   return normalizeLegacyRequestMessage(override, partner?.name ?? "");
-}
-
-function SummaryItem({ label, value }) {
-  return (
-    <article>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  );
 }
 
 function PartnerSearchIcon() {
@@ -430,12 +418,6 @@ export default function PartnerMatchingPage({
         return matchesSearch && matchesPremium;
       })
       .sort((a, b) => {
-        if (sortKey === "response") {
-          const responseDiff =
-            parseResponseHours(a.response) - parseResponseHours(b.response);
-          if (responseDiff !== 0) return responseDiff;
-          return b.score - a.score || a.rank - b.rank;
-        }
         if (sortKey === "cases") {
           const caseDiff = (b.cases ?? 0) - (a.cases ?? 0);
           if (caseDiff !== 0) return caseDiff;
@@ -633,6 +615,10 @@ export default function PartnerMatchingPage({
     onBack();
   };
 
+  const projectInfoSummary = buildProjectInfoSummary(projectData, {
+    includeLocation: true,
+  });
+
   return (
     <div className="flow-page partner-page">
       <FlowTopbar
@@ -655,6 +641,7 @@ export default function PartnerMatchingPage({
 
       <main className="partner-main">
         <ProjectDetailHeader
+          infoSummary={projectInfoSummary}
           onBack={handleGoBack}
           projectName={projectData.projectName || "새 프로젝트"}
         />
@@ -664,24 +651,6 @@ export default function PartnerMatchingPage({
           onGoRequirements={handleGoBack}
           onGoQuoteWaiting={handleGoQuoteWaiting}
         />
-
-        <section className="partner-project-summary six">
-          <SummaryItem label="회사명" value={projectData.companyName || "미입력"} />
-          <SummaryItem label="위치" value={projectData.location || "미입력"} />
-          <SummaryItem
-            label="일정"
-            value={projectData.projectDate || "일정 미정"}
-          />
-          <SummaryItem
-            label="발주처 유형"
-            value={projectData.clientType || "미입력"}
-          />
-          <SummaryItem
-            label="솔루션"
-            value={formatProjectSolutions(projectData, "미선택")}
-          />
-          <SummaryItem label="상태" value="요청 대상 검토중" />
-        </section>
 
         <section className="partner-notice strong">
           {partners.length === 0
@@ -721,7 +690,6 @@ export default function PartnerMatchingPage({
                 value={sortKey}
               >
                 <option value="ai">AI 추천 점수순</option>
-                <option value="response">응답 속도순</option>
                 <option value="cases">사례 많은 순</option>
               </select>
               <button
@@ -757,7 +725,6 @@ export default function PartnerMatchingPage({
                   <col className="col-score" />
                   <col className="col-premium" />
                   <col className="col-cases" />
-                  <col className="col-response" />
                   <col className="col-type" />
                   <col className="col-action" />
                 </colgroup>
@@ -769,7 +736,6 @@ export default function PartnerMatchingPage({
                     <th>AI 추천 점수</th>
                     <th>프리미엄</th>
                     <th>사례5+</th>
-                    <th>응답</th>
                     <th>구분</th>
                     <th>요청</th>
                   </tr>
@@ -777,7 +743,7 @@ export default function PartnerMatchingPage({
                 <tbody>
                   {displayPartners.length === 0 ? (
                     <tr>
-                      <td className="partner-empty-cell" colSpan={9}>
+                      <td className="partner-empty-cell" colSpan={8}>
                         <b>{candidateEmptyMessage.title}</b>
                         <span>{candidateEmptyMessage.description}</span>
                       </td>
@@ -813,14 +779,13 @@ export default function PartnerMatchingPage({
                         <td>{partner.score}/100</td>
                         <td>
                           <Badge tone={partner.premium ? "blue" : "gray"}>
-                            {partner.premium ? "가능" : "일반"}
+                            {partner.premium ? "해당" : "일반"}
                           </Badge>
                         </td>
                         <td>
                           {partner.cases >= 5 ? "예" : "아니오"}
                           {partner.cases ? ` (${partner.cases}건)` : ""}
                         </td>
-                        <td>{partner.response}</td>
                         <td>
                           <Badge
                             tone={
@@ -923,9 +888,7 @@ export default function PartnerMatchingPage({
                     >
                       <span>
                         <b>{partner.name}</b>
-                        <small>
-                          AI 추천 점수 {partner.score} · 응답 {partner.response}
-                        </small>
+                        <small>AI 추천 점수 {partner.score}</small>
                       </span>
                       <button
                         aria-label={`${partner.name} 제거`}
