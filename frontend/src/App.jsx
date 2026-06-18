@@ -397,7 +397,19 @@ export default function App() {
         const localOnly = current.filter((p) => !mergedIds.has(p.id));
         return [...merged, ...localOnly];
       });
-      return mappedProjects;
+      return mappedProjects.map((project) => {
+        const storedQuoteIds = loadQuoteIdsFromStorage(project.id);
+        if (!storedQuoteIds.length) return project;
+        return {
+          ...project,
+          data: {
+            ...project.data,
+            quoteIds: project.data?.quoteIds?.length
+              ? project.data.quoteIds
+              : storedQuoteIds,
+          },
+        };
+      });
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
       // 기존 상태 유지하되 사용자에게 오류 안내
@@ -540,6 +552,10 @@ export default function App() {
       return undefined;
     }
 
+    setProjectData((current) => ({
+      ...current,
+      matchHydrationAttempted: true,
+    }));
     hydrateProjectMatchData(apiProjectId, projectData).then((nextData) => {
       if (!ignore) {
         setProjectData(nextData);
