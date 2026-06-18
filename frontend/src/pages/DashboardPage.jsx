@@ -19,7 +19,6 @@ import {
   AI_COMPARE_NOTICE,
   AI_FALLBACK_NOTICE,
   FINAL_SELECTION,
-  FIT_SCORE_TOOLTIP,
 } from "../constants/uiText";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
@@ -171,20 +170,6 @@ export default function DashboardPage({
       ) ?? null,
     [selectableSuppliers, selectedSupplierId],
   );
-  const recommendedSupplier = useMemo(
-    () => suppliers.find((supplier) => supplier.recommended) ?? suppliers[0] ?? null,
-    [suppliers],
-  );
-  const reasoningTargetSupplier = selectedSupplier ?? recommendedSupplier;
-  const reasoningExplanation = useMemo(() => {
-    if (!reasoningTargetSupplier) return null;
-
-    return (
-      explanationByVendor.get(reasoningTargetSupplier.vendorName) ??
-      explanationByVendor.get(reasoningTargetSupplier.name) ??
-      null
-    );
-  }, [explanationByVendor, reasoningTargetSupplier]);
   const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
   const canGoNextSuppliers =
     canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
@@ -570,7 +555,7 @@ export default function DashboardPage({
 
   return (
     <div className="app-shell">
-      <header className="topbar">
+      <header className="topbar flow-topbar">
         <div className="brand-zone">
           <BrandHomeButton onClick={onGoProjects} />
           <Badge tone="gray">v1.3.2</Badge>
@@ -633,10 +618,26 @@ export default function DashboardPage({
               ) : (
                 <div className="project-title-display">
                   <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
+                  <button
+                    className="icon-button project-title-edit-button"
+                    onClick={startProjectNameEdit}
+                    title="프로젝트 이름 수정"
+                    type="button"
+                  >
+                    ✎
+                  </button>
                 </div>
               )}
             </div>
             <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
+            <button
+              className="icon-button"
+              disabled
+              title="프로젝트명 수정은 아직 사용할 수 없어요."
+              type="button"
+            >
+              ✎
+            </button>
             <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
           <div className="project-actions">
@@ -739,8 +740,7 @@ export default function DashboardPage({
               <section className="panel supplier-panel">
                 <div className="panel-title-row">
                   <div className="panel-title">
-                    공급사 매칭 현황 ({supplierCount}/{supplierCount}){" "}
-                    <span>ⓘ</span>
+                    공급사 매칭 현황 ({supplierCount}/{supplierCount})
                   </div>
                   <SupplierPager {...supplierPagerProps} />
                 </div>
@@ -753,6 +753,11 @@ export default function DashboardPage({
                         className={`supplier-card ${supplier.recommended ? "recommended" : ""}`}
                         key={supplier.id}
                       >
+                        {supplier.recommended ? (
+                          <div className="supplier-ai-badge">
+                            <Badge>AI 추천</Badge>
+                          </div>
+                        ) : null}
                         <div className="supplier-row">
                           <div className="supplier-name">
                             <span className="rank">{supplier.rank}</span>
@@ -762,19 +767,10 @@ export default function DashboardPage({
                               {supplier.logo}
                             </span>
                             <b>{supplier.name}</b>
-                            {supplier.recommended && <Badge>AI 추천</Badge>}
                           </div>
                           <div className="fit">
                             적합도{" "}
                             <b className={supplier.fitClass}>{supplier.fit}%</b>
-                            <span
-                              className="fit-info"
-                              role="img"
-                              aria-label={FIT_SCORE_TOOLTIP}
-                              title={FIT_SCORE_TOOLTIP}
-                            >
-                              ⓘ
-                            </span>
                           </div>
                         </div>
                         <div className="supplier-cost-badges">
@@ -991,73 +987,47 @@ export default function DashboardPage({
                 )}
               </section>
 
-              <div className="side-split">
-                <section className="panel compact-panel reasoning-panel">
-                  <h3>
-                    추천 업체 선정 근거 <small>(AI 설명 기준)</small>
-                  </h3>
-                  <div className="compact-panel-body">
-                    <div className="reasoning-target">
-                      <b>{reasoningTargetSupplier?.name ?? "추천 업체 선택 대기"}</b>
-                      {reasoningTargetSupplier?.recommended && <Badge>AI 추천</Badge>}
-                    </div>
-                    {reasoningExplanation?.strengthItems?.length ? (
-                      <ul className="reasoning-list">
-                        {reasoningExplanation.strengthItems.map((item, index) => (
-                          <li key={`${reasoningTargetSupplier?.id ?? "supplier"}-${index}`}>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="reasoning-empty">
-                        추천 업체 선정 근거를 아직 불러오지 못했어요.
-                      </p>
-                    )}
+              <section className="panel compact-panel memo-panel-full">
+                <h3>
+                  검토 메모 <small>(내부용)</small>
+                </h3>
+                <div className="compact-panel-body">
+                  <textarea
+                    className={isMemoEditing ? "memo-editing" : "memo-readonly"}
+                    disabled={isMemoSaving}
+                    onChange={(event) =>
+                      setDraftMemo(event.target.value.slice(0, maxMemoLength))
+                    }
+                    onClick={!isMemoEditing ? startMemoEdit : undefined}
+                    placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
+                    readOnly={!isMemoEditing}
+                    value={memoValue}
+                  />
+                  <div className="counter">
+                    {memoValue.length} / {maxMemoLength.toLocaleString()}
                   </div>
-                </section>
-                <section className="panel compact-panel">
-                  <h3>
-                    검토 메모 <small>(내부용)</small>
-                  </h3>
-                  <div className="compact-panel-body">
-                    <textarea
-                      className={isMemoEditing ? "memo-editing" : "memo-readonly"}
-                      disabled={isMemoSaving}
-                      onChange={(event) =>
-                        setDraftMemo(event.target.value.slice(0, maxMemoLength))
-                      }
-                      onClick={!isMemoEditing ? startMemoEdit : undefined}
-                      placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
-                      readOnly={!isMemoEditing}
-                      value={memoValue}
-                    />
-                    <div className="counter">
-                      {memoValue.length} / {maxMemoLength.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="memo-actions">
-                    <button
-                      className="button"
-                      disabled={isMemoSaving}
-                      onClick={startMemoEdit}
-                      type="button"
-                    >
-                      수정하기
-                    </button>
-                    <button
-                      className="button action-primary"
-                      disabled={!isMemoEditing || isMemoSaving}
-                      onClick={() => {
-                        void saveMemo();
-                      }}
-                      type="button"
-                    >
-                      저장하기
-                    </button>
-                  </div>
-                </section>
-              </div>
+                </div>
+                <div className="memo-actions">
+                  <button
+                    className="button"
+                    disabled={isMemoSaving}
+                    onClick={startMemoEdit}
+                    type="button"
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    className="button action-primary"
+                    disabled={!isMemoEditing || isMemoSaving}
+                    onClick={() => {
+                      void saveMemo();
+                    }}
+                    type="button"
+                  >
+                    저장하기
+                  </button>
+                </div>
+              </section>
 
               <section className="panel final-panel">
                 <h3>

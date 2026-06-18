@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectListSkeleton from "../components/ProjectListSkeleton";
 import { EMPTY_PROJECTS } from "../constants/uiText";
-
 const FILTER_ALL = "전체";
 const STATUS_IN_PROGRESS = "진행 중";
 const STATUS_IN_REVIEW = "검토 중";
@@ -17,6 +17,7 @@ const filterOptions = [
 
 export default function ProjectListPage({
   projects,
+  isLoading = false,
   loadError = "",
   onCreate,
   onOpenDashboard,
@@ -239,12 +240,19 @@ export default function ProjectListPage({
           )}
         </section>
 
-        <section className="project-card-grid">
-          {filteredProjects.map((project) => {
-            const isSelected = selectedIds.includes(project.id);
-            const normalizedStatus = normalizeStatus(project.status);
+        <section
+          aria-busy={isLoading}
+          aria-live="polite"
+          className="project-card-grid"
+        >
+          {isLoading ? (
+            <ProjectListSkeleton />
+          ) : (
+            filteredProjects.map((project) => {
+              const isSelected = selectedIds.includes(project.id);
+              const normalizedStatus = normalizeStatus(project.status);
 
-            return (
+              return (
               <article
                 aria-pressed={manageMode ? isSelected : undefined}
                 className={`history-card ${manageMode ? "manage-mode" : ""} ${
@@ -341,9 +349,10 @@ export default function ProjectListPage({
                   ))}
                 </div>
               </article>
-            );
-          })}
-          {filteredProjects.length === 0 && !loadError && (
+              );
+            })
+          )}
+          {!isLoading && filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
               <p>{EMPTY_PROJECTS.message}</p>
               <span>{EMPTY_PROJECTS.hint}</span>

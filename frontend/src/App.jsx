@@ -1,4 +1,4 @@
-﻿﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -154,6 +154,9 @@ export default function App() {
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
   const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [projectsLoading, setProjectsLoading] = useState(
+    () => savedSession.screen === "projects",
+  );
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
 
@@ -300,6 +303,8 @@ export default function App() {
   };
 
   const loadProjects = async () => {
+    setProjectsLoading(true);
+
     try {
       const list = await fetchProjects();
       const items = normalizeProjectsResponse(list);
@@ -418,6 +423,8 @@ export default function App() {
       );
       setProjects([]);
       return [];
+    } finally {
+      setProjectsLoading(false);
     }
   };
 
@@ -898,6 +905,7 @@ export default function App() {
   if (screen === "projects") {
     return (
       <ProjectListPage
+        isLoading={projectsLoading}
         loadError={projectsLoadError}
         projects={projects}
         onCreate={startNewProject}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
@@ -213,14 +214,10 @@ export default function QuoteWaitingPage({
       />
 
       <main className="quote-waiting-main">
-        <section className="partner-head">
-          <div>
-            <button className="partner-back" onClick={onBack} type="button">
-              ‹
-            </button>
-            <span>견적 수신</span>
-          </div>
-        </section>
+        <ProjectDetailHeader
+          onBack={onBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
 
         <ProjectStepTabs
           activeStep={3}

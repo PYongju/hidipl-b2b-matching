@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import {
   fetchProjectMatches,
@@ -12,6 +13,7 @@ import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { formatProjectSolutions } from "../utils/projectRequestText";
 
 const DEFAULT_VISIBLE_PARTNERS = 15;
+const REQUEST_PANEL_SCROLL_THRESHOLD = 7;
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
@@ -652,14 +654,10 @@ export default function PartnerMatchingPage({
       />
 
       <main className="partner-main">
-        <section className="partner-head">
-          <div>
-            <button className="partner-back" onClick={handleGoBack} type="button">
-              ‹
-            </button>
-            <span>프로젝트 상세</span>
-          </div>
-        </section>
+        <ProjectDetailHeader
+          onBack={handleGoBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
 
         <ProjectStepTabs
           activeStep={2}
@@ -879,7 +877,13 @@ export default function PartnerMatchingPage({
             )}
           </div>
 
-          <aside className="request-panel panel-sticky">
+          <aside
+            className={`request-panel ${
+              targetPartners.length >= REQUEST_PANEL_SCROLL_THRESHOLD
+                ? "panel-static"
+                : "panel-sticky"
+            }`}
+          >
             <div className="request-card">
               <div className="request-card-head">
                 <div>
