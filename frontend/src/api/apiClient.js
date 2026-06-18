@@ -157,6 +157,13 @@ function updateProject(projectId, data) {
   });
 }
 
+function saveInternalNotes(projectId, body) {
+  return request(`/api/v1/projects/${projectId}/internal-notes`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
 function fetchProjects() {
   return request("/api/v1/projects", {
     method: "GET",
@@ -198,6 +205,7 @@ export {
   fetchProjects, // 6/12 백엔드 작업에서 추가
   request,
   runProjectMatch,
+  saveInternalNotes,
   updateCandidateVendorField,
   updateProject,
   uploadProjectQuotes,

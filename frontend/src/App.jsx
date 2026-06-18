@@ -33,8 +33,8 @@ import {
   normalizeProjectSolutions,
 } from "./utils/projectRequestText";
 import { resolveCompareCellOverrides } from "./utils/compareCellOverrides";
+import { resolveReviewMemo } from "./utils/reviewMemoStorage";
 import { loadQuoteIdsFromStorage } from "./utils/projectQuoteIds";
-
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
 const SESSION_SCREEN_KEY = "hidipl_screen";
 const SESSION_PROJECT_KEY = "hidipl_active_project_id";
@@ -331,6 +331,7 @@ export default function App() {
               projectDate: item.deadline ?? item.projectDate ?? "",
               requestText: item.request_text ?? item.requestText ?? "",
               ...parsedFields,
+              reviewMemo: resolveReviewMemo({ projectApiId: projectId }),
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
               workflowStatus:
@@ -1112,6 +1113,10 @@ function mergeServerProjectData(localData, serverProject) {
     projectDate: serverProject?.deadline ?? localData.projectDate,
     requestText,
     compareCellOverrides: resolveCompareCellOverrides(mergedProjectData),
+    reviewMemo: resolveReviewMemo(
+      mergedProjectData,
+      serverProject?.internal_notes,
+    ),
     solutions:
       parsedFields.solutions?.length > 0
         ? parsedFields.solutions

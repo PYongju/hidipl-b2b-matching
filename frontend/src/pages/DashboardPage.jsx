@@ -5,7 +5,7 @@ import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
-import { updateProject } from "../api/apiClient";
+import { saveInternalNotes, updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
 import {
   applyCompareCellOverride,
@@ -13,6 +13,7 @@ import {
   resolveCompareCellOverrides,
   saveCompareCellOverridesToStorage,
 } from "../utils/compareCellOverrides";
+import { saveReviewMemoToStorage as persistReviewMemoToStorage } from "../utils/reviewMemoStorage";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
 import {
   AI_COMPARE_NOTICE,
@@ -135,6 +136,7 @@ export default function DashboardPage({
   const [reviewMemo, setReviewMemo] = useState(projectData.reviewMemo ?? "");
   const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
   const [isMemoEditing, setIsMemoEditing] = useState(false);
+  const [isMemoSaving, setIsMemoSaving] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const [isProjectNameEditing, setIsProjectNameEditing] = useState(false);
   const [draftProjectName, setDraftProjectName] = useState(
@@ -418,20 +420,49 @@ export default function DashboardPage({
   };
 
   const startMemoEdit = () => {
+    if (isMemoSaving) return;
     setDraftMemo(reviewMemo);
     setIsMemoEditing(true);
   };
 
-  const saveMemo = () => {
+  const saveMemo = async () => {
+    if (isMemoSaving) return;
+
+    const nextMemo = draftMemo;
+    const previousMemo = reviewMemo;
+    const memoProjectId = projectData.projectApiId ?? projectData.projectId;
+
+    setIsMemoSaving(true);
     showAutoSaveStatus("saving");
-    setReviewMemo(draftMemo);
-    setIsMemoEditing(false);
+    setReviewMemo(nextMemo);
     onProjectDataChange?.((current) => ({
       ...current,
-      reviewMemo: draftMemo,
+      reviewMemo: nextMemo,
       lastScreen: "dashboard",
     }));
-    showAutoSaveStatus("saved");
+
+    try {
+      if (memoProjectId) {
+        await saveInternalNotes(memoProjectId, {
+          screen: "dashboard",
+          note: nextMemo,
+        });
+        persistReviewMemoToStorage(memoProjectId, nextMemo);
+      }
+      setIsMemoEditing(false);
+      showAutoSaveStatus("saved");
+    } catch (error) {
+      console.error("검토 메모 저장 실패:", error);
+      setReviewMemo(previousMemo);
+      setDraftMemo(nextMemo);
+      onProjectDataChange?.((current) => ({
+        ...current,
+        reviewMemo: previousMemo,
+      }));
+      showAutoSaveStatus("error");
+    } finally {
+      setIsMemoSaving(false);
+    }
   };
 
   const startProjectNameEdit = () => {
@@ -970,6 +1001,7 @@ export default function DashboardPage({
                   <div className="compact-panel-body">
                     <textarea
                       className={isMemoEditing ? "memo-editing" : "memo-readonly"}
+                      disabled={isMemoSaving}
                       onChange={(event) =>
                         setDraftMemo(event.target.value.slice(0, maxMemoLength))
                       }
@@ -985,6 +1017,7 @@ export default function DashboardPage({
                   <div className="memo-actions">
                     <button
                       className="button"
+                      disabled={isMemoSaving}
                       onClick={startMemoEdit}
                       type="button"
                     >
@@ -992,8 +1025,10 @@ export default function DashboardPage({
                     </button>
                     <button
                       className="button action-primary"
-                      disabled={!isMemoEditing}
-                      onClick={saveMemo}
+                      disabled={!isMemoEditing || isMemoSaving}
+                      onClick={() => {
+                        void saveMemo();
+                      }}
                       type="button"
                     >
                       저장하기
