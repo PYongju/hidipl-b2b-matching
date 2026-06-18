@@ -1404,6 +1404,44 @@ textarea {
   margin-top: 10px;
 }
 
+.reasoning-panel {
+  background: linear-gradient(180deg, #fffdf7 0%, #ffffff 100%);
+}
+
+.reasoning-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.reasoning-target b {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.reasoning-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.reasoning-list li::marker {
+  color: #f59e0b;
+}
+
+.reasoning-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

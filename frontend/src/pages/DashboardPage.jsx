@@ -171,6 +171,20 @@ export default function DashboardPage({
       ) ?? null,
     [selectableSuppliers, selectedSupplierId],
   );
+  const recommendedSupplier = useMemo(
+    () => suppliers.find((supplier) => supplier.recommended) ?? suppliers[0] ?? null,
+    [suppliers],
+  );
+  const reasoningTargetSupplier = selectedSupplier ?? recommendedSupplier;
+  const reasoningExplanation = useMemo(() => {
+    if (!reasoningTargetSupplier) return null;
+
+    return (
+      explanationByVendor.get(reasoningTargetSupplier.vendorName) ??
+      explanationByVendor.get(reasoningTargetSupplier.name) ??
+      null
+    );
+  }, [explanationByVendor, reasoningTargetSupplier]);
   const canGoPrevSuppliers = canNavigateSuppliers && supplierStartIndex > 0;
   const canGoNextSuppliers =
     canNavigateSuppliers && supplierStartIndex < maxSupplierStartIndex;
@@ -978,6 +992,30 @@ export default function DashboardPage({
               </section>
 
               <div className="side-split">
+                <section className="panel compact-panel reasoning-panel">
+                  <h3>
+                    추천 업체 선정 근거 <small>(AI 설명 기준)</small>
+                  </h3>
+                  <div className="compact-panel-body">
+                    <div className="reasoning-target">
+                      <b>{reasoningTargetSupplier?.name ?? "추천 업체 선택 대기"}</b>
+                      {reasoningTargetSupplier?.recommended && <Badge>AI 추천</Badge>}
+                    </div>
+                    {reasoningExplanation?.strengthItems?.length ? (
+                      <ul className="reasoning-list">
+                        {reasoningExplanation.strengthItems.map((item, index) => (
+                          <li key={`${reasoningTargetSupplier?.id ?? "supplier"}-${index}`}>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="reasoning-empty">
+                        추천 업체 선정 근거를 아직 불러오지 못했어요.
+                      </p>
+                    )}
+                  </div>
+                </section>
                 <section className="panel compact-panel">
                   <h3>
                     검토 메모 <small>(내부용)</small>
