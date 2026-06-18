@@ -339,7 +339,7 @@ async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Se
         db.execute(
             text("UPDATE projects SET internal_notes = :notes WHERE project_id = :project_id"),
             {
-                "notes": str(notes),
+                "notes": json.dumps(notes, ensure_ascii=False),
                 "project_id": project_id,
             }
         )
@@ -676,7 +676,7 @@ async def confirm_selection(project_id: str, body: ConfirmSelectionRequest):
 async def get_project(project_id: str, db: Session = Depends(get_db)):
     try:
         row = db.execute(
-            text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at FROM projects WHERE project_id = :project_id"),
+            text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at, internal_notes FROM projects WHERE project_id = :project_id"),
             {"project_id": project_id}
         ).fetchone()
         if row is None:
@@ -692,6 +692,7 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
                 "deadline": row.deadline,
                 "request_text": row.request_text,
                 "created_at": row.created_at.isoformat() if row.created_at else None,
+                "review_memo": _parse_internal_notes(row.internal_notes).get("dashboard", "")
             },
             "error": None,
         }
@@ -699,4 +700,16 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+def _parse_internal_notes(raw):
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        try:
+            import ast
+            return ast.literal_eval(raw)
+        except Exception:
+            return {}
     

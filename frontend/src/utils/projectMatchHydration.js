@@ -2,13 +2,11 @@ import { createMatchViewModel } from "./matchAdapter";
 
 function extractQuoteIds(matchesPayload) {
   const recommendation = matchesPayload?.recommendation ?? {};
-  const items = recommendation.items ?? recommendation.all_items ?? [];
+  const items = recommendation.all_items ?? recommendation.items ?? [];
 
   return [
     ...new Set(
-      items
-        .map((item) => item.quote_id ?? item.quoteId)
-        .filter(Boolean),
+      items.map((item) => item.quote_id ?? item.quoteId).filter(Boolean),
     ),
   ];
 }
@@ -16,16 +14,18 @@ function extractQuoteIds(matchesPayload) {
 function buildHydratedProjectFields(matchesResponse, currentData = {}) {
   const payload = matchesResponse ?? {};
   const matchId =
-    payload.match_id ??
-    payload.matchId ??
-    currentData.matchId ??
-    null;
+    payload.match_id ?? payload.matchId ?? currentData.matchId ?? null;
   const quoteIds = extractQuoteIds(payload);
   const cachedExplanation = payload.explanation ?? null;
 
   return {
     matchId,
-    quoteIds: quoteIds.length > 0 ? quoteIds : currentData.quoteIds ?? [],
+    quoteIds:
+      currentData.quoteIds?.length > 0
+        ? currentData.quoteIds
+        : quoteIds.length > 0
+          ? quoteIds
+          : [],
     matchResult: createMatchViewModel(matchesResponse),
     cachedExplanation,
   };

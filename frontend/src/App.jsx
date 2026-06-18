@@ -1,4 +1,4 @@
-﻿﻿﻿﻿import { useEffect, useRef, useState } from "react";
+﻿﻿import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -33,6 +33,7 @@ import {
   normalizeProjectSolutions,
 } from "./utils/projectRequestText";
 import { resolveCompareCellOverrides } from "./utils/compareCellOverrides";
+import { loadQuoteIdsFromStorage } from "./utils/projectQuoteIds";
 
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
 const SESSION_SCREEN_KEY = "hidipl_screen";
@@ -168,10 +169,13 @@ export default function App() {
     setAutoSaveStatus(status);
 
     if (status === "saved" || status === "error") {
-      autoSaveStatusTimerRef.current = window.setTimeout(() => {
-        setAutoSaveStatus("idle");
-        autoSaveStatusTimerRef.current = null;
-      }, status === "saved" ? 1800 : 3000);
+      autoSaveStatusTimerRef.current = window.setTimeout(
+        () => {
+          setAutoSaveStatus("idle");
+          autoSaveStatusTimerRef.current = null;
+        },
+        status === "saved" ? 1800 : 3000,
+      );
     }
   };
 
@@ -264,7 +268,8 @@ export default function App() {
           ...current,
           ...ensuredData,
           projectApiId,
-          lastScreen: screenName ?? ensuredData.lastScreen ?? current.lastScreen,
+          lastScreen:
+            screenName ?? ensuredData.lastScreen ?? current.lastScreen,
         }),
         listOverrides,
       );
@@ -328,7 +333,10 @@ export default function App() {
               ...parsedFields,
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus:
+                item.workflow_status === "completed"
+                  ? "완료"
+                  : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -366,7 +374,12 @@ export default function App() {
             existing?.data?.compareCellOverrides &&
             Object.keys(existing.data.compareCellOverrides).length > 0
           ) {
-            localOnlyFields.compareCellOverrides = existing.data.compareCellOverrides;
+            localOnlyFields.compareCellOverrides =
+              existing.data.compareCellOverrides;
+          }
+          const storedQuoteIds = loadQuoteIdsFromStorage(mapped.id);
+          if (storedQuoteIds.length > 0 && !existing?.data?.quoteIds?.length) {
+            localOnlyFields.quoteIds = storedQuoteIds;
           }
           if (Object.keys(localOnlyFields).length > 0) {
             return {
@@ -1155,5 +1168,3 @@ function getScreenFromProject(data) {
   }
   return "requirements";
 }
-
-
