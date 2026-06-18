@@ -159,6 +159,14 @@ export default function App() {
   );
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
+  const saveScopeRef = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const projectCreationRef = useRef({
+    scopeKey: saveScopeRef.current,
+    promise: null,
+    result: null,
+  });
+  const partnerMatchingInFlightRef = useRef(false);
+  const analysisInFlightRef = useRef(false);
 
   const clearAutoSaveStatusTimer = () => {
     if (autoSaveStatusTimerRef.current) {
@@ -180,6 +188,17 @@ export default function App() {
         status === "saved" ? 1800 : 3000,
       );
     }
+  };
+
+  const resetSaveScope = () => {
+    const nextScope = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    saveScopeRef.current = nextScope;
+    projectCreationRef.current = {
+      scopeKey: nextScope,
+      promise: null,
+      result: null,
+    };
+    return nextScope;
   };
 
   const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
@@ -228,42 +247,89 @@ export default function App() {
     });
   };
 
+  const ensureProjectCreated = async (baseData) => {
+    if (baseData.projectApiId) {
+      return {
+        projectApiId: baseData.projectApiId,
+        ensuredData: baseData,
+        createdPayloadSnapshot: null,
+      };
+    }
+
+    const saveScope = saveScopeRef.current;
+    let creationState = projectCreationRef.current;
+    if (creationState.scopeKey !== saveScope) {
+      creationState = {
+        scopeKey: saveScope,
+        promise: null,
+        result: null,
+      };
+      projectCreationRef.current = creationState;
+    }
+
+    if (!creationState.promise) {
+      const payload = buildProjectRequestPayload(baseData);
+      const payloadSnapshot = JSON.stringify(payload);
+      creationState.promise = createProject(payload).then((createdProject) => ({
+        createdProject,
+        payloadSnapshot,
+      }));
+    }
+
+    if (!creationState.result) {
+      creationState.result = await creationState.promise;
+    }
+
+    const { createdProject, payloadSnapshot } = creationState.result;
+    const projectApiId = createdProject.project_id ?? createdProject.id;
+    const projectId =
+      projectApiId ||
+      baseData.projectId ||
+      `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+
+    return {
+      projectApiId,
+      createdPayloadSnapshot: payloadSnapshot,
+      ensuredData: {
+        ...baseData,
+        projectApiId,
+        projectId,
+        requestId:
+          createdProject.request_id ??
+          createdProject.requestId ??
+          baseData.requestId,
+        createdProject,
+        workflowStatus: baseData.workflowStatus || "진행 중",
+      },
+    };
+  };
+
   const autoSaveProjectData = async (
     patchData,
     nextData,
     { screenName, listOverrides = {} } = {},
   ) => {
     showAutoSaveStatus("saving");
+    const saveScope = saveScopeRef.current;
 
     try {
-      let ensuredData = nextData;
-      let projectApiId = nextData.projectApiId;
+      const {
+        projectApiId,
+        ensuredData,
+        createdPayloadSnapshot,
+      } = await ensureProjectCreated(nextData);
 
-      if (!projectApiId) {
-        const createdProject = await createProject(
-          buildProjectRequestPayload(nextData),
-        );
-        projectApiId = createdProject.project_id ?? createdProject.id;
-        const projectId =
-          projectApiId ||
-          nextData.projectId ||
-          `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+      const shouldPatchProject =
+        Boolean(projectApiId && patchData) &&
+        (!createdPayloadSnapshot ||
+          JSON.stringify(patchData) !== createdPayloadSnapshot);
 
-        ensuredData = {
-          ...nextData,
-          projectApiId,
-          projectId,
-          requestId:
-            createdProject.request_id ??
-            createdProject.requestId ??
-            nextData.requestId,
-          createdProject,
-          workflowStatus: nextData.workflowStatus || "진행 중",
-        };
+      if (shouldPatchProject) {
+        await updateProject(projectApiId, patchData);
       }
 
-      if (projectApiId && patchData) {
-        await updateProject(projectApiId, patchData);
+      if (saveScopeRef.current !== saveScope) {
+        return projectApiId;
       }
 
       updateProjectData(
@@ -449,6 +515,7 @@ export default function App() {
   };
 
   const restoreProjectSession = async (savedProjectApiId, savedScreen) => {
+    resetSaveScope();
     const loadedProjects = await loadProjects();
     const cachedProject = loadedProjects.find(
       (project) =>
@@ -584,6 +651,7 @@ export default function App() {
     projectData.lastScreen,
   ]);
   const startNewProject = () => {
+    resetSaveScope();
     setEditingProjectId("");
     setActiveProjectId("");
     setAutoSaveStatus("idle");
@@ -597,6 +665,7 @@ export default function App() {
   };
 
   const createDraftProject = async (draftData, shouldContinue = false) => {
+    resetSaveScope();
     let projectApiId = null;
     try {
       const created = await createProject({
@@ -638,6 +707,7 @@ export default function App() {
   };
 
   const editProject = async (project) => {
+    resetSaveScope();
     const localProjectData = { ...initialProjectData, ...project.data };
     setEditingProjectId(project.id);
     setActiveProjectId(project.id);
@@ -663,6 +733,7 @@ export default function App() {
   };
 
   const openProjectFromList = async (projectId) => {
+    resetSaveScope();
     const project = projects.find((item) => item.id === projectId);
     if (project) {
       const localProjectData = { ...initialProjectData, ...project.data };
@@ -750,7 +821,12 @@ export default function App() {
     response?.candidate_vendors ?? response?.candidates ?? [];
 
   const startPartnerMatchingFromRequirements = async () => {
-    if (partnerMatchingTransition === "loading") return;
+    if (
+      partnerMatchingTransition === "loading" ||
+      partnerMatchingInFlightRef.current
+    ) {
+      return;
+    }
 
     const serverStatus = projectData.serverStatus ?? projectData.status;
     const alreadyMatched =
@@ -767,22 +843,22 @@ export default function App() {
       return;
     }
 
+    partnerMatchingInFlightRef.current = true;
     setPartnerMatchingTransition("loading");
     setPartnerMatchingStep("creating-project");
     setPartnerMatchingError("");
 
     try {
-      const createdProject = projectData.projectApiId
-        ? projectData.createdProject
+      const { projectApiId, ensuredData } = projectData.projectApiId
+        ? {
+            projectApiId: projectData.projectApiId,
+            ensuredData: projectData,
+          }
         : await runPartnerMatchingStep(
             "creating-project",
             setPartnerMatchingStep,
-            () => createProject(buildProjectRequest(projectData)),
+            () => ensureProjectCreated(projectData),
           );
-      const projectApiId =
-        projectData.projectApiId ??
-        createdProject?.project_id ??
-        createdProject?.id;
 
       if (!projectApiId) {
         throw new Error(
@@ -806,12 +882,12 @@ export default function App() {
       updateProjectData(
         (current) => ({
           ...current,
+          ...ensuredData,
           projectApiId,
           requestId:
-            createdProject?.request_id ??
-            createdProject?.requestId ??
+            ensuredData?.requestId ??
             current.requestId,
-          createdProject: createdProject ?? current.createdProject,
+          createdProject: ensuredData?.createdProject ?? current.createdProject,
           candidateVendors,
           candidateVendorsLoaded: true,
           candidateVendorsResponse: candidateResponse,
@@ -833,6 +909,8 @@ export default function App() {
         error.message ||
           "요구사항 저장 또는 공급사 추천 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
       );
+    } finally {
+      partnerMatchingInFlightRef.current = false;
     }
   };
 
@@ -843,16 +921,19 @@ export default function App() {
   };
 
   const startAnalysisFlow = async () => {
+    if (analysisInFlightRef.current) return;
+
+    analysisInFlightRef.current = true;
     setScreen("analysis");
     setAnalysisState("loading");
     setAnalysisErrorMessage("");
 
     try {
-      const createdProject = await createProject(
-        buildProjectRequest(projectData),
+      const { projectApiId, ensuredData } = await ensureProjectCreated(
+        projectData,
       );
-      const projectApiId = createdProject.project_id ?? createdProject.id;
-      const requestId = createdProject.request_id ?? createdProject.requestId;
+      const createdProject = ensuredData.createdProject;
+      const requestId = ensuredData.requestId;
       const uploadResult = await uploadProjectQuotes(
         projectApiId,
         projectData.quoteFiles ?? [],
@@ -865,8 +946,9 @@ export default function App() {
       const matchViewModel = createMatchViewModel(matchResult);
       const matchId = matchViewModel.matchId;
 
-      setProjectData((current) => ({
+      updateProjectData((current) => ({
         ...current,
+        ...ensuredData,
         projectApiId,
         requestId,
         createdProject,
@@ -882,6 +964,8 @@ export default function App() {
           "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
       );
       setAnalysisState("error");
+    } finally {
+      analysisInFlightRef.current = false;
     }
   };
 
@@ -901,7 +985,7 @@ export default function App() {
     return <LoginPage onLogin={goToProjects} />;
   }
 
-  //6/12 諛깆뿏???묒뾽?먯꽌 ?섏젙
+  // 6/12 백엔드 작업 반영
   if (screen === "projects") {
     return (
       <ProjectListPage
