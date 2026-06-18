@@ -51,6 +51,26 @@ export function formatProjectSolutions(data, fallback = "미입력") {
   return solutions.length > 0 ? solutions.join(", ") : fallback;
 }
 
+export function buildProjectInfoSummary(
+  projectData,
+  { includeLocation = false } = {},
+) {
+  const company = String(projectData?.companyName ?? "").trim() || "미입력";
+  const parts = [company];
+
+  if (includeLocation) {
+    parts.push(String(projectData?.location ?? "").trim() || "미입력");
+  }
+
+  const solutions = normalizeProjectSolutions(projectData);
+  const solutionsText =
+    solutions.length > 0 ? solutions.join(" · ") : "미입력";
+  const schedule = String(projectData?.projectDate ?? "").trim() || "일정 미정";
+
+  parts.push(solutionsText, schedule);
+  return parts.join(" · ");
+}
+
 function normalizeRequestValue(value) {
   const trimmed = String(value ?? "").trim();
   if (!trimmed || EMPTY_REQUEST_VALUES.has(trimmed)) {

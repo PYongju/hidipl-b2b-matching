@@ -16,6 +16,7 @@ const CELL_STATUS_UI = {
   included: { badge: "포함", tone: "green", cellClass: "included" },
   separate: { badge: "별도 청구", tone: "gray", cellClass: "separate" },
   missing: { badge: "미기재", tone: "gray", cellClass: "missing" },
+  editable: { badge: "수정 가능", tone: "gray", cellClass: "editable" },
   toBeDiscussed: { badge: "확인 필요", tone: "orange", cellClass: "toBeDiscussed" },
   parseFail: {
     badge: "수정 필요",

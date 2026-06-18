@@ -112,6 +112,7 @@ export default function ProjectRequirementsPage({
   const checks = getMatchingChecks(projectData);
   const readiness = getReadinessScore(projectData, checks);
   const readinessMessage = getReadinessMessage(readiness, checks);
+  const canProceedToPartnerMatching = isRequiredRequirementsFilled(projectData);
   const displayUnit = projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
   const isDisplayInch = displayUnit === "inch";
   const displayWidthValue =
@@ -184,7 +185,10 @@ export default function ProjectRequirementsPage({
           projectName={projectData.projectName || "새 프로젝트"}
         />
 
-        <ProjectStepTabs activeStep={1} onGoPartnerMatching={onNext} />
+        <ProjectStepTabs
+          activeStep={1}
+          onGoPartnerMatching={canProceedToPartnerMatching ? onNext : undefined}
+        />
 
         <section className="requirements-layout">
           <form className="requirements-form">
@@ -221,17 +225,19 @@ export default function ProjectRequirementsPage({
                   />
                 </label>
                 <label>
-                  <span>프로젝트명</span>
+                  <span>프로젝트명 *</span>
                   <input
                     onChange={(event) => updateField("projectName", event.target.value)}
                     placeholder="예: 본사 로비 사이니지 구축"
+                    required
                     value={projectData.projectName || ""}
                   />
                 </label>
                 <label>
-                  <span>프로젝트 일정</span>
+                  <span>프로젝트 일정 *</span>
                   <input
                     onChange={(event) => updateField("projectDate", event.target.value)}
+                    required
                     type="date"
                     value={projectData.projectDate || ""}
                   />
@@ -450,14 +456,18 @@ export default function ProjectRequirementsPage({
       </main>
 
       <footer className="requirements-bottom-actions">
-        <span>요구사항은 빈 값이어도 저장할 수 있어요.</span>
+        <span>
+          {canProceedToPartnerMatching
+            ? "요구사항은 자동 저장돼요."
+            : "다음 단계로 가려면 필수 항목(*)을 모두 입력해 주세요."}
+        </span>
         <div>
           <button className="button action-secondary" onClick={onBack} type="button">
             이전
           </button>
           <button
             className="button action-primary"
-            disabled={isPartnerMatchingLoading}
+            disabled={isPartnerMatchingLoading || !canProceedToPartnerMatching}
             onClick={onNext}
             type="button"
           >
@@ -477,23 +487,41 @@ function hasDisplayDimension(data) {
   );
 }
 
+function isRequiredRequirementsFilled(data) {
+  return Boolean(
+    data.companyName?.trim() &&
+      data.location?.trim() &&
+      data.usage?.trim() &&
+      data.projectName?.trim() &&
+      data.projectDate?.trim(),
+  );
+}
+
 function getMatchingChecks(data) {
   const stage = data.currentStage || "";
   const hasCompany = Boolean(data.companyName?.trim());
   const hasLocation = Boolean(data.location?.trim());
   const hasUsage = Boolean(data.usage?.trim());
+  const hasProjectName = Boolean(data.projectName?.trim());
+  const hasProjectDate = Boolean(data.projectDate?.trim());
 
-  const requiredFilledCount = [hasCompany, hasLocation, hasUsage].filter(Boolean).length;
+  const requiredFilledCount = [
+    hasCompany,
+    hasLocation,
+    hasUsage,
+    hasProjectName,
+    hasProjectDate,
+  ].filter(Boolean).length;
 
   return [
     {
       title: "필수값 충족",
       weight: 24,
-      level: requiredFilledCount === 3 ? "ok" : "warn",
+      level: requiredFilledCount === 5 ? "ok" : "warn",
       message:
-        requiredFilledCount === 3
-          ? "회사명, 설치 위치, 활용 목적이 입력됐어요."
-          : `회사명, 설치 위치, 활용 목적 중 ${requiredFilledCount}/3개가 입력됐어요.`,
+        requiredFilledCount === 5
+          ? "회사명, 설치 위치, 프로젝트명, 프로젝트 일정, 활용 목적이 입력됐어요."
+          : `필수 항목 중 ${requiredFilledCount}/5개가 입력됐어요.`,
     },
     {
       title: "정보 탐색 단계 확인 필요",
@@ -522,8 +550,8 @@ function getFieldReadinessScore(data) {
     { filled: hasCompany, weight: 14 },
     { filled: hasLocation, weight: 14 },
     { filled: hasUsage, weight: 14 },
-    { filled: hasProjectName, weight: 6 },
-    { filled: hasProjectDate, weight: 8 },
+    { filled: hasProjectName, weight: 10 },
+    { filled: hasProjectDate, weight: 10 },
     { filled: hasDisplay, weight: 16 },
     { filled: hasQuantity, weight: 10 },
     { filled: hasBudget, weight: 14 },
