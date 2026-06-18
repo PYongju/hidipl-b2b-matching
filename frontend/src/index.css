@@ -3942,8 +3942,8 @@ textarea {
 }
 
 .request-target-card.is-active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: #d7dde8;
+  background: #f8fafc;
 }
 
 .selected-partner-pill:hover {
