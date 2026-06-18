@@ -14,12 +14,15 @@ function shouldRestoreMatchData(projectData) {
   if (!projectData?.projectApiId) return false;
   if (projectData.matchHydrationAttempted) return false;
 
+  const serverStatus = projectData.serverStatus ?? projectData.status;
+  if (serverStatus !== "matched") return false; // 추가
+
   const hasQuoteIds =
     Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
   const hasExplanationSource = Boolean(
     projectData.matchId ||
-      projectData.cachedExplanation ||
-      projectData.matchResult,
+    projectData.cachedExplanation ||
+    projectData.matchResult,
   );
 
   return !hasQuoteIds || !hasExplanationSource;
@@ -41,7 +44,9 @@ export default function QuoteWaitingPage({
   onProjectDataChange,
   onGoHome,
 }) {
-  const [selectedFiles, setSelectedFiles] = useState(projectData.quoteFiles ?? []);
+  const [selectedFiles, setSelectedFiles] = useState(
+    projectData.quoteFiles ?? [],
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
@@ -62,10 +67,13 @@ export default function QuoteWaitingPage({
     setAutoSaveStatus(status);
 
     if (status === "saved" || status === "error") {
-      autoSaveStatusTimerRef.current = window.setTimeout(() => {
-        setAutoSaveStatus("idle");
-        autoSaveStatusTimerRef.current = null;
-      }, status === "saved" ? 1800 : 3000);
+      autoSaveStatusTimerRef.current = window.setTimeout(
+        () => {
+          setAutoSaveStatus("idle");
+          autoSaveStatusTimerRef.current = null;
+        },
+        status === "saved" ? 1800 : 3000,
+      );
     }
   };
 
@@ -188,7 +196,11 @@ export default function QuoteWaitingPage({
         action={
           <>
             <AutoSaveStatus status={autoSaveStatus} />
-            <button className="button action-secondary" onClick={onGoHome} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onGoHome}
+              type="button"
+            >
               목록
             </button>
             <div className="avatar" />
@@ -213,11 +225,16 @@ export default function QuoteWaitingPage({
         <ProjectStepTabs
           activeStep={3}
           onGoPartnerMatching={onBack}
-          onGoQuoteReview={canCompare || hasUploadedQuotes ? goToQuoteReview : undefined}
+          onGoQuoteReview={
+            canCompare || hasUploadedQuotes ? goToQuoteReview : undefined
+          }
         />
 
         <section className="partner-project-summary six quote-request-summary">
-          <SummaryItem label="회사명" value={projectData.companyName || "미입력"} />
+          <SummaryItem
+            label="회사명"
+            value={projectData.companyName || "미입력"}
+          />
           <SummaryItem label="위치" value={projectData.location || "미입력"} />
           <SummaryItem
             label="일정"
@@ -239,7 +256,10 @@ export default function QuoteWaitingPage({
             <div className="quote-panel-title with-progress">
               <div>
                 <h2>견적서 업로드</h2>
-                <p>공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트 단위로 업로드돼요.</p>
+                <p>
+                  공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트
+                  단위로 업로드돼요.
+                </p>
               </div>
               <div className="quote-progress">
                 <span>{selectedFiles.length}개 선택</span>
@@ -262,10 +282,15 @@ export default function QuoteWaitingPage({
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
-                <div className="empty-file-row">아직 업로드한 견적서가 없어요.</div>
+                <div className="empty-file-row">
+                  아직 업로드한 견적서가 없어요.
+                </div>
               ) : (
                 selectedFiles.map((file) => (
-                  <div className="file-row" key={`${file.name}-${file.lastModified}-${file.size}`}>
+                  <div
+                    className="file-row"
+                    key={`${file.name}-${file.lastModified}-${file.size}`}
+                  >
                     <div>
                       <span className="file-row-name">{file.name}</span>
                       <small>{formatFileSize(file.size)}</small>
@@ -286,7 +311,9 @@ export default function QuoteWaitingPage({
               )}
             </div>
 
-            {errorMessage ? <div className="quote-upload-error">{errorMessage}</div> : null}
+            {errorMessage ? (
+              <div className="quote-upload-error">{errorMessage}</div>
+            ) : null}
           </div>
 
           <aside className="quote-ops-panel panel-sticky">
@@ -300,7 +327,9 @@ export default function QuoteWaitingPage({
             <section>
               <h3>
                 견적 요청 발송 대상
-                {requestTargets.length > 0 ? <Badge tone="blue">{requestTargets.length}</Badge> : null}
+                {requestTargets.length > 0 ? (
+                  <Badge tone="blue">{requestTargets.length}</Badge>
+                ) : null}
               </h3>
               {requestTargets.length === 0 ? (
                 <div className="quote-request-empty">
@@ -310,15 +339,24 @@ export default function QuoteWaitingPage({
               ) : (
                 <div className="selected-partner-list quote-request-target-list">
                   {requestTargets.map((partner) => (
-                    <div className="selected-partner-pill quote-request-target-pill" key={partner.id}>
+                    <div
+                      className="selected-partner-pill quote-request-target-pill"
+                      key={partner.id}
+                    >
                       <span>
                         <b>{partner.name}</b>
                         <small>
-                          {partner.score != null ? `AI 추천 점수 ${partner.score}` : "점수 미확인"}
-                          {partner.response ? ` · 응답 ${partner.response}` : ""}
+                          {partner.score != null
+                            ? `AI 추천 점수 ${partner.score}`
+                            : "점수 미확인"}
+                          {partner.response
+                            ? ` · 응답 ${partner.response}`
+                            : ""}
                         </small>
                       </span>
-                      {partner.caution ? <Badge tone="orange">주의</Badge> : null}
+                      {partner.caution ? (
+                        <Badge tone="orange">주의</Badge>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -337,7 +375,11 @@ export default function QuoteWaitingPage({
               : "견적서를 업로드하면 비교 검토를 시작할 수 있어요."}
         </span>
         <div>
-          <button className="button action-secondary" onClick={onBack} type="button">
+          <button
+            className="button action-secondary"
+            onClick={onBack}
+            type="button"
+          >
             이전
           </button>
           <button
@@ -379,7 +421,8 @@ function resolveRequestTargets(projectData) {
 
       return {
         id: targetId,
-        name: raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
+        name:
+          raw.vendor_name ?? raw.partner_name ?? raw.name ?? String(targetId),
         score:
           typeof raw.semantic_similarity_score === "number"
             ? raw.semantic_similarity_score <= 1
@@ -389,7 +432,7 @@ function resolveRequestTargets(projectData) {
         response:
           typeof raw.response_speed === "number"
             ? `${raw.response_speed}시간`
-            : raw.response_speed ?? "미확인",
+            : (raw.response_speed ?? "미확인"),
         caution: (raw.filter_reasons ?? []).some(
           (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
         ),
