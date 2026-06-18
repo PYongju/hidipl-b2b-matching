@@ -5,7 +5,7 @@ import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
-import { updateProject } from "../api/apiClient";
+import { saveInternalNotes, updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
 import {
   applyCompareCellOverride,
@@ -13,6 +13,7 @@ import {
   resolveCompareCellOverrides,
   saveCompareCellOverridesToStorage,
 } from "../utils/compareCellOverrides";
+import { saveReviewMemoToStorage as persistReviewMemoToStorage } from "../utils/reviewMemoStorage";
 import { withObjectParticle, withSubjectParticle } from "../utils/josa";
 import {
   AI_COMPARE_NOTICE,
@@ -134,6 +135,7 @@ export default function DashboardPage({
   const [reviewMemo, setReviewMemo] = useState(projectData.reviewMemo ?? "");
   const [draftMemo, setDraftMemo] = useState(projectData.reviewMemo ?? "");
   const [isMemoEditing, setIsMemoEditing] = useState(false);
+  const [isMemoSaving, setIsMemoSaving] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const [isProjectNameEditing, setIsProjectNameEditing] = useState(false);
   const [draftProjectName, setDraftProjectName] = useState(
@@ -417,20 +419,49 @@ export default function DashboardPage({
   };
 
   const startMemoEdit = () => {
+    if (isMemoSaving) return;
     setDraftMemo(reviewMemo);
     setIsMemoEditing(true);
   };
 
-  const saveMemo = () => {
+  const saveMemo = async () => {
+    if (isMemoSaving) return;
+
+    const nextMemo = draftMemo;
+    const previousMemo = reviewMemo;
+    const memoProjectId = projectData.projectApiId ?? projectData.projectId;
+
+    setIsMemoSaving(true);
     showAutoSaveStatus("saving");
-    setReviewMemo(draftMemo);
-    setIsMemoEditing(false);
+    setReviewMemo(nextMemo);
     onProjectDataChange?.((current) => ({
       ...current,
-      reviewMemo: draftMemo,
+      reviewMemo: nextMemo,
       lastScreen: "dashboard",
     }));
-    showAutoSaveStatus("saved");
+
+    try {
+      if (memoProjectId) {
+        await saveInternalNotes(memoProjectId, {
+          screen: "dashboard",
+          note: nextMemo,
+        });
+        persistReviewMemoToStorage(memoProjectId, nextMemo);
+      }
+      setIsMemoEditing(false);
+      showAutoSaveStatus("saved");
+    } catch (error) {
+      console.error("검토 메모 저장 실패:", error);
+      setReviewMemo(previousMemo);
+      setDraftMemo(nextMemo);
+      onProjectDataChange?.((current) => ({
+        ...current,
+        reviewMemo: previousMemo,
+      }));
+      showAutoSaveStatus("error");
+    } finally {
+      setIsMemoSaving(false);
+    }
   };
 
   const startProjectNameEdit = () => {
@@ -602,7 +633,7 @@ export default function DashboardPage({
             <button
               className="icon-button"
               disabled
-              title="프로젝트명 수정은 곧 사용할 수 있어요."
+              title="프로젝트명 수정은 아직 사용할 수 없어요."
               type="button"
             >
               ✎
@@ -709,8 +740,7 @@ export default function DashboardPage({
               <section className="panel supplier-panel">
                 <div className="panel-title-row">
                   <div className="panel-title">
-                    공급사 매칭 현황 ({supplierCount}/{supplierCount}){" "}
-                    <span>ⓘ</span>
+                    공급사 매칭 현황 ({supplierCount}/{supplierCount})
                   </div>
                   <SupplierPager {...supplierPagerProps} />
                 </div>
@@ -957,45 +987,47 @@ export default function DashboardPage({
                 )}
               </section>
 
-              <div className="side-split">
-                <section className="panel compact-panel">
-                  <h3>
-                    검토 메모 <small>(내부용)</small>
-                  </h3>
-                  <div className="compact-panel-body">
-                    <textarea
-                      className={isMemoEditing ? "memo-editing" : "memo-readonly"}
-                      onChange={(event) =>
-                        setDraftMemo(event.target.value.slice(0, maxMemoLength))
-                      }
-                      onClick={!isMemoEditing ? startMemoEdit : undefined}
-                      placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
-                      readOnly={!isMemoEditing}
-                      value={memoValue}
-                    />
-                    <div className="counter">
-                      {memoValue.length} / {maxMemoLength.toLocaleString()}
-                    </div>
+              <section className="panel compact-panel memo-panel-full">
+                <h3>
+                  검토 메모 <small>(내부용)</small>
+                </h3>
+                <div className="compact-panel-body">
+                  <textarea
+                    className={isMemoEditing ? "memo-editing" : "memo-readonly"}
+                    disabled={isMemoSaving}
+                    onChange={(event) =>
+                      setDraftMemo(event.target.value.slice(0, maxMemoLength))
+                    }
+                    onClick={!isMemoEditing ? startMemoEdit : undefined}
+                    placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
+                    readOnly={!isMemoEditing}
+                    value={memoValue}
+                  />
+                  <div className="counter">
+                    {memoValue.length} / {maxMemoLength.toLocaleString()}
                   </div>
-                  <div className="memo-actions">
-                    <button
-                      className="button"
-                      onClick={startMemoEdit}
-                      type="button"
-                    >
-                      수정하기
-                    </button>
-                    <button
-                      className="button action-primary"
-                      disabled={!isMemoEditing}
-                      onClick={saveMemo}
-                      type="button"
-                    >
-                      저장하기
-                    </button>
-                  </div>
-                </section>
-              </div>
+                </div>
+                <div className="memo-actions">
+                  <button
+                    className="button"
+                    disabled={isMemoSaving}
+                    onClick={startMemoEdit}
+                    type="button"
+                  >
+                    수정하기
+                  </button>
+                  <button
+                    className="button action-primary"
+                    disabled={!isMemoEditing || isMemoSaving}
+                    onClick={() => {
+                      void saveMemo();
+                    }}
+                    type="button"
+                  >
+                    저장하기
+                  </button>
+                </div>
+              </section>
 
               <section className="panel final-panel">
                 <h3>

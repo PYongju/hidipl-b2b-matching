@@ -3,6 +3,7 @@ import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
+import { saveQuoteIdsToStorage } from "../utils/projectQuoteIds";
 
 const REVIEW_STEPS = [
   {
@@ -42,38 +43,53 @@ export default function QuoteReviewLoadingPage({
   const isComplete = timerDone && analysisState === "ready";
 
   const runQuoteReviewAnalysis = async () => {
+    setActiveStep(0);
+    setTimerDone(false);
+    setRedirectCountdown(null);
     setAnalysisState("loading");
     setErrorMessage("");
 
     try {
       const projectApiId = projectData.projectApiId;
       if (!projectApiId) {
-        throw new Error("프로젝트 정보가 없어 견적 비교 분석을 시작할 수 없어요.");
+        throw new Error(
+          "프로젝트 정보가 없어 견적 비교 분석을 시작할 수 없어요.",
+        );
       }
 
-      let quoteIds = projectData.quoteIds ?? [];
-      if (!quoteIds.length) {
-        const quoteFiles = projectData.quoteFiles ?? [];
-        if (!quoteFiles.length) {
-          throw new Error("업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 선택해 주세요.");
-        }
+      const quoteFiles = projectData.quoteFiles ?? [];
+      let quoteIds;
 
-        const uploadResult = await uploadProjectQuotes(projectApiId, quoteFiles);
+      if (quoteFiles.length) {
+        // 파일이 있으면 항상 업로드
+        const uploadResult = await uploadProjectQuotes(
+          projectApiId,
+          quoteFiles,
+        );
         quoteIds =
           uploadResult.quote_ids ??
           uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
           [];
-
+        saveQuoteIdsToStorage(projectApiId, quoteIds);
         onProjectDataChange((current) => ({
           ...current,
           quoteFiles,
           quoteIds,
           quoteUploadResult: uploadResult,
         }));
+      } else if (projectData.quoteIds?.length) {
+        // F5 복원 후 재진입: 파일 없고 quoteIds만 있는 경우
+        quoteIds = projectData.quoteIds;
+      } else {
+        throw new Error(
+          "업로드할 견적서가 없어요. 견적 수신 화면에서 파일을 선택해 주세요.",
+        );
       }
 
       if (!quoteIds.length) {
-        throw new Error("업로드된 견적서가 없어 견적 비교 분석을 시작할 수 없어요.");
+        throw new Error(
+          "업로드된 견적서가 없어 견적 비교 분석을 시작할 수 없어요.",
+        );
       }
 
       const matchResult = await runProjectMatch(projectApiId);
@@ -88,11 +104,16 @@ export default function QuoteReviewLoadingPage({
       setAnalysisState("ready");
     } catch (error) {
       setAnalysisState("error");
-      setErrorMessage(error.message || "견적 비교 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.");
+      setErrorMessage(
+        error.message ||
+          "견적 비교 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+      );
     }
   };
 
   useEffect(() => {
+    if (analysisState !== "loading") return undefined;
+
     const timer = window.setInterval(() => {
       setActiveStep((current) => {
         if (current >= REVIEW_STEPS.length - 1) {
@@ -105,7 +126,7 @@ export default function QuoteReviewLoadingPage({
     }, 900);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [analysisState]);
 
   useEffect(() => {
     runQuoteReviewAnalysis();
@@ -138,7 +159,11 @@ export default function QuoteReviewLoadingPage({
         trail="프로젝트 상세 > 견적 비교 분석"
         action={
           <>
-            <button className="button action-secondary" onClick={onGoHome} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onGoHome}
+              type="button"
+            >
               목록
             </button>
             <div className="avatar" />
@@ -154,7 +179,11 @@ export default function QuoteReviewLoadingPage({
         <section className="matching-loading-card">
           <div
             className={`matching-loading-symbol${
-              analysisState === "error" ? " is-error" : isComplete ? " is-complete" : ""
+              analysisState === "error"
+                ? " is-error"
+                : isComplete
+                  ? " is-complete"
+                  : ""
             }`}
             aria-hidden="true"
           >
@@ -166,7 +195,11 @@ export default function QuoteReviewLoadingPage({
               <span />
             )}
           </div>
-          <Badge tone={isComplete ? "green" : analysisState === "error" ? "red" : "blue"}>
+          <Badge
+            tone={
+              isComplete ? "green" : analysisState === "error" ? "red" : "blue"
+            }
+          >
             {analysisState === "error"
               ? "분석 오류"
               : isComplete
@@ -182,19 +215,27 @@ export default function QuoteReviewLoadingPage({
           </h1>
           <p>
             {isComplete ? (
-              <span aria-live="polite">{redirectCountdown ?? 3}초 후 검토 화면으로 이동해요.</span>
+              <span aria-live="polite">
+                {redirectCountdown ?? 3}초 후 검토 화면으로 이동해요.
+              </span>
             ) : (
               <>
-                {projectData.projectName || projectData.companyName || "프로젝트"}의 업로드된 견적서를
-                기준으로 비교표와 추천 사유를 준비해요.
+                {projectData.projectName ||
+                  projectData.companyName ||
+                  "프로젝트"}
+                의 업로드된 견적서를 기준으로 비교표와 추천 사유를 준비해요.
               </>
             )}
           </p>
 
-          {errorMessage ? (
-            <div className="analysis-error-box">{errorMessage}</div>
+          {analysisState === "error" ? (
+            <div className="matching-loading-message warning">
+              <b>분석 실패</b>
+              <span>{errorMessage}</span>
+            </div>
           ) : null}
 
+          {analysisState !== "error" ? (
           <div className="matching-loading-steps">
             {REVIEW_STEPS.map((step, index) => {
               const isDone = isComplete || index < activeStep;
@@ -214,13 +255,22 @@ export default function QuoteReviewLoadingPage({
               );
             })}
           </div>
+          ) : null}
 
           <div className="matching-loading-actions">
-            <button className="button action-secondary" onClick={onBack} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onBack}
+              type="button"
+            >
               이전
             </button>
             {analysisState === "error" ? (
-              <button className="button button-blue" onClick={runQuoteReviewAnalysis} type="button">
+              <button
+                className="button button-blue"
+                onClick={runQuoteReviewAnalysis}
+                type="button"
+              >
                 다시 분석
               </button>
             ) : null}

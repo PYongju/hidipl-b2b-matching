@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -33,7 +33,8 @@ import {
   normalizeProjectSolutions,
 } from "./utils/projectRequestText";
 import { resolveCompareCellOverrides } from "./utils/compareCellOverrides";
-
+import { resolveReviewMemo } from "./utils/reviewMemoStorage";
+import { loadQuoteIdsFromStorage } from "./utils/projectQuoteIds";
 const PARTNER_MATCHING_MIN_STEP_MS = 1800;
 const SESSION_SCREEN_KEY = "hidipl_screen";
 const SESSION_PROJECT_KEY = "hidipl_active_project_id";
@@ -171,10 +172,13 @@ export default function App() {
     setAutoSaveStatus(status);
 
     if (status === "saved" || status === "error") {
-      autoSaveStatusTimerRef.current = window.setTimeout(() => {
-        setAutoSaveStatus("idle");
-        autoSaveStatusTimerRef.current = null;
-      }, status === "saved" ? 1800 : 3000);
+      autoSaveStatusTimerRef.current = window.setTimeout(
+        () => {
+          setAutoSaveStatus("idle");
+          autoSaveStatusTimerRef.current = null;
+        },
+        status === "saved" ? 1800 : 3000,
+      );
     }
   };
 
@@ -267,7 +271,8 @@ export default function App() {
           ...current,
           ...ensuredData,
           projectApiId,
-          lastScreen: screenName ?? ensuredData.lastScreen ?? current.lastScreen,
+          lastScreen:
+            screenName ?? ensuredData.lastScreen ?? current.lastScreen,
         }),
         listOverrides,
       );
@@ -331,9 +336,13 @@ export default function App() {
               projectDate: item.deadline ?? item.projectDate ?? "",
               requestText: item.request_text ?? item.requestText ?? "",
               ...parsedFields,
+              reviewMemo: resolveReviewMemo({ projectApiId: projectId }),
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus: item.workflow_status === "completed" ? "완료" : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus:
+                item.workflow_status === "completed"
+                  ? "완료"
+                  : getWorkflowStatusFromServerStatus(item.status),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -371,7 +380,12 @@ export default function App() {
             existing?.data?.compareCellOverrides &&
             Object.keys(existing.data.compareCellOverrides).length > 0
           ) {
-            localOnlyFields.compareCellOverrides = existing.data.compareCellOverrides;
+            localOnlyFields.compareCellOverrides =
+              existing.data.compareCellOverrides;
+          }
+          const storedQuoteIds = loadQuoteIdsFromStorage(mapped.id);
+          if (storedQuoteIds.length > 0 && !existing?.data?.quoteIds?.length) {
+            localOnlyFields.quoteIds = storedQuoteIds;
           }
           if (Object.keys(localOnlyFields).length > 0) {
             return {
@@ -388,7 +402,19 @@ export default function App() {
         const localOnly = current.filter((p) => !mergedIds.has(p.id));
         return [...merged, ...localOnly];
       });
-      return mappedProjects;
+      return mappedProjects.map((project) => {
+        const storedQuoteIds = loadQuoteIdsFromStorage(project.id);
+        if (!storedQuoteIds.length) return project;
+        return {
+          ...project,
+          data: {
+            ...project.data,
+            quoteIds: project.data?.quoteIds?.length
+              ? project.data.quoteIds
+              : storedQuoteIds,
+          },
+        };
+      });
     } catch (error) {
       console.error("프로젝트 목록 조회 실패:", error);
       // 기존 상태 유지하되 사용자에게 오류 안내
@@ -533,6 +559,10 @@ export default function App() {
       return undefined;
     }
 
+    setProjectData((current) => ({
+      ...current,
+      matchHydrationAttempted: true,
+    }));
     hydrateProjectMatchData(apiProjectId, projectData).then((nextData) => {
       if (!ignore) {
         setProjectData(nextData);
@@ -1107,6 +1137,10 @@ function mergeServerProjectData(localData, serverProject) {
     projectDate: serverProject?.deadline ?? localData.projectDate,
     requestText,
     compareCellOverrides: resolveCompareCellOverrides(mergedProjectData),
+    reviewMemo: resolveReviewMemo(
+      mergedProjectData,
+      serverProject?.internal_notes,
+    ),
     solutions:
       parsedFields.solutions?.length > 0
         ? parsedFields.solutions
@@ -1163,5 +1197,3 @@ function getScreenFromProject(data) {
   }
   return "requirements";
 }
-
-

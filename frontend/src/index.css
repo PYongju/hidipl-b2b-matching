@@ -1508,6 +1508,23 @@ textarea {
   margin-top: 10px;
 }
 
+.memo-panel-full {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.memo-panel-full .compact-panel-body {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
+
+.memo-panel-full textarea {
+  flex: 1 1 auto;
+  min-height: 180px;
+  height: auto;
+}
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1957,7 +1974,6 @@ textarea {
 
 .flow-page {
   min-height: 100vh;
-  overflow-x: hidden;
   background: #f8fafc;
 }
 
@@ -4109,8 +4125,8 @@ textarea {
 }
 
 .request-target-card.is-active {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: #d7dde8;
+  background: #f8fafc;
 }
 
 .selected-partner-pill:hover {
@@ -5650,9 +5666,28 @@ textarea {
   align-items: start;
 }
 
-.panel-sticky {
-  position: sticky;
-  top: 76px;
+@media (min-width: 1025px) {
+  body:has(.flow-page),
+  #root:has(.flow-page) {
+    overflow-x: visible;
+  }
+
+  .requirements-layout > .panel-sticky,
+  .partner-layout > .panel-sticky,
+  .quote-waiting-layout > .panel-sticky {
+    position: sticky;
+    top: 64px;
+    align-self: start;
+    max-height: calc(100vh - 64px - 20px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .partner-layout > .request-panel.panel-static {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 .requirements-form,
