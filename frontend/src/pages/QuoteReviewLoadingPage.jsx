@@ -43,6 +43,9 @@ export default function QuoteReviewLoadingPage({
   const isComplete = timerDone && analysisState === "ready";
 
   const runQuoteReviewAnalysis = async () => {
+    setActiveStep(0);
+    setTimerDone(false);
+    setRedirectCountdown(null);
     setAnalysisState("loading");
     setErrorMessage("");
 
@@ -109,6 +112,8 @@ export default function QuoteReviewLoadingPage({
   };
 
   useEffect(() => {
+    if (analysisState !== "loading") return undefined;
+
     const timer = window.setInterval(() => {
       setActiveStep((current) => {
         if (current >= REVIEW_STEPS.length - 1) {
@@ -121,7 +126,7 @@ export default function QuoteReviewLoadingPage({
     }, 900);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [analysisState]);
 
   useEffect(() => {
     runQuoteReviewAnalysis();
@@ -223,10 +228,14 @@ export default function QuoteReviewLoadingPage({
             )}
           </p>
 
-          {errorMessage ? (
-            <div className="analysis-error-box">{errorMessage}</div>
+          {analysisState === "error" ? (
+            <div className="matching-loading-message warning">
+              <b>분석 실패</b>
+              <span>{errorMessage}</span>
+            </div>
           ) : null}
 
+          {analysisState !== "error" ? (
           <div className="matching-loading-steps">
             {REVIEW_STEPS.map((step, index) => {
               const isDone = isComplete || index < activeStep;
@@ -246,6 +255,7 @@ export default function QuoteReviewLoadingPage({
               );
             })}
           </div>
+          ) : null}
 
           <div className="matching-loading-actions">
             <button

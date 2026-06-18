@@ -165,10 +165,12 @@ function toComparisonRow(rowDef, rows) {
 
 function getCostCell(row, costKey) {
   const item = row.cost_breakdown?.[costKey];
-  const status = normalizeApiStatus(item?.status);
+  const value = formatCostValue(item);
+  const status =
+    normalizeApiStatus(item?.status) ?? getDisplayStatus(value);
   // 추출 실패 셀: 값은 "-"로 두고 배지("수정 필요")와 보조 안내로 원인을 전달
   return {
-    value: status === "parseFail" ? "-" : formatCostValue(item),
+    value: status === "parseFail" ? "-" : value,
     status,
   };
 }
@@ -176,7 +178,7 @@ function getCostCell(row, costKey) {
 function getValueCell(row, rowDef) {
   const rawValue = getByPath(row, rowDef.path);
   const value = rowDef.format ? rowDef.format(rawValue) : formatEmpty(rawValue);
-  const status = getDerivedStatus(value);
+  const status = getDisplayStatus(value);
   const highlight = rowDef.highlight && row.highlights?.[rowDef.highlight] ? "bestValue" : undefined;
   return { value, status, highlight };
 }
@@ -192,6 +194,14 @@ function formatCostValue(item) {
     return formatWon(item.amount);
   }
   return getStatusUi(item.status)?.badge ?? item.status ?? "-";
+}
+
+function getDisplayStatus(value) {
+  const normalizedStatus = normalizeApiStatus(value);
+  if (normalizedStatus && getStatusUi(normalizedStatus)) {
+    return normalizedStatus;
+  }
+  return getDerivedStatus(value);
 }
 
 function formatWon(value) {

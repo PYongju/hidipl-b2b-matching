@@ -619,26 +619,10 @@ export default function DashboardPage({
               ) : (
                 <div className="project-title-display">
                   <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
-                  <button
-                    className="icon-button project-title-edit-button"
-                    onClick={startProjectNameEdit}
-                    title="프로젝트 이름 수정"
-                    type="button"
-                  >
-                    ✎
-                  </button>
                 </div>
               )}
             </div>
             <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
-            <button
-              className="icon-button"
-              disabled
-              title="프로젝트명 수정은 곧 사용할 수 있어요."
-              type="button"
-            >
-              ✎
-            </button>
             <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
           </div>
           <div className="project-actions">
