@@ -21,7 +21,7 @@ from datetime import datetime
 from core.database import get_db
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-
+from core.auth import verify_token
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class ProjectCreateRequest(BaseModel):
 
 # [P1] 프로젝트 등록
 @router.post("/projects")
-async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_db)):
+async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         result = demo_routers.create_project(
             DemoProjectCreateRequest(
@@ -83,7 +83,7 @@ async def create_project(body: ProjectCreateRequest, db: Session = Depends(get_d
 
 # [P2] 견적서 업로드 + OCR + Canonical 변환
 @router.post("/projects/{project_id}/quotes")
-async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db: Session = Depends(get_db)):
+async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     tmp_dir = Path(tempfile.mkdtemp())
     try:
         saved_paths = []
@@ -168,7 +168,7 @@ async def upload_quotes(project_id: str, files: List[UploadFile] = File(...), db
 
 # [P2-1-GET] 파트너 후보 추천 결과 조회
 @router.get("/projects/{project_id}/candidate-vendors")
-async def get_candidate_vendors_result(project_id: str):
+async def get_candidate_vendors_result(project_id: str, _token: dict = Depends(verify_token)):
     try:
         result = demo_routers.get_candidate_vendors(project_id)
         if not result:
@@ -181,7 +181,7 @@ async def get_candidate_vendors_result(project_id: str):
 
 #[P2-1] 파트너 후보 추천
 @router.post("/projects/{project_id}/candidate-vendors")
-async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, db: Session = Depends(get_db)):
+async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         payload = CandidateVendorsRequest(top_n=body.quote_top_n)
         result = demo_routers.run_candidate_vendors(project_id, payload)
@@ -199,7 +199,7 @@ async def get_candidate_vendors(project_id: str, body: CandidateVendorRequest, d
 
 # [P3] 매칭 실행
 @router.post("/projects/{project_id}/matches")
-async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Depends(get_db)):
+async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         result = demo_routers.run_match(
             project_id,
@@ -284,7 +284,7 @@ async def run_matching(project_id: str, body: MatchRunRequest, db: Session = Dep
 
 # [P4] 매칭 결과 조회 (대시보드용)
 @router.get("/projects/{project_id}/matches")
-async def get_matches(project_id: str, product_group: str | None = None):
+async def get_matches(project_id: str, product_group: str | None = None, _token: dict = Depends(verify_token)):
     try:
         result = demo_routers.get_matches(project_id, product_group=product_group)
         return {"ok": True, "data": result, "error": None}
@@ -294,7 +294,7 @@ async def get_matches(project_id: str, product_group: str | None = None):
 
 # [P5] LLM 근거 생성 결과
 @router.get("/projects/{project_id}/matches/{match_id}/explanation")
-async def get_explanation(project_id: str, match_id: str):
+async def get_explanation(project_id: str, match_id: str, _token: dict = Depends(verify_token)):
     try:
         result = demo_routers.get_explanation(project_id, match_id)
         return {"ok": True, "data": result, "error": None}
@@ -310,6 +310,7 @@ async def compare_quotes(
     project_id: str,
     body: CompareRequest,
     product_group: str | None = None,
+    _token: dict = Depends(verify_token)
 ):
     try:
         result = demo_routers.compare_quotes(
@@ -328,7 +329,7 @@ async def compare_quotes(
     
 # [P7] 내부 메모 저장
 @router.patch("/projects/{project_id}/internal-notes")
-async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Session = Depends(get_db)):
+async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Session = Depends(get_db),_token: dict = Depends(verify_token)):
     try:
         if body.notes:
             notes = body.notes
@@ -359,7 +360,7 @@ async def save_internal_notes(project_id: str, body: InternalNoteRequest, db: Se
 
 # [P9] 프로젝트 목록 조회
 @router.get("/projects")
-async def list_projects(db: Session = Depends(get_db)):
+async def list_projects(db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         rows = db.execute(
             text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at FROM projects ORDER BY created_at DESC")
@@ -390,7 +391,7 @@ class ProjectDeleteRequest(BaseModel):
     project_ids: List[str]
 
 @router.delete("/projects")
-async def delete_projects(body: ProjectDeleteRequest, db: Session = Depends(get_db)):
+async def delete_projects(body: ProjectDeleteRequest, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         if not body.project_ids:
             raise HTTPException(status_code=400, detail="project_ids가 비어 있습니다.")
@@ -417,7 +418,7 @@ class ProjectUpdateRequest(BaseModel):
     requested_vendor_ids: list[str] | None = None
 
 @router.patch("/projects/{project_id}")
-async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db)):
+async def update_project(project_id: str, body: ProjectUpdateRequest, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         requested_vendor_ids_for_cache = None
         row = db.execute(
@@ -516,6 +517,7 @@ async def update_candidate_vendor(
     vendor_name: str,
     body: CandidateVendorUpdateRequest,
     db: Session = Depends(get_db),
+    _token: dict = Depends(verify_token),
 ):
     try:
         row = db.execute(
@@ -650,7 +652,7 @@ class ConfirmSelectionRequest(BaseModel):
     selected_quote_ids: list[str]
 
 @router.post("/projects/{project_id}/confirm")
-async def confirm_selection(project_id: str, body: ConfirmSelectionRequest):
+async def confirm_selection(project_id: str, body: ConfirmSelectionRequest, _token: dict = Depends(verify_token)):
     try:
         from services.api_demo.demo_state import demo_confirm_state
         record = demo_confirm_state.confirm(
@@ -673,7 +675,7 @@ async def confirm_selection(project_id: str, body: ConfirmSelectionRequest):
 
 # [P8] 프로젝트 상태 조회
 @router.get("/projects/{project_id}")
-async def get_project(project_id: str, db: Session = Depends(get_db)):
+async def get_project(project_id: str, db: Session = Depends(get_db), _token: dict = Depends(verify_token)):
     try:
         row = db.execute(
             text("SELECT project_id, status, workflow_status, company_name, location, deadline, request_text, created_at, internal_notes FROM projects WHERE project_id = :project_id"),
