@@ -214,7 +214,36 @@ class VendorNameResolver:
                     }
                 )
 
+        generic_candidate = self._generic_vendor_from_file_name(file_name)
+        if generic_candidate:
+            candidates.append(
+                {
+                    "value": generic_candidate,
+                    "source": "file_name_fallback",
+                    "confidence": 0.6,
+                }
+            )
+
         return candidates
+
+    def _generic_vendor_from_file_name(self, file_name: str) -> str | None:
+        stem = Path(file_name).stem
+        tokens = [token.strip() for token in re.split(r"[_\-\s]+", stem) if token.strip()]
+        if not tokens:
+            return None
+        ignored = {"견적서", "estimate", "quotation"}
+        product_tokens = ["led", "전광판", "비디오월", "옵션비교", "디스플레이"]
+        for token in reversed(tokens):
+            lowered = token.lower()
+            if lowered in ignored:
+                continue
+            if re.fullmatch(r"[qmvs]-?\d+|q\d+", token, flags=re.IGNORECASE):
+                continue
+            if any(product in lowered for product in product_tokens):
+                continue
+            if self._is_valid_candidate(token):
+                return token
+        return None
 
     def _pick_best_candidate(
         self,
