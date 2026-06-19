@@ -78,9 +78,25 @@ async def verify_token(
             db.rollback()
             logger.warning("users upsert 실패 (비치명적): %s", e)
 
+        row = db.execute(
+            text("SELECT role FROM users WHERE user_id = :user_id"),
+            {"user_id": payload.get("oid")}
+        ).fetchone()
+        payload["db_role"] = row.role if row else "member"
+
         return payload
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"토큰 검증 실패: {str(e)}",
         )
+    
+async def verify_admin(
+    token: dict = Depends(verify_token),
+) -> dict:
+    if token.get("db_role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자 권한이 필요합니다."
+        )
+    return token
