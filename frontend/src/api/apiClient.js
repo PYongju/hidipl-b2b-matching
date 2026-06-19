@@ -1,3 +1,6 @@
+import { msalInstance } from "../auth/msalInstance";
+import { loginRequest } from "../auth/msalConfig";
+
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const API_BASE_URL = configuredApiBaseUrl
   ? configuredApiBaseUrl.replace(/\/$/, "")
@@ -5,12 +8,31 @@ const API_BASE_URL = configuredApiBaseUrl
     ? "http://localhost:8000"
     : "";
 
+async function getAccessToken() {
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length === 0) return null;
+
+  try {
+    const response = await msalInstance.acquireTokenSilent({
+      ...loginRequest,
+      account: accounts[0],
+    });
+    return response.accessToken;
+  } catch {
+    await msalInstance.acquireTokenRedirect(loginRequest);
+    return null;
+  }
+}
+
 async function request(endpoint, options = {}) {
+  const token = await getAccessToken();
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       ...(options.body instanceof FormData
         ? {}
         : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,

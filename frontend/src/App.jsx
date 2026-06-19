@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
+import { MsalProvider } from "@azure/msal-react";
+import { msalInstance } from "./auth/msalInstance";
+import { msalReady } from "./auth/msalInstance";
 import LoginPage from "./pages/LoginPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
@@ -131,15 +134,15 @@ async function runPartnerMatchingStep(step, setStep, action) {
 
 export default function App() {
   const savedSession = readSavedSession();
+  const isAuthenticated = msalInstance.getAllAccounts().length > 0;
   const shouldRestoreSession = shouldRestoreProjectSession(
     savedSession.screen,
     savedSession.projectApiId,
   );
   const [restoring, setRestoring] = useState(shouldRestoreSession);
   const [screen, setScreen] = useState(() => {
-    if (shouldRestoreSession) {
-      return savedSession.screen;
-    }
+    if (!isAuthenticated) return "login";
+    if (shouldRestoreSession) return savedSession.screen;
     return savedSession.screen === "projects" ? "projects" : "login";
   });
   const [projects, setProjects] = useState([]);
@@ -159,7 +162,9 @@ export default function App() {
   );
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
-  const saveScopeRef = useRef(`${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const saveScopeRef = useRef(
+    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
   const projectCreationRef = useRef({
     scopeKey: saveScopeRef.current,
     promise: null,
@@ -313,11 +318,8 @@ export default function App() {
     const saveScope = saveScopeRef.current;
 
     try {
-      const {
-        projectApiId,
-        ensuredData,
-        createdPayloadSnapshot,
-      } = await ensureProjectCreated(nextData);
+      const { projectApiId, ensuredData, createdPayloadSnapshot } =
+        await ensureProjectCreated(nextData);
 
       const shouldPatchProject =
         Boolean(projectApiId && patchData) &&
@@ -568,6 +570,14 @@ export default function App() {
     setScreen("projects");
     persistAppSession("projects");
   };
+
+  useEffect(() => {
+    msalReady.then((result) => {
+      if (result && result.account) {
+        setScreen("projects");
+      }
+    });
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -884,9 +894,7 @@ export default function App() {
           ...current,
           ...ensuredData,
           projectApiId,
-          requestId:
-            ensuredData?.requestId ??
-            current.requestId,
+          requestId: ensuredData?.requestId ?? current.requestId,
           createdProject: ensuredData?.createdProject ?? current.createdProject,
           candidateVendors,
           candidateVendorsLoaded: true,
@@ -929,9 +937,8 @@ export default function App() {
     setAnalysisErrorMessage("");
 
     try {
-      const { projectApiId, ensuredData } = await ensureProjectCreated(
-        projectData,
-      );
+      const { projectApiId, ensuredData } =
+        await ensureProjectCreated(projectData);
       const createdProject = ensuredData.createdProject;
       const requestId = ensuredData.requestId;
       const uploadResult = await uploadProjectQuotes(
@@ -982,7 +989,11 @@ export default function App() {
   }
 
   if (screen === "login") {
-    return <LoginPage onLogin={goToProjects} />;
+    return (
+      <MsalProvider instance={msalInstance}>
+        <LoginPage onLogin={goToProjects} />
+      </MsalProvider>
+    );
   }
 
   // 6/12 백엔드 작업 반영
