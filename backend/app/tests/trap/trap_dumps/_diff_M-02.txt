@@ -1,0 +1,17 @@
+=== M-02 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ check_required:
+      baseline = ['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+      함정     = ['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요', '보증기간 미기재 — 견적서 확인 필요']
+  ▶ warranty_months:
+      baseline = 24
+      함정     = None
+  ▶ warranty_score:
+      baseline = 100.0
+      함정     = 0
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

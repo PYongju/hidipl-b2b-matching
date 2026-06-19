@@ -1,0 +1,14 @@
+=== M-10 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ check_required:
+      baseline = ['요구 납기 정규화 필요']
+      함정     = ['요구 납기 정규화 필요', '총 공급가(부가세 포함) 미기재 — 견적서 확인 필요']
+  ▶ total_with_vat:
+      baseline = 54780000
+      함정     = None
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)
