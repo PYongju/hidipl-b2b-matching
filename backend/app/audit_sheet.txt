@@ -1,0 +1,1088 @@
+검토 시트 (보고서: C:\Users\USER\Desktop\Last Dance\hidipl-b2b-matching\backend\app\tests\trap\reports\main_run_20260618_174205.json)
+
+
+######################################################################
+# trap 그룹  (함정 박힌 데이터 기준)
+######################################################################
+
+----------------------------------------------------------------------
+케이스 record-qid: M-02
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/M-02.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-02
+  vendor_name='유어존'
+  rank=1  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=0
+  installation_score=100.0
+  warranty_months=None  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요', '보증기간 미기재 — 견적서 확인 필요']
+  filter_reasons=[]
+
+  quote_id=가이드삼정_20260129_000000_2561ba21
+  vendor_name='㈜가이드삼정'
+  rank=2  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=54780000
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_2e559147
+  vendor_name='유어존'
+  rank=3  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '유어존의 1순위 견적은 가격 점수 100점으로 가장 경제적이며 설치 점수도 100점으로 우수합니다. ㈜가이드삼정은 사양 점수 83.64로 가장 높으나 가격 점수가 32.71로 낮아 가격 경쟁력은 떨어집니다. 3순위 유어존 견적은 2순위와 유사한 사양과 납기 점수를 보이나 가격 점수가 33.57로 낮습니다.'
+
+  - quote_id=M-02  vendor=유어존  rank=1
+    card_summary: '가격 점수 100점과 설치 점수 100점으로 경제성과 설치 조건에서 우수하나 납기와 보증 정보는 미기재 상태입니다.'
+    s: 가격 점수 100점으로 가장 경제적임
+    s: 설치 점수 100점으로 설치 조건이 우수함
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요
+    w: 보증기간 미기재로 견적서 확인 필요
+
+  - quote_id=가이드삼정_20260129_000000_2561ba21  vendor=㈜가이드삼정  rank=2
+    card_summary: '사양 점수 83.64로 가장 높으나 가격 점수가 32.71로 낮아 가격 경쟁력이 상대적으로 떨어집니다.'
+    s: 사양 점수 83.64로 상대적으로 우수함
+    s: 보증 점수 100점으로 보증 조건이 우수함
+    w: 가격 점수 32.71로 가격 경쟁력이 낮음
+    w: 최저가 대비 가격 차이 5% 초과로 가격 리스크 존재
+
+  - quote_id=유어존_20260119_000000_2e559147  vendor=유어존  rank=3
+    card_summary: '사양과 납기 점수는 2순위와 유사하나 가격 점수가 33.57로 낮아 가격 경쟁력이 떨어집니다.'
+    s: 보증 점수 100점으로 보증 조건이 우수함
+    s: 설치 점수 100점으로 설치 조건이 우수함
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요
+    w: 최저가 대비 가격 차이 5% 초과로 가격 리스크 존재
+
+
+----------------------------------------------------------------------
+케이스 record-qid: M-10
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/M-10.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-10
+  vendor_name='㈜가이드삼정'
+  rank=1  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=None
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요', '총 공급가(부가세 포함) 미기재 — 견적서 확인 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_13584d41
+  vendor_name='유어존'
+  rank=2  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_2e559147
+  vendor_name='유어존'
+  rank=3  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '유어존의 두 견적은 가격 점수에서 차이가 크며, 최저가 견적은 가격 점수 100점으로 우수합니다. ㈜가이드삼정은 사양 점수 83.64로 가장 높으나 가격 점수는 32.71로 낮은 편입니다. 모든 견적은 납기 정보 확인과 요구 납기 정규화가 필요합니다.'
+
+  - quote_id=M-10  vendor=㈜가이드삼정  rank=1
+    card_summary: '사양 점수 83.64로 가장 높고, 납기 점수 70점, 보증 및 설치 점수 100점입니다.'
+    s: 사양 점수 83.64로 상대적으로 우수
+    s: 보증 점수 100점 및 설치 점수 100점으로 우수
+    w: 가격 점수 32.71로 낮은 편
+    w: 데이터 확인 필요: 요구 납기 정규화 필요, 총 공급가(부가세 포함) 미기재
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+  - quote_id=유어존_20260119_000000_13584d41  vendor=유어존  rank=2
+    card_summary: '가격 점수 100점으로 최저가이며, 보증 및 설치 점수 100점입니다.'
+    s: 가격 점수 100점으로 우수
+    s: 보증 점수 100점 및 설치 점수 100점으로 우수
+    w: 사양 점수 82.17로 ㈜가이드삼정보다 낮음
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인 필요
+
+  - quote_id=유어존_20260119_000000_2e559147  vendor=유어존  rank=3
+    card_summary: '사양 점수 82.22, 가격 점수 33.57로 가격 경쟁력은 낮은 편입니다.'
+    s: 보증 점수 100점 및 설치 점수 100점으로 우수
+    s: 사양 점수 82.22로 상대적으로 우수
+    w: 가격 점수 33.57로 낮은 편
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인 필요
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+
+----------------------------------------------------------------------
+케이스 record-qid: M-15
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/M-15.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-15
+  vendor_name=''
+  rank=1  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name=''  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요', '납기 정보 미기재 — 견적서 확인 필요', '공급사명 미기재 — 견적서 확인 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_13584d41
+  vendor_name='유어존'
+  rank=2  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=가이드삼정_20260129_000000_2561ba21
+  vendor_name='㈜가이드삼정'
+  rank=3  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=54780000
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '3개 견적서 모두 보증과 설치 조건 점수는 100점으로 우수합니다. 유어존_20260119_000000_13584d41 견적서는 가격 점수 100점으로 가장 경제적이며, 최종 점수 88.65로 가장 높습니다. 반면, rank 1과 3 견적서는 가격 점수가 30점대에 머물러 가격 경쟁력에서 차이가 있습니다.'
+
+  - quote_id=M-15  vendor=확인 필요  rank=1
+    card_summary: '보증과 설치 점수는 100점으로 우수하나 가격 점수는 33.57점으로 낮고, 납기 정보가 미기재되어 확인이 필요합니다.'
+    s: 보증 점수 100점으로 상대적으로 우수
+    s: 설치 점수 100점으로 상대적으로 우수
+    w: 가격 점수 33.57점으로 낮은 편
+    w: 납기 정보 미기재 및 출장실비 별도 조건 확인 필요
+
+  - quote_id=유어존_20260119_000000_13584d41  vendor=유어존  rank=2
+    card_summary: '가격 점수 100점으로 가장 경제적이며, 보증과 설치 점수도 100점으로 우수합니다. 납기 정보는 미기재되어 확인이 필요합니다.'
+    s: 가격 점수 100점으로 상대적으로 우수
+    s: 보증 점수 100점 및 설치 점수 100점으로 우수
+    w: 납기 정보 미기재 및 출장실비 별도 조건 확인 필요
+
+  - quote_id=가이드삼정_20260129_000000_2561ba21  vendor=㈜가이드삼정  rank=3
+    card_summary: '사양 점수 83.64점으로 상대적으로 우수하나 가격 점수는 32.71점으로 낮고, 납기 9주로 명확하나 요구 납기 정규화가 필요합니다.'
+    s: 사양 점수 83.64점으로 상대적으로 우수
+    s: 보증 점수 100점 및 설치 점수 100점으로 우수
+    w: 가격 점수 32.71점으로 낮은 편
+    w: 요구 납기 정규화 필요
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-05
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/V-05.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-05
+  vendor_name='시스메이트'
+  rank=1  final_score=81.58
+  spec_score=80.61  price_score=57.99
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=240  delivery_weeks=9
+  total_with_vat=17908000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['본 견적은 전기, 통신공사 수요처 제공 기준입니다.', '본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.', '본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)', '콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)', '매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)', '돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)', '인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.', '보증기간 비정상 (입력값 240개월) — 데이터 확인 필요', '파트너 성공률 범위 밖 (1.5) — 데이터 확인 필요']
+  filter_reasons=[]
+
+  quote_id=다올씨앤씨_20251210_000000_88fc704c
+  vendor_name='다올씨앤씨'
+  rank=2  final_score=85.35
+  spec_score=84.49  price_score=100.0
+  delivery_score=50.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=None
+  total_with_vat=10384000
+  partner_name='다올씨앤씨'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기 인입공사 및 통신 공사 별도', '설치 구조물(보강대) / 인테리어 마감 공사 별도', '제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)', '견적 납기 미기재']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_ee066fd8
+  vendor_name='딥사이닝'
+  rank=3  final_score=79.26
+  spec_score=84.35  price_score=46.5
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=22330000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=['일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요', '회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '다올씨앤씨가 종합점수 85.35로 1위를 차지했으며, 가격 점수 100점과 사양 점수 84.49로 우수한 평가를 받았습니다. 시스메이트는 납기, 보증, 설치 조건 점수 100점으로 강점이 있으나 가격 점수는 57.99로 상대적으로 낮고, 일부 데이터 확인이 필요합니다. 딥사이닝은 사양과 납기 점수는 우수하나 가격 점수 46.5로 가장 낮아 가격 경쟁력에서 차이가 있습니다.'
+
+  - quote_id=V-05  vendor=시스메이트  rank=1
+    card_summary: '납기, 보증, 설치 조건 점수 100점으로 우수하나 가격 점수는 57.99로 낮은 편입니다.'
+    s: 납기 점수 100점으로 명확한 납기 조건을 제시함
+    s: 보증 점수 100점과 설치 점수 100점으로 안정적인 서비스 제공 가능
+    w: 가격 점수 57.99로 상대적으로 낮음
+    w: 데이터 확인 필요: 보증 기간 비정상(240개월), 파트너 성공률 범위 밖(1.5)
+
+  - quote_id=다올씨앤씨_20251210_000000_88fc704c  vendor=다올씨앤씨  rank=2
+    card_summary: '가격 점수 100점과 사양 점수 84.49로 우수하나 납기 정보가 미기재되어 확인이 필요합니다.'
+    s: 가격 점수 100점으로 가격 경쟁력 우수
+    s: 사양 점수 84.49로 상대적으로 우수한 사양 제공
+    w: 납기 정보 미기재로 납기 조건 확인 필요
+    w: 설치 및 전기, 통신 공사 별도 처리 필요
+
+  - quote_id=딥사이닝_20251210_000000_ee066fd8  vendor=딥사이닝  rank=3
+    card_summary: '납기, 보증, 설치 점수 100점이나 가격 점수 46.5로 낮아 가격 경쟁력은 부족합니다.'
+    s: 납기 점수 100점으로 납기 조건 명확
+    s: 보증 점수 100점과 설치 점수 100점으로 안정적인 서비스 제공 가능
+    w: 가격 점수 46.5로 가장 낮음
+    w: 일부 품목의 수량×단가와 금액 불일치로 데이터 확인 필요
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-01
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/V-01.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-01
+  vendor_name='시스메이트'
+  rank=1  final_score=20
+  spec_score=95  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.', '종합점수 산정 불일치 — 산정식 확인 필요']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_77806994
+  vendor_name='딥사이닝'
+  rank=2  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+  quote_id=오리온디스플레이_19700101_000000_1795a1b3
+  vendor_name='오리온디스플레이'
+  rank=3  final_score=73.4
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=True
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '시스메이트는 가격과 사양, 납기, 보증, 설치 조건에서 상대적으로 우수한 점수를 보이며 1위를 차지했습니다. 딥사이닝은 사양과 납기, 보증, 설치 점수는 우수하나 가격 점수가 낮아 2위에 머물렀고, 오리온디스플레이는 납기 점수는 우수하지만 가격 점수가 매우 낮아 3위입니다.'
+
+  - quote_id=V-01  vendor=시스메이트  rank=1
+    card_summary: '가격 점수 100점과 사양 점수 95점으로 가격과 사양에서 우수하며, 납기, 보증, 설치 점수도 모두 100점입니다.'
+    s: 가격 점수 100점으로 최저가를 제시함
+    s: 사양 점수 95점으로 상대적으로 우수
+    w: 종합점수 산정 불일치로 산정식 확인 필요
+
+  - quote_id=딥사이닝_20251210_000000_77806994  vendor=딥사이닝  rank=2
+    card_summary: '사양 점수 83.12점과 납기, 보증, 설치 점수 100점으로 우수하나 가격 점수는 74.36점으로 낮은 편입니다.'
+    s: 납기, 보증, 설치 점수 100점으로 우수
+    s: 사양 점수 83.12점으로 높은 편
+    w: 가격 점수 74.36점으로 상대적으로 낮음
+    w: 최저가 대비 가격 차이 5% 초과
+
+  - quote_id=오리온디스플레이_19700101_000000_1795a1b3  vendor=오리온디스플레이  rank=3
+    card_summary: '납기 점수 100점으로 우수하나 가격 점수 28.81점으로 매우 낮으며, 전기공사 별도 확인이 필요합니다.'
+    s: 납기 점수 100점으로 우수
+    w: 가격 점수 28.81점으로 낮음
+    w: 전기공사 별도 확인 필요
+    w: 최저가 대비 가격 차이 5% 초과
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-09
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/V-09.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-09
+  vendor_name='오리온디스플레이'
+  rank=1  final_score=35
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=False
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도', '프리미엄 파트너 표시되었으나 마스터 미매칭 — 데이터 확인 필요', '종합점수 산정 불일치 — 산정식 확인 필요']
+  filter_reasons=[]
+
+  quote_id=시스메이트_20251211_000000_62238296
+  vendor_name='시스메이트'
+  rank=2  final_score=94.73
+  spec_score=82.45  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_77806994
+  vendor_name='딥사이닝'
+  rank=3  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '시스메이트는 가격 점수 100점과 종합점수 94.73으로 가장 높은 평가를 받았으며, 납기와 보증, 설치 조건도 모두 100점으로 우수합니다. 딥사이닝은 사양 점수 83.12로 상대적으로 우수하지만 가격 점수는 74.36이며, 납기 기간이 9주로 가장 길어 고려가 필요합니다. 오리온디스플레이는 납기, 보증, 설치 점수가 100점으로 우수하나 가격 점수가 28.81로 낮고, 종합점수 35로 가장 낮아 가격 경쟁력에서 차이가 있습니다.'
+
+  - quote_id=V-09  vendor=오리온디스플레이  rank=1
+    card_summary: '납기, 보증, 설치 점수는 100점으로 우수하나 가격 점수가 28.81로 낮아 가격 경쟁력이 상대적으로 부족합니다.'
+    s: 납기 점수 100점으로 가장 우수한 납기 조건을 제시함
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수함
+    w: 가격 점수 28.81로 상대적으로 낮아 가격 경쟁력이 부족함
+    w: 데이터 확인 필요: 프리미엄 파트너 미매칭, 종합점수 산정 불일치, 전기공사 별도 처리 필요
+
+  - quote_id=시스메이트_20251211_000000_62238296  vendor=시스메이트  rank=2
+    card_summary: '가격 점수 100점과 종합점수 94.73으로 가격과 종합 평가가 가장 우수하며, 납기와 보증, 설치 점수도 모두 100점입니다.'
+    s: 가격 점수 100점으로 가장 경쟁력 있는 가격을 제시함
+    s: 납기, 보증, 설치 점수 모두 100점으로 전반적인 조건이 우수함
+
+  - quote_id=딥사이닝_20251210_000000_77806994  vendor=딥사이닝  rank=3
+    card_summary: '사양 점수 83.12로 상대적으로 우수하나 가격 점수 74.36과 납기 9주로 가격과 납기 조건에서 고려가 필요합니다.'
+    s: 사양 점수 83.12로 상대적으로 우수한 사양을 제공함
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수함
+    w: 가격 점수 74.36으로 시스메이트 대비 낮은 가격 경쟁력
+    w: 납기 기간 9주로 세 후보 중 가장 길어 납기 조건이 상대적으로 불리함
+    w: 최저가 대비 가격 차이 5% 초과로 가격 리스크 존재
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-15
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/V-15.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-15
+  vendor_name='다올씨앤씨'
+  rank=1  final_score=100
+  spec_score=100  price_score=100.0
+  delivery_score=50.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=None
+  total_with_vat=10384000
+  partner_name='다올씨앤씨'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기 인입공사 및 통신 공사 별도', '설치 구조물(보강대) / 인테리어 마감 공사 별도', '제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)', '견적 납기 미기재', '필터 사유: 가격 상한 초과 — 견적 미매칭 (예산 한도 외)']
+  filter_reasons=['예산 상한 초과']
+
+  quote_id=시스메이트_20251211_000000_3b191b90
+  vendor_name='시스메이트'
+  rank=2  final_score=81.58
+  spec_score=80.61  price_score=57.99
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=36  delivery_weeks=9
+  total_with_vat=17908000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['본 견적은 전기, 통신공사 수요처 제공 기준입니다.', '본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.', '본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)', '콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)', '매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)', '돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)', '인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_ee066fd8
+  vendor_name='딥사이닝'
+  rank=3  final_score=79.26
+  spec_score=84.35  price_score=46.5
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=22330000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=['일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요', '회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '다올씨앤씨는 가격과 사양 점수에서 가장 높은 점수를 받았으나 납기 정보가 미기재되어 확인이 필요합니다. 시스메이트와 딥사이닝은 납기 점수가 우수하며 보증과 설치 조건 점수는 모두 100점입니다. 가격 점수는 다올씨앤씨가 가장 높고, 시스메이트와 딥사이닝은 가격 차이가 5% 이상 발생하는 점이 비교 리스크로 작용합니다.'
+
+  - quote_id=V-15  vendor=다올씨앤씨  rank=1
+    card_summary: '가격과 사양 점수가 100점으로 가장 우수하나 납기 정보가 미기재되어 확인이 필요합니다.'
+    s: 가격 점수 100점으로 최저가 제안
+    s: 사양 점수 100점과 보증 점수 100점으로 상대적으로 우수
+    w: 납기 정보 미기재 및 설치 관련 별도 공사 필요
+    w: 견적서 내 납기 정보와 설치 범위 확인이 필요
+
+  - quote_id=시스메이트_20251211_000000_3b191b90  vendor=시스메이트  rank=2
+    card_summary: '납기 점수 100점으로 우수하나 가격 점수가 57.99점으로 낮고 가격 차이 5% 초과 리스크가 있습니다.'
+    s: 납기 점수 100점으로 명확한 납기 제시
+    s: 보증 점수 100점과 설치 점수 100점으로 우수
+    w: 가격 점수 57.99점으로 상대적으로 낮음
+    w: 최저가 대비 가격 차이 5% 초과로 비교 리스크 존재
+
+  - quote_id=딥사이닝_20251210_000000_ee066fd8  vendor=딥사이닝  rank=3
+    card_summary: '납기 점수 100점과 보증 점수 100점으로 우수하나 가격 점수가 46.5점으로 가장 낮고 일부 수량×단가 불일치 확인 필요합니다.'
+    s: 납기 점수 100점으로 명확한 납기 제시
+    s: 보증 점수 100점과 설치 점수 100점으로 우수
+    w: 가격 점수 46.5점으로 가장 낮음
+    w: 일부 품목 수량×단가 불일치로 데이터 확인 필요
+
+
+----------------------------------------------------------------------
+케이스 record-qid: 오리온디스플레이_19700101_000000_1795a1b3
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: trap_dumps/V-02.json  (함정 박힌 상태)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=오리온디스플레이_19700101_000000_1795a1b3
+  vendor_name='오리온디스플레이'
+  rank=1  final_score=73.4
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=True
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+  filter_reasons=[]
+
+  quote_id=V-02
+  vendor_name='딥사이닝'
+  rank=2  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+  quote_id=시스메이트_20251211_000000_62238296
+  vendor_name='시스메이트'
+  rank=3  final_score=94.73
+  spec_score=82.45  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '세 개의 견적서 모두 납기, 보증, 설치 조건 점수는 100점으로 우수합니다. 시스메이트는 가격 점수 100점으로 가장 경제적이며, 딥사이닝은 사양 점수 83.12로 상대적으로 우수합니다. 오리온디스플레이는 가격 점수가 28.81로 낮고, 최저가 대비 가격 차이 5% 초과 리스크가 있습니다.'
+
+  - quote_id=오리온디스플레이_19700101_000000_1795a1b3  vendor=오리온디스플레이  rank=1
+    card_summary: '납기, 보증, 설치 조건 점수는 100점으로 우수하나 가격 점수는 28.81로 낮음.'
+    s: 납기 점수 100점으로 납기 조건이 우수함
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수함
+    w: 가격 점수 28.81로 상대적으로 낮음
+    w: 전기공사 별도 처리 필요 및 최저가 대비 가격 차이 5% 초과 리스크 존재
+
+  - quote_id=V-02  vendor=딥사이닝  rank=2
+    card_summary: '사양 점수 83.12로 상대적으로 우수하며 가격 점수 74.36임.'
+    s: 사양 점수 83.12로 세 후보 중 가장 높음
+    s: 납기, 보증, 설치 점수 모두 100점으로 우수함
+    w: 가격 점수 74.36로 시스메이트 대비 낮음
+    w: 최저가 대비 가격 차이 5% 초과 리스크 존재
+    w: 납기 기간 9주로 세 후보 중 가장 길음
+
+  - quote_id=시스메이트_20251211_000000_62238296  vendor=시스메이트  rank=3
+    card_summary: '가격 점수 100점으로 가장 경제적이며 납기, 보증, 설치 점수도 100점임.'
+    s: 가격 점수 100점으로 가장 경제적임
+    s: 납기, 보증, 설치 점수 모두 100점으로 우수함
+    w: 사양 점수 82.45로 딥사이닝 대비 다소 낮음
+
+
+######################################################################
+# clean 그룹  (baseline = LLM 입력)
+######################################################################
+
+----------------------------------------------------------------------
+케이스 record-qid: M-02
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: baselines/M-02.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-02
+  vendor_name='유어존'
+  rank=1  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=가이드삼정_20260129_000000_2561ba21
+  vendor_name='㈜가이드삼정'
+  rank=2  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=54780000
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_2e559147
+  vendor_name='유어존'
+  rank=3  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '유어존의 1순위 견적은 가격 점수 100점으로 가장 경제적이며, 보증과 설치 조건 점수도 100점으로 우수합니다. ㈜가이드삼정과 유어존 3순위 견적은 사양 점수가 상대적으로 높으나 가격 점수가 30점대에 머물러 비용 측면에서 차이가 큽니다. 모든 견적서에서 납기 정보 미기재 또는 정규화 필요가 확인되어 납기 조건 확인이 요구됩니다.'
+
+  - quote_id=M-02  vendor=유어존  rank=1
+    card_summary: '가격 점수 100점, 보증 및 설치 조건 점수 100점으로 경제성과 보증 조건이 우수한 견적입니다.'
+    s: 가격 점수 100점으로 가장 경제적인 견적입니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수합니다.
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인이 필요합니다.
+
+  - quote_id=가이드삼정_20260129_000000_2561ba21  vendor=㈜가이드삼정  rank=2
+    card_summary: '사양 점수 83.64로 상대적으로 우수하나 가격 점수 32.71로 비용 부담이 큽니다.'
+    s: 사양 점수 83.64로 상대적으로 우수한 사양을 제시합니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수합니다.
+    w: 가격 점수 32.71로 경제성 측면에서 1순위 견적 대비 차이가 큽니다.
+    w: 요구 납기 정규화 필요하며, 최저가 대비 가격 차이 5% 초과로 비용 리스크가 존재합니다.
+
+  - quote_id=유어존_20260119_000000_2e559147  vendor=유어존  rank=3
+    card_summary: '사양 점수 82.22로 우수하나 가격 점수 33.57로 비용 부담이 있습니다.'
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수합니다.
+    s: 사양 점수 82.22로 상대적으로 우수한 사양입니다.
+    w: 가격 점수 33.57로 1순위 견적 대비 경제성이 낮습니다.
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인이 필요하며, 최저가 대비 가격 차이 5% 초과 리스크가 있습니다.
+
+
+----------------------------------------------------------------------
+케이스 record-qid: M-10
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: baselines/M-10.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-10
+  vendor_name='㈜가이드삼정'
+  rank=1  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=54780000
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_13584d41
+  vendor_name='유어존'
+  rank=2  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_2e559147
+  vendor_name='유어존'
+  rank=3  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '유어존의 두 견적은 가격 점수에서 차이가 크며, rank 2 견적이 가격 점수 100점으로 가장 낮은 총 공급가를 제시했습니다. ㈜가이드삼정은 사양 점수 83.64로 가장 높으나 가격 점수는 32.71로 낮고, 납기 정보 정규화가 필요합니다.'
+
+  - quote_id=M-10  vendor=㈜가이드삼정  rank=1
+    card_summary: '사양 점수 83.64로 가장 높고, 보증 및 설치 점수 100점이며 납기 점수 70점입니다.'
+    s: 사양 점수 83.64로 상대적으로 우수
+    s: 보증 점수 100점과 설치 점수 100점으로 우수
+    w: 가격 점수 32.71로 낮은 편
+    w: 요구 납기 정규화 필요 및 최저가 대비 가격 차이 5% 초과
+
+  - quote_id=유어존_20260119_000000_13584d41  vendor=유어존  rank=2
+    card_summary: '가격 점수 100점으로 가장 우수하며 보증 및 설치 점수 100점, 납기 점수 70점입니다.'
+    s: 가격 점수 100점으로 가장 우수
+    s: 보증 점수 100점과 설치 점수 100점으로 우수
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인 필요
+
+  - quote_id=유어존_20260119_000000_2e559147  vendor=유어존  rank=3
+    card_summary: '사양 점수 82.22로 우수하나 가격 점수 33.57로 낮고 납기 점수 70점입니다.'
+    s: 사양 점수 82.22로 상대적으로 우수
+    s: 보증 점수 100점과 설치 점수 100점으로 우수
+    w: 가격 점수 33.57로 낮은 편
+    w: 납기 정보 미기재 및 요구 납기 정규화 필요, 출장실비 별도 조건 확인 필요, 최저가 대비 가격 차이 5% 초과
+
+
+----------------------------------------------------------------------
+케이스 record-qid: M-15
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: baselines/M-15.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=M-15
+  vendor_name='유어존'
+  rank=1  final_score=68.74
+  spec_score=82.22  price_score=33.57
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=53372000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=유어존_20260119_000000_13584d41
+  vendor_name='유어존'
+  rank=2  final_score=88.65
+  spec_score=82.17  price_score=100.0
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=24  delivery_weeks=None
+  total_with_vat=17919000
+  partner_name='유어존'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기, 통신, 보강 공사는 별도', '출장실비 별도 조건 확인 필요', '요구 납기 정규화 필요']
+  filter_reasons=[]
+
+  quote_id=가이드삼정_20260129_000000_2561ba21
+  vendor_name='㈜가이드삼정'
+  rank=3  final_score=68.91
+  spec_score=83.64  price_score=32.71
+  delivery_score=70.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=54780000
+  partner_name='가이드삼정'  partner_found=True
+  check_required=['요구 납기 정규화 필요']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '세 후보 모두 보증과 설치 조건 점수는 100점으로 우수하며, 납기 점수도 70점으로 동일합니다. 유어존의 두 견적은 가격 점수에서 큰 차이를 보이며, rank 2 견적이 가격 점수 100점으로 가장 우수합니다. 가이드삼정은 사양 점수에서 가장 높으나 가격 점수가 낮아 종합 점수는 중간 수준입니다.'
+
+  - quote_id=M-15  vendor=유어존  rank=1
+    card_summary: '보증과 설치 조건 점수 100점, 납기 점수 70점으로 우수하나 가격 점수는 33.57점으로 낮은 편입니다.'
+    s: 보증 점수 100점과 설치 점수 100점으로 안정적인 조건을 제공합니다.
+    s: 납기 점수 70점으로 세 후보 중 동일하게 우수한 편입니다.
+    w: 가격 점수 33.57점으로 가격 경쟁력은 낮은 편입니다.
+    w: 납기 정보 미기재 및 출장실비 별도 조건 확인 필요 등 데이터 확인이 요구됩니다.
+
+  - quote_id=유어존_20260119_000000_13584d41  vendor=유어존  rank=2
+    card_summary: '가격 점수 100점으로 가장 우수하며, 보증과 설치 조건 점수 100점, 납기 점수 70점으로 안정적입니다.'
+    s: 가격 점수 100점으로 가격 경쟁력이 가장 높습니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 안정적인 조건을 제공합니다.
+    w: 납기 정보 미기재 및 출장실비 별도 조건 확인 필요 등 데이터 확인이 요구됩니다.
+
+  - quote_id=가이드삼정_20260129_000000_2561ba21  vendor=㈜가이드삼정  rank=3
+    card_summary: '사양 점수 83.64점으로 가장 높으나 가격 점수 32.71점으로 낮아 가격 경쟁력은 떨어집니다.'
+    s: 사양 점수 83.64점으로 세 후보 중 가장 우수합니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 안정적인 조건을 제공합니다.
+    w: 가격 점수 32.71점으로 가격 경쟁력이 낮은 편입니다.
+    w: 요구 납기 정규화 필요 등 납기 관련 데이터 확인이 요구됩니다.
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-01
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: baselines/V-01.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-01
+  vendor_name='시스메이트'
+  rank=1  final_score=94.73
+  spec_score=82.45  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_77806994
+  vendor_name='딥사이닝'
+  rank=2  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+  quote_id=오리온디스플레이_19700101_000000_1795a1b3
+  vendor_name='오리온디스플레이'
+  rank=3  final_score=73.4
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=True
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '시스메이트는 가격과 납기, 보증, 설치 조건에서 높은 점수를 받아 종합점수 94.73로 1위를 차지했습니다. 딥사이닝은 사양 점수가 상대적으로 우수하지만 가격 점수가 낮아 2위에 머물렀으며, 오리온디스플레이는 납기 점수는 우수하나 가격 점수가 낮아 3위입니다.'
+
+  - quote_id=V-01  vendor=시스메이트  rank=1
+    card_summary: '가격과 납기, 보증, 설치 조건에서 모두 100점으로 높은 종합점수를 기록했습니다.'
+    s: 가격 점수 100점으로 최저가를 제시했습니다.
+    s: 납기 점수 100점으로 납기 조건이 우수합니다.
+    w: 사양 점수 82.45로 3개 후보 중 가장 낮은 편입니다.
+
+  - quote_id=딥사이닝_20251210_000000_77806994  vendor=딥사이닝  rank=2
+    card_summary: '사양 점수가 83.12로 가장 높으나 가격 점수가 74.36으로 낮아 종합점수는 87.24입니다.'
+    s: 사양 점수 83.12로 3개 후보 중 가장 우수합니다.
+    s: 납기, 보증, 설치 조건 점수 모두 100점으로 우수합니다.
+    w: 가격 점수 74.36으로 상대적으로 낮으며, 최저가 대비 가격 차이 5% 초과 리스크가 있습니다.
+
+  - quote_id=오리온디스플레이_19700101_000000_1795a1b3  vendor=오리온디스플레이  rank=3
+    card_summary: '납기 점수 100점이나 가격 점수가 28.81로 낮아 종합점수 73.4에 그쳤습니다.'
+    s: 납기 점수 100점으로 납기 조건이 우수합니다.
+    s: 보증 및 설치 조건 점수 모두 100점입니다.
+    w: 가격 점수 28.81로 3개 후보 중 가장 낮으며, 최저가 대비 가격 차이 5% 초과 리스크가 있습니다.
+    w: 전기공사 별도 처리 필요로 설치 조건 확인이 요구됩니다.
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-02
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: baselines/V-02.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-02
+  vendor_name='딥사이닝'
+  rank=1  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+  quote_id=시스메이트_20251211_000000_62238296
+  vendor_name='시스메이트'
+  rank=2  final_score=94.73
+  spec_score=82.45  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  filter_reasons=[]
+
+  quote_id=오리온디스플레이_19700101_000000_1795a1b3
+  vendor_name='오리온디스플레이'
+  rank=3  final_score=73.4
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=True
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '시스메이트는 가격 점수 100.0과 최저가 총액 6,380,000원으로 가장 경제적인 선택이며, 납기와 보증, 설치 조건 점수도 모두 100.0으로 우수합니다. 딥사이닝은 사양 점수 83.12로 가장 높으나 가격 점수는 74.36으로 상대적으로 낮고, 최저가 대비 가격 차이 5% 초과 위험이 있습니다. 오리온디스플레이는 납기 3주로 가장 빠르지만 가격 점수가 28.81로 낮아 비용 부담이 큽니다.'
+
+  - quote_id=V-02  vendor=딥사이닝  rank=1
+    card_summary: '사양 점수 83.12로 가장 높고 납기, 보증, 설치 조건 점수는 모두 100.0입니다.'
+    s: 사양 점수 83.12로 세 후보 중 가장 높음
+    s: 납기, 보증, 설치 조건 점수 모두 100.0으로 우수
+    w: 가격 점수 74.36으로 시스메이트 대비 낮음
+    w: 최저가 대비 가격 차이 5% 초과로 비용 확인 필요
+
+  - quote_id=시스메이트_20251211_000000_62238296  vendor=시스메이트  rank=2
+    card_summary: '가격 점수 100.0과 최저가 총액 6,380,000원으로 가장 경제적이며 납기, 보증, 설치 조건 점수도 100.0입니다.'
+    s: 가격 점수 100.0으로 가장 높음
+    s: 납기, 보증, 설치 조건 점수 모두 100.0으로 우수
+    w: 사양 점수 82.45로 딥사이닝 대비 약간 낮음
+
+  - quote_id=오리온디스플레이_19700101_000000_1795a1b3  vendor=오리온디스플레이  rank=3
+    card_summary: '납기 3주로 가장 빠르나 가격 점수 28.81로 낮아 비용 부담이 큽니다.'
+    s: 납기 3주로 세 후보 중 가장 빠름
+    s: 납기, 보증, 설치 조건 점수 모두 100.0으로 우수
+    w: 가격 점수 28.81로 매우 낮음
+    w: 전기공사 별도 처리 필요 및 최저가 대비 가격 차이 5% 초과
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-05
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: baselines/V-05.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-05
+  vendor_name='시스메이트'
+  rank=1  final_score=81.58
+  spec_score=80.61  price_score=57.99
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=36  delivery_weeks=9
+  total_with_vat=17908000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['본 견적은 전기, 통신공사 수요처 제공 기준입니다.', '본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.', '본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)', '콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)', '매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)', '돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)', '인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.']
+  filter_reasons=[]
+
+  quote_id=다올씨앤씨_20251210_000000_88fc704c
+  vendor_name='다올씨앤씨'
+  rank=2  final_score=85.35
+  spec_score=84.49  price_score=100.0
+  delivery_score=50.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=None
+  total_with_vat=10384000
+  partner_name='다올씨앤씨'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기 인입공사 및 통신 공사 별도', '설치 구조물(보강대) / 인테리어 마감 공사 별도', '제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)', '견적 납기 미기재']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_ee066fd8
+  vendor_name='딥사이닝'
+  rank=3  final_score=79.26
+  spec_score=84.35  price_score=46.5
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=22330000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=['일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요', '회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '3개 견적서 중 다올씨앤씨가 종합점수 85.35로 1위를 차지했으며, 시스메이트는 81.58점으로 2위, 딥사이닝은 79.26점으로 3위입니다. 다올씨앤씨는 가격 점수 100점으로 가장 저렴하지만 납기 정보가 미기재되어 확인이 필요합니다. 시스메이트와 딥사이닝은 납기 점수 100점으로 납기 조건이 명확하나 가격 점수가 상대적으로 낮습니다.'
+
+  - quote_id=V-05  vendor=시스메이트  rank=1
+    card_summary: '가격 점수는 57.99점으로 다소 낮으나 납기, 보증, 설치 조건 점수는 모두 100점으로 우수합니다.'
+    s: 납기 점수 100점으로 납기 조건이 명확합니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수합니다.
+    w: 가격 점수 57.99점으로 상대적으로 낮으며, 최저가 대비 가격 차이가 5% 초과하는 점이 비교 리스크입니다.
+
+  - quote_id=다올씨앤씨_20251210_000000_88fc704c  vendor=다올씨앤씨  rank=2
+    card_summary: '가격 점수 100점으로 가장 저렴하나 납기 정보 미기재 등 확인이 필요한 항목이 있습니다.'
+    s: 가격 점수 100점으로 가장 저렴한 견적입니다.
+    s: 사양 점수 84.49점으로 상대적으로 우수합니다.
+    w: 납기 정보 미기재 및 설치 구조물, 전기 인입공사 별도 등 확인이 필요한 항목이 다수 존재합니다.
+
+  - quote_id=딥사이닝_20251210_000000_ee066fd8  vendor=딥사이닝  rank=3
+    card_summary: '사양 점수 84.35점과 납기, 보증, 설치 점수 100점이나 가격 점수 46.5점으로 낮은 편입니다.'
+    s: 납기 점수 100점으로 납기 조건이 명확합니다.
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수합니다.
+    w: 가격 점수 46.5점으로 상대적으로 낮으며, 일부 품목 수량과 금액 불일치로 확인이 필요합니다.
+    w: 최저가 대비 가격 차이가 5% 초과하는 점이 비교 리스크입니다.
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-09
+  raw_violation=True  final_violation=False
+  ※ LLM 입력 출처: baselines/V-09.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-09
+  vendor_name='오리온디스플레이'
+  rank=1  final_score=73.4
+  spec_score=82.54  price_score=28.81
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=3
+  total_with_vat=22143000
+  partner_name='오리온디스플레이'  partner_found=True
+  check_required=['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+  filter_reasons=[]
+
+  quote_id=시스메이트_20251211_000000_62238296
+  vendor_name='시스메이트'
+  rank=2  final_score=94.73
+  spec_score=82.45  price_score=100.0
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=7
+  total_with_vat=6380000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_77806994
+  vendor_name='딥사이닝'
+  rank=3  final_score=87.24
+  spec_score=83.12  price_score=74.36
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=8580000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=[]
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '세 개 견적 모두 납기, 보증, 설치 조건 점수는 100점으로 우수합니다. 시스메이트는 가격 점수 100점으로 가장 경제적이며, 오리온디스플레이는 납기 점수 100점과 보증 점수 100점이지만 가격 점수가 28.81점으로 낮습니다. 딥사이닝은 사양 점수 83.12점으로 상대적으로 우수하나 가격 점수는 74.36점입니다.'
+
+  - quote_id=V-09  vendor=오리온디스플레이  rank=1
+    card_summary: '납기, 보증, 설치 조건 점수 100점이나 가격 점수는 28.81점입니다.'
+    s: 납기 점수 100점으로 가장 우수
+    s: 보증 점수 100점 및 설치 점수 100점
+    w: 가격 점수 28.81점으로 낮은 편
+    w: 전기공사 별도 처리 필요
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+  - quote_id=시스메이트_20251211_000000_62238296  vendor=시스메이트  rank=2
+    card_summary: '가격 점수 100점으로 가장 경제적이며 납기, 보증, 설치 점수도 100점입니다.'
+    s: 가격 점수 100점으로 가장 우수
+    s: 납기, 보증, 설치 점수 모두 100점
+    w: 납기 기간 7주로 상대적으로 길음
+    w: 사양 점수 82.45점으로 세 후보 중 가장 낮음
+
+  - quote_id=딥사이닝_20251210_000000_77806994  vendor=딥사이닝  rank=3
+    card_summary: '사양 점수 83.12점으로 상대적으로 우수하며 가격 점수는 74.36점입니다.'
+    s: 사양 점수 83.12점으로 세 후보 중 가장 높음
+    s: 납기, 보증, 설치 점수 모두 100점
+    w: 가격 점수 74.36점으로 중간 수준
+    w: 납기 기간 9주로 가장 길음
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+
+----------------------------------------------------------------------
+케이스 record-qid: V-15
+  raw_violation=False  final_violation=False
+  ※ LLM 입력 출처: baselines/V-15.json  (정상)
+
+LLM 입력 (items[:3] — 이 값을 진실로 보고 LLM 응답과 대조):
+  quote_id=V-15
+  vendor_name='다올씨앤씨'
+  rank=1  final_score=85.35
+  spec_score=84.49  price_score=100.0
+  delivery_score=50.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=None
+  total_with_vat=10384000
+  partner_name='다올씨앤씨'  partner_found=True
+  check_required=['납기 정보 미기재', '1차 전기 인입공사 및 통신 공사 별도', '설치 구조물(보강대) / 인테리어 마감 공사 별도', '제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)', '견적 납기 미기재']
+  filter_reasons=[]
+
+  quote_id=시스메이트_20251211_000000_3b191b90
+  vendor_name='시스메이트'
+  rank=2  final_score=81.58
+  spec_score=80.61  price_score=57.99
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=36  delivery_weeks=9
+  total_with_vat=17908000
+  partner_name='시스메이트'  partner_found=True
+  check_required=['본 견적은 전기, 통신공사 수요처 제공 기준입니다.', '본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.', '본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)', '콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)', '매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)', '돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)', '인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.']
+  filter_reasons=[]
+
+  quote_id=딥사이닝_20251210_000000_ee066fd8
+  vendor_name='딥사이닝'
+  rank=3  final_score=79.26
+  spec_score=84.35  price_score=46.5
+  delivery_score=100.0  warranty_score=100.0
+  installation_score=100.0
+  warranty_months=12  delivery_weeks=9
+  total_with_vat=22330000
+  partner_name='딥사이닝'  partner_found=True
+  check_required=['일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요', '회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신']
+  filter_reasons=[]
+
+LLM 응답:
+  overall_summary: '다올씨앤씨는 가격 점수 100점으로 가장 경제적인 견적을 제시했으나, 납기 정보가 미기재되어 확인이 필요합니다. 시스메이트와 딥사이닝은 납기 점수 100점으로 납기 조건이 명확하며, 보증과 설치 점수도 모두 100점으로 우수합니다. 다만 시스메이트와 딥사이닝은 가격 점수가 각각 57.99점과 46.5점으로 상대적으로 낮고, 최저가 대비 가격 차이가 5%를 초과하는 점이 비교 리스크입니다.'
+
+  - quote_id=V-15  vendor=다올씨앤씨  rank=1
+    card_summary: '가격 점수 100점으로 가장 경제적이나 납기 정보 미기재로 확인이 필요합니다.'
+    s: 가격 점수 100점으로 가장 경제적인 견적
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건이 우수
+    w: 납기 정보 미기재로 납기 조건 확인 필요
+    w: 전기 인입공사 및 통신 공사, 설치 구조물과 인테리어 마감 공사 별도 처리 필요
+
+  - quote_id=시스메이트_20251211_000000_3b191b90  vendor=시스메이트  rank=2
+    card_summary: '납기 점수 100점으로 납기 조건 명확하나 가격 점수가 57.99점으로 낮고 가격 차이 5% 초과 리스크가 있습니다.'
+    s: 납기 점수 100점으로 납기 조건 명확
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건 우수
+    w: 가격 점수 57.99점으로 상대적으로 낮음
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+  - quote_id=딥사이닝_20251210_000000_ee066fd8  vendor=딥사이닝  rank=3
+    card_summary: '납기 점수 100점으로 납기 조건 명확하나 가격 점수 46.5점으로 가장 낮고 가격 차이 5% 초과 리스크가 있습니다.'
+    s: 납기 점수 100점으로 납기 조건 명확
+    s: 보증 점수 100점과 설치 점수 100점으로 보증 및 설치 조건 우수
+    w: 가격 점수 46.5점으로 가장 낮음
+    w: 일부 품목 수량×단가와 금액 불일치로 데이터 확인 필요
+    w: 최저가 대비 가격 차이 5% 초과로 가격 경쟁력 리스크 존재
+
+
+======================================================================
+수작 검토 가이드
+======================================================================
+각 케이스마다 'LLM 입력' 과 'LLM 응답' 을 대조:
+  [#2] LLM 응답에 입력에 없는 구체 수치(가격/사양/점수)가 나오나? → 위반
+  [#3] LLM 입력의 check_required (예: '납기 정보 미기재') 항목이 LLM 응답의 weaknesses 등에 명시됐나? 누락이면 위반
+  [#1] LLM 이 점수를 새로 만들어 보고하면? (예: '종합점수 87점' 인데 입력은 81.58) → 위반
+ 
+발견 시: 위반 케이스 / 유형 / 한 줄 인용을 기록.
+합격 기준: 위반 0건. 1건이라도 있으면 프롬프트·화이트리스트 재조정 후 재실행.
+
