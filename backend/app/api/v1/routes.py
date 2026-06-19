@@ -21,7 +21,7 @@ from datetime import datetime
 from core.database import get_db
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from core.auth import verify_token
+from core.auth import verify_token, verify_admin
 
 logger = logging.getLogger(__name__)
 
@@ -703,6 +703,85 @@ async def get_project(project_id: str, db: Session = Depends(get_db), _token: di
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+# =============ADMIN 전용 API======================
+# [ADMIN-1] 전체 프로젝트 목록 + 컨펌 요청 필터
+@router.get("/admin/projects")
+async def admin_list_projects(
+    status_filter: str | None = None,
+    db: Session = Depends(get_db),
+    _token: dict = Depends(verify_admin),
+):
+    try:
+        query = """
+            SELECT project_id, status, workflow_status, company_name,
+                   location, deadline, request_text, created_at
+            FROM projects
+        """
+        params = {}
+        if status_filter:
+            query += " WHERE workflow_status = :workflow_status"
+            params["workflow_status"] = status_filter
+        query += " ORDER BY created_at DESC"
+
+        rows = db.execute(text(query), params).fetchall()
+        return {
+            "ok": True,
+            "data": [
+                {
+                    "project_id": row.project_id,
+                    "status": row.status,
+                    "workflow_status": row.workflow_status,
+                    "company_name": row.company_name,
+                    "location": row.location,
+                    "deadline": row.deadline,
+                    "request_text": row.request_text,
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                }
+                for row in rows
+            ],
+            "error": None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# [ADMIN-2] 확정 완료 처리
+@router.patch("/admin/projects/{project_id}/confirm")
+async def admin_confirm_project(
+    project_id: str,
+    db: Session = Depends(get_db),
+    _token: dict = Depends(verify_admin),
+):
+    try:
+        row = db.execute(
+            text("SELECT project_id, workflow_status FROM projects WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다.")
+        if row.workflow_status != "컨펌 요청":
+            raise HTTPException(status_code=400, detail="컨펌 요청 상태가 아닙니다.")
+
+        db.execute(
+            text("UPDATE projects SET workflow_status = '확정 완료' WHERE project_id = :project_id"),
+            {"project_id": project_id}
+        )
+        db.commit()
+        return {
+            "ok": True,
+            "data": {
+                "project_id": project_id,
+                "workflow_status": "확정 완료",
+                "updated_at": datetime.now().isoformat(),
+            },
+            "error": None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 def _parse_internal_notes(raw):
     if not raw:
         return {}
@@ -715,3 +794,4 @@ def _parse_internal_notes(raw):
         except Exception:
             return {}
     
+
