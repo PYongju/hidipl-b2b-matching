@@ -2,16 +2,21 @@ import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectListSkeleton from "../components/ProjectListSkeleton";
-import { EMPTY_PROJECTS } from "../constants/uiText";
+import { ApiError, confirmAdminProject } from "../api/apiClient";
+import { EMPTY_PROJECTS, getUserDisplayName, USER } from "../constants/uiText";
+
 const FILTER_ALL = "전체";
 const STATUS_IN_PROGRESS = "진행 중";
 const STATUS_IN_REVIEW = "검토 중";
+const STATUS_APPROVAL_REQUEST = "결재 요청";
 const STATUS_DONE = "완료";
+const WORKFLOW_APPROVAL_REQUEST = "컨펌 요청";
 
 const filterOptions = [
   FILTER_ALL,
   STATUS_IN_PROGRESS,
   STATUS_IN_REVIEW,
+  STATUS_APPROVAL_REQUEST,
   STATUS_DONE,
 ];
 
@@ -19,6 +24,7 @@ export default function ProjectListPage({
   projects,
   isLoading = false,
   loadError = "",
+  userRole = "member",
   onCreate,
   onOpenDashboard,
   onEditProject,
@@ -32,6 +38,7 @@ export default function ProjectListPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [manageMode, setManageMode] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [confirmingProjectId, setConfirmingProjectId] = useState("");
 
   useEffect(() => {
     setSelectedIds((current) =>
@@ -48,6 +55,7 @@ export default function ProjectListPage({
   const reviewCount = projects.filter(
     (project) => normalizeStatus(project.status) === STATUS_IN_REVIEW,
   ).length;
+  const approvalRequestCount = projects.filter(isApprovalRequestProject).length;
 
   const filteredProjects = projects.filter((project) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -60,6 +68,9 @@ export default function ProjectListPage({
 
     if (!matchesSearch) return false;
     if (activeFilter === FILTER_ALL) return true;
+    if (activeFilter === STATUS_APPROVAL_REQUEST) {
+      return isApprovalRequestProject(project);
+    }
     return normalizeStatus(project.status) === activeFilter;
   });
 
@@ -114,6 +125,34 @@ export default function ProjectListPage({
     setSelectedIds([]);
   };
 
+  const handleAdminConfirm = async (projectId) => {
+    setConfirmingProjectId(projectId);
+    try {
+      await confirmAdminProject(projectId);
+      if (onReloadProjects) {
+        await onReloadProjects();
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 400) {
+          window.alert("이미 처리된 요청입니다.");
+          if (onReloadProjects) {
+            await onReloadProjects();
+          }
+        } else if (error.status === 404) {
+          window.alert("프로젝트를 찾을 수 없습니다.");
+          if (onReloadProjects) {
+            await onReloadProjects();
+          }
+        }
+      } else {
+        console.error("프로젝트 승인 실패:", error);
+      }
+    } finally {
+      setConfirmingProjectId("");
+    }
+  };
+
   return (
     <div className="flow-page">
       <FlowTopbar
@@ -122,8 +161,8 @@ export default function ProjectListPage({
           <>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }
@@ -158,6 +197,10 @@ export default function ProjectListPage({
           <article>
             <b className="orange-text">{reviewCount}</b>
             <span>{STATUS_IN_REVIEW}</span>
+          </article>
+          <article>
+            <b className="approval-text">{approvalRequestCount}</b>
+            <span>{STATUS_APPROVAL_REQUEST}</span>
           </article>
           <article>
             <b className="green-text">{completedCount}</b>
@@ -250,7 +293,9 @@ export default function ProjectListPage({
           ) : (
             filteredProjects.map((project) => {
               const isSelected = selectedIds.includes(project.id);
-              const normalizedStatus = normalizeStatus(project.status);
+              const workflowStatus = project.data?.workflowStatus ?? "";
+              const statusLabel = getProjectCardStatusLabel(project);
+              const statusTone = getProjectCardStatusTone(project);
 
               return (
               <article
@@ -293,7 +338,21 @@ export default function ProjectListPage({
                     <span className="history-card-id">{project.id}</span>
                   </div>
                   <div className="history-card-actions">
-                    <Badge tone={project.statusTone}>{normalizedStatus}</Badge>
+                    <Badge tone={statusTone}>{statusLabel}</Badge>
+                    {userRole === "admin" &&
+                      workflowStatus === WORKFLOW_APPROVAL_REQUEST && (
+                      <button
+                        className="button button-small"
+                        disabled={confirmingProjectId === project.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleAdminConfirm(project.id);
+                        }}
+                        type="button"
+                      >
+                        승인
+                      </button>
+                    )}
                     {!manageMode && (
                       <div className="project-menu-wrap">
                         <button
@@ -416,6 +475,41 @@ export default function ProjectListPage({
       )}
     </div>
   );
+}
+
+function isApprovalRequestProject(project) {
+  return (project.data?.workflowStatus ?? "") === WORKFLOW_APPROVAL_REQUEST;
+}
+
+function getWorkflowStatusBadgeLabel(workflowStatus) {
+  if (workflowStatus === "컨펌 요청") return "결재 요청";
+  if (workflowStatus === "확정 완료") return "확정 완료";
+  if (workflowStatus === "completed" || workflowStatus === "완료") return "완료";
+  return workflowStatus;
+}
+
+function isWorkflowStatusBadge(workflowStatus) {
+  return (
+    workflowStatus === "컨펌 요청" ||
+    workflowStatus === "확정 완료" ||
+    workflowStatus === "completed" ||
+    workflowStatus === "완료"
+  );
+}
+
+function getProjectCardStatusLabel(project) {
+  const workflowStatus = project.data?.workflowStatus ?? "";
+  if (isWorkflowStatusBadge(workflowStatus)) {
+    return getWorkflowStatusBadgeLabel(workflowStatus);
+  }
+  return normalizeStatus(project.status);
+}
+
+function getProjectCardStatusTone(project) {
+  const workflowStatus = project.data?.workflowStatus ?? "";
+  if (workflowStatus === "컨펌 요청") return "purple";
+  if (workflowStatus === "확정 완료") return "green";
+  return project.statusTone;
 }
 
 function normalizeStatus(value) {

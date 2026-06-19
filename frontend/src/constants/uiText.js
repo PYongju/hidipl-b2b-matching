@@ -14,6 +14,10 @@ export const USER = {
   team: "구매검토팀",
 };
 
+export function getUserDisplayName(userRole) {
+  return userRole === "admin" ? "김관리자" : USER.name;
+}
+
 // 핵심 용어 (가이드 §4 — 한 개념엔 한 단어)
 export const TERMS = {
   supplier: "공급사",
@@ -38,10 +42,22 @@ export const PARSE_FAIL_NOTE =
 
 // 최종 선정 (가이드 §원칙4 — 되돌릴 수 없는 행위의 결과 안내)
 export const FINAL_SELECTION = {
-  dialogTitle: "최종 선정 공급사 확정",
-  dialogResult: "확정 후 비교 결과는 잠기며 고객 보고서에 반영돼요.",
+  dialogTitle: "최종 선정 확정",
+  dialogMessage: "업체를 최종 선정 업체로 확정하시겠습니까?",
+  toast: "최종 선정이 확정됐어요.",
   doneEmotion: "최종 선정을 마쳤어요. 수고하셨어요.",
-  statusChanged: "프로젝트 상태가 검토 완료로 바뀌었어요.",
+  statusChanged: "프로젝트 상태가 확정 완료로 바뀌었어요.",
+  noPermission: "최종 선정 확정 권한이 없어요.",
+  noPermissionTitle: "권한 없음",
+};
+
+export const REVIEW_COMPLETE = {
+  dialogTitle: "검토 완료",
+  dialogMessage: "검토를 완료하고 결재를 요청할까요?",
+  dialogResult: "완료하면 관리자 결재 목록에 요청이 등록돼요.",
+  toast: "결재 요청이 완료되었습니다.",
+  doneEmotion: "결재 요청을 보냈어요.",
+  statusChanged: "프로젝트 목록에서 결재 진행 상태를 확인할 수 있어요.",
 };
 
 // 빈 상태 + 첫 행동 CTA (가이드 §원칙5, #12)

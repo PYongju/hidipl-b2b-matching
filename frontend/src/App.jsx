@@ -13,8 +13,10 @@ import PartnerMatchingLoadingModal from "./components/PartnerMatchingLoadingModa
 import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
+  ApiError,
   createProject,
   deleteProjects as deleteProjectsApi,
+  fetchAdminProjects,
   fetchCandidateVendors,
   fetchProject,
   fetchProjectMatches,
@@ -132,6 +134,30 @@ async function runPartnerMatchingStep(step, setStep, action) {
   return result;
 }
 
+async function detectUserRole() {
+  try {
+    await fetchAdminProjects();
+    return "admin";
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      return "member";
+    }
+    console.error("역할 확인 실패:", error);
+    return "member";
+  }
+}
+
+function resolveWorkflowStatusFromServer(item) {
+  if (item.workflow_status === "completed") return "완료";
+  if (
+    item.workflow_status === "컨펌 요청" ||
+    item.workflow_status === "확정 완료"
+  ) {
+    return item.workflow_status;
+  }
+  return getWorkflowStatusFromServerStatus(item.status);
+}
+
 export default function App() {
   const savedSession = readSavedSession();
   const isAuthenticated = msalInstance.getAllAccounts().length > 0;
@@ -157,6 +183,7 @@ export default function App() {
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
   const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [userRole, setUserRole] = useState(null);
   const [projectsLoading, setProjectsLoading] = useState(
     () => savedSession.screen === "projects",
   );
@@ -407,10 +434,7 @@ export default function App() {
               reviewMemo: resolveReviewMemo({ projectApiId: projectId }),
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus:
-                item.workflow_status === "completed"
-                  ? "완료"
-                  : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: resolveWorkflowStatusFromServer(item),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -572,17 +596,24 @@ export default function App() {
   };
 
   useEffect(() => {
-    msalReady.then((result) => {
-      if (result && result.account) {
-        setScreen("projects");
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     let ignore = false;
 
     (async () => {
+      await msalReady;
+
+      if (msalInstance.getAllAccounts().length === 0) {
+        if (!ignore) {
+          setUserRole(null);
+          setRestoring(false);
+        }
+        return;
+      }
+
+      const role = await detectUserRole();
+      if (ignore) return;
+
+      setUserRole(role);
+
       if (shouldRestoreSession) {
         try {
           await restoreProjectSession(
@@ -604,9 +635,9 @@ export default function App() {
         return;
       }
 
-      if (savedSession.screen === "projects" || screen === "projects") {
-        await loadProjects();
-      }
+      await loadProjects();
+      setScreen("projects");
+      persistAppSession("projects");
       if (!ignore) {
         setRestoring(false);
       }
@@ -976,7 +1007,9 @@ export default function App() {
     }
   };
 
-  if (restoring) {
+  const rolePending = isAuthenticated && userRole === null;
+
+  if (restoring || rolePending) {
     return (
       <div
         aria-busy="true"
@@ -1003,6 +1036,7 @@ export default function App() {
         isLoading={projectsLoading}
         loadError={projectsLoadError}
         projects={projects}
+        userRole={userRole}
         onCreate={startNewProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
@@ -1070,6 +1104,7 @@ export default function App() {
         <ProjectRequirementsPage
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
           projectData={projectData}
+          userRole={userRole}
           onBack={goToProjects}
           onGoHome={goHome}
           onGoProjects={goToProjects}
@@ -1128,6 +1163,7 @@ export default function App() {
     return (
       <PartnerMatchingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => {
           setScreen("requirements");
           updateProjectData((current) => ({
@@ -1146,6 +1182,7 @@ export default function App() {
     return (
       <QuoteWaitingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => setScreen("partnerMatching")}
         onGoDashboard={goQuoteReviewLoading}
         onGoHome={goHome}
@@ -1158,6 +1195,7 @@ export default function App() {
     return (
       <QuoteReviewLoadingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => setScreen("quoteWaiting")}
         onComplete={openDashboardAfterMatch}
         onGoHome={goHome}
@@ -1170,6 +1208,7 @@ export default function App() {
     <DashboardPage
       onBack={() => setScreen("quoteWaiting")}
       projectData={projectData}
+      userRole={userRole}
       onGoProjects={goToProjects}
       onProjectDataChange={updateProjectData}
     />
@@ -1194,8 +1233,9 @@ function resolveRestoredScreen(projectData, savedScreen) {
 }
 
 function getProjectStatusTone(status) {
-  if (status === "완료") return "green";
+  if (status === "완료" || status === "확정 완료") return "green";
   if (status === "검토 중") return "orange";
+  if (status === "컨펌 요청") return "purple";
   return "blue";
 }
 
@@ -1206,13 +1246,16 @@ function mergeServerProjectData(localData, serverProject) {
     serverStatus,
     localData.lastScreen,
   );
+  const serverWorkflow = serverProject?.workflow_status;
   const workflowStatus =
     localData.workflowStatus === "완료"
       ? "완료"
-      : getWorkflowStatusFromServerStatus(
-          serverStatus,
-          localData.workflowStatus,
-        );
+      : serverWorkflow === "컨펌 요청" || serverWorkflow === "확정 완료"
+        ? serverWorkflow
+        : getWorkflowStatusFromServerStatus(
+            serverStatus,
+            localData.workflowStatus,
+          );
   const requestText = serverProject?.request_text ?? localData.requestText;
   const parsedFields = applyParsedRequestTextToProjectData(
     localData,

@@ -1014,6 +1014,12 @@ button {
   color: #c2410c;
 }
 
+.badge-purple {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
 .badge-red {
   border-color: #fecaca;
   background: #fef2f2;
@@ -1711,6 +1717,20 @@ textarea {
   background: #fff;
 }
 
+.button.button-looks-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  color: #94a3b8;
+  border-color: #dbe3ee;
+  background: #f8fafc;
+}
+
+.button.button-looks-disabled:hover {
+  color: #94a3b8;
+  border-color: #dbe3ee;
+  background: #f8fafc;
+}
+
 .action-primary {
   border-color: #1d4ed8;
   background: #1557d9;
@@ -2084,10 +2104,7 @@ textarea {
 
 .flow-stats {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(100%, max(240px, calc((100% - 42px) / 4))), 1fr)
-  );
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 22px;
   width: 100%;
@@ -2136,6 +2153,10 @@ textarea {
 
 .orange-text {
   color: #d97706 !important;
+}
+
+.approval-text {
+  color: #7c3aed !important;
 }
 
 .project-tools-wrap {
@@ -2220,7 +2241,7 @@ textarea {
 .project-card-grid {
   display: grid;
   grid-template-columns: repeat(
-    auto-fit,
+    auto-fill,
     minmax(min(100%, max(280px, calc((100% - 32px) / 3))), 1fr)
   );
   gap: 16px;

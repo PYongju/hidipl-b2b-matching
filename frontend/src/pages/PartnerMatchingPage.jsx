@@ -14,6 +14,7 @@ import {
   buildProjectInfoSummary,
   formatProjectSolutions,
 } from "../utils/projectRequestText";
+import { getUserDisplayName, USER } from "../constants/uiText";
 
 const DEFAULT_VISIBLE_PARTNERS = 15;
 const REQUEST_PANEL_SCROLL_THRESHOLD = 7;
@@ -230,6 +231,7 @@ export default function PartnerMatchingPage({
   onGoDashboard,
   onProjectDataChange,
   onGoHome,
+  userRole = "member",
 }) {
   const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
   const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
@@ -632,8 +634,8 @@ export default function PartnerMatchingPage({
             </button>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }
