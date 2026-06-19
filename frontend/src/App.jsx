@@ -3,6 +3,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { msalInstance } from "./auth/msalInstance";
 import { msalReady } from "./auth/msalInstance";
 import LoginPage from "./pages/LoginPage";
+import AdminProjectListPage from "./pages/AdminProjectListPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
 import ProjectRequirementsPage from "./pages/ProjectRequirementsPage";
@@ -397,10 +398,47 @@ export default function App() {
     }
   };
 
-  const loadProjects = async () => {
+  const buildAdminProjectListItem = (item) => {
+    const projectId = resolveServerProjectId(item);
+    if (!projectId) return null;
+
+    return {
+      id: projectId,
+      name: item.company_name ?? "",
+      companyName: item.company_name ?? "",
+      status: item.status ?? "",
+      workflowStatus: item.workflow_status ?? "",
+      location: item.location ?? "",
+      deadline: item.deadline ?? "",
+      createdAt: item.created_at ?? "",
+      data: {
+        projectApiId: projectId,
+        projectId,
+        companyName: item.company_name ?? "",
+        location: item.location ?? "",
+        projectDate: item.deadline ?? "",
+        serverStatus: item.status,
+        workflowStatus: resolveWorkflowStatusFromServer(item),
+        currentStage: getCurrentStageFromServerStatus(item.status),
+      },
+    };
+  };
+
+  const loadProjects = async (options = {}) => {
+    const role = options.role ?? userRole;
+    const statusFilter = options.statusFilter ?? null;
     setProjectsLoading(true);
 
     try {
+      if (role === "admin") {
+        const list = await fetchAdminProjects(statusFilter);
+        const items = Array.isArray(list) ? list : [];
+        const mappedProjects = items.map(buildAdminProjectListItem).filter(Boolean);
+        setProjectsLoadError("");
+        setProjects(mappedProjects);
+        return mappedProjects;
+      }
+
       const list = await fetchProjects();
       const items = normalizeProjectsResponse(list);
 
@@ -540,9 +578,13 @@ export default function App() {
     setEditingProjectId(id);
   };
 
-  const restoreProjectSession = async (savedProjectApiId, savedScreen) => {
+  const restoreProjectSession = async (
+    savedProjectApiId,
+    savedScreen,
+    role = userRole,
+  ) => {
     resetSaveScope();
-    const loadedProjects = await loadProjects();
+    const loadedProjects = await loadProjects({ role });
     const cachedProject = loadedProjects.find(
       (project) =>
         project.id === savedProjectApiId ||
@@ -578,7 +620,7 @@ export default function App() {
   };
 
   const goToProjects = async () => {
-    await loadProjects();
+    await loadProjects({ role: userRole });
     setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
@@ -589,7 +631,7 @@ export default function App() {
       ...current,
       lastScreen: screen,
     }));
-    await loadProjects();
+    await loadProjects({ role: userRole });
     setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
@@ -619,11 +661,12 @@ export default function App() {
           await restoreProjectSession(
             savedSession.projectApiId,
             savedSession.screen,
+            role,
           );
         } catch (error) {
           console.error("분석 실행 실패:", error);
           if (!ignore) {
-            await loadProjects();
+            await loadProjects({ role });
             setScreen("projects");
             persistAppSession("projects");
           }
@@ -635,7 +678,7 @@ export default function App() {
         return;
       }
 
-      await loadProjects();
+      await loadProjects({ role });
       setScreen("projects");
       persistAppSession("projects");
       if (!ignore) {
@@ -1031,18 +1074,32 @@ export default function App() {
 
   // 6/12 백엔드 작업 반영
   if (screen === "projects") {
+    if (userRole === "admin") {
+      return (
+        <AdminProjectListPage
+          isLoading={projectsLoading}
+          loadError={projectsLoadError}
+          projects={projects}
+          onGoHome={goHome}
+          onOpenProject={openProjectFromList}
+          onReloadProjects={(options) =>
+            loadProjects({ role: "admin", ...options })
+          }
+        />
+      );
+    }
+
     return (
       <ProjectListPage
         isLoading={projectsLoading}
         loadError={projectsLoadError}
         projects={projects}
-        userRole={userRole}
         onCreate={startNewProject}
         onDeleteProjects={deleteProjects}
         onEditProject={editProject}
         onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
-        onReloadProjects={loadProjects}
+        onReloadProjects={() => loadProjects({ role: "member" })}
       />
     );
   }

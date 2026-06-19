@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectListSkeleton from "../components/ProjectListSkeleton";
-import { ApiError, confirmAdminProject } from "../api/apiClient";
 import { EMPTY_PROJECTS, getUserDisplayName, USER } from "../constants/uiText";
 
 const FILTER_ALL = "전체";
@@ -24,7 +23,6 @@ export default function ProjectListPage({
   projects,
   isLoading = false,
   loadError = "",
-  userRole = "member",
   onCreate,
   onOpenDashboard,
   onEditProject,
@@ -38,7 +36,6 @@ export default function ProjectListPage({
   const [searchTerm, setSearchTerm] = useState("");
   const [manageMode, setManageMode] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [confirmingProjectId, setConfirmingProjectId] = useState("");
 
   useEffect(() => {
     setSelectedIds((current) =>
@@ -125,34 +122,6 @@ export default function ProjectListPage({
     setSelectedIds([]);
   };
 
-  const handleAdminConfirm = async (projectId) => {
-    setConfirmingProjectId(projectId);
-    try {
-      await confirmAdminProject(projectId);
-      if (onReloadProjects) {
-        await onReloadProjects();
-      }
-    } catch (error) {
-      if (error instanceof ApiError) {
-        if (error.status === 400) {
-          window.alert("이미 처리된 요청입니다.");
-          if (onReloadProjects) {
-            await onReloadProjects();
-          }
-        } else if (error.status === 404) {
-          window.alert("프로젝트를 찾을 수 없습니다.");
-          if (onReloadProjects) {
-            await onReloadProjects();
-          }
-        }
-      } else {
-        console.error("프로젝트 승인 실패:", error);
-      }
-    } finally {
-      setConfirmingProjectId("");
-    }
-  };
-
   return (
     <div className="flow-page">
       <FlowTopbar
@@ -161,7 +130,7 @@ export default function ProjectListPage({
           <>
             <div className="avatar" />
             <div className="user-name">
-              <b>{getUserDisplayName(userRole)}</b>
+              <b>{getUserDisplayName("member")}</b>
               <small>{USER.team}</small>
             </div>
           </>
@@ -185,26 +154,26 @@ export default function ProjectListPage({
           </button>
         </section>
 
-        <section className="flow-stats">
-          <article>
-            <b>{projects.length}</b>
+        <section className="flow-stats project-summary-stats">
+          <article className="project-summary-stat project-summary-stat-total">
             <span>전체 프로젝트</span>
+            <b>{projects.length}</b>
           </article>
-          <article>
-            <b className="blue-text">{activeCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_IN_PROGRESS}</span>
+            <b className="blue-text">{activeCount}</b>
           </article>
-          <article>
-            <b className="orange-text">{reviewCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_IN_REVIEW}</span>
+            <b className="orange-text">{reviewCount}</b>
           </article>
-          <article>
-            <b className="approval-text">{approvalRequestCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_APPROVAL_REQUEST}</span>
+            <b className="approval-text">{approvalRequestCount}</b>
           </article>
-          <article>
-            <b className="green-text">{completedCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_DONE}</span>
+            <b className="green-text">{completedCount}</b>
           </article>
         </section>
 
@@ -293,7 +262,6 @@ export default function ProjectListPage({
           ) : (
             filteredProjects.map((project) => {
               const isSelected = selectedIds.includes(project.id);
-              const workflowStatus = project.data?.workflowStatus ?? "";
               const statusLabel = getProjectCardStatusLabel(project);
               const statusTone = getProjectCardStatusTone(project);
 
@@ -339,20 +307,6 @@ export default function ProjectListPage({
                   </div>
                   <div className="history-card-actions">
                     <Badge tone={statusTone}>{statusLabel}</Badge>
-                    {userRole === "admin" &&
-                      workflowStatus === WORKFLOW_APPROVAL_REQUEST && (
-                      <button
-                        className="button button-small"
-                        disabled={confirmingProjectId === project.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleAdminConfirm(project.id);
-                        }}
-                        type="button"
-                      >
-                        승인
-                      </button>
-                    )}
                     {!manageMode && (
                       <div className="project-menu-wrap">
                         <button
@@ -483,7 +437,7 @@ function isApprovalRequestProject(project) {
 
 function getWorkflowStatusBadgeLabel(workflowStatus) {
   if (workflowStatus === "컨펌 요청") return "결재 요청";
-  if (workflowStatus === "확정 완료") return "확정 완료";
+  if (workflowStatus === "확정 완료") return "승인 완료";
   if (workflowStatus === "completed" || workflowStatus === "완료") return "완료";
   return workflowStatus;
 }

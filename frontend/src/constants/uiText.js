@@ -10,12 +10,12 @@ export const BRAND = {
 
 // 사용자 호칭 (가이드 §1 — 구매검토팀으로 통일)
 export const USER = {
-  name: "김담당자",
+  name: "김과장",
   team: "구매검토팀",
 };
 
 export function getUserDisplayName(userRole) {
-  return userRole === "admin" ? "김관리자" : USER.name;
+  return userRole === "admin" ? "김부장" : USER.name;
 }
 
 // 핵심 용어 (가이드 §4 — 한 개념엔 한 단어)
@@ -46,7 +46,7 @@ export const FINAL_SELECTION = {
   dialogMessage: "업체를 최종 선정 업체로 확정하시겠습니까?",
   toast: "최종 선정이 확정됐어요.",
   doneEmotion: "최종 선정을 마쳤어요. 수고하셨어요.",
-  statusChanged: "프로젝트 상태가 확정 완료로 바뀌었어요.",
+  statusChanged: "프로젝트 상태가 승인 완료로 바뀌었어요.",
   noPermission: "최종 선정 확정 권한이 없어요.",
   noPermissionTitle: "권한 없음",
 };
