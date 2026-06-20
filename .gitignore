@@ -35,3 +35,6 @@ data/*.jpeg
 # OS
 .DS_Store
 Thumbs.db
+
+# Design
+DESIGN.md

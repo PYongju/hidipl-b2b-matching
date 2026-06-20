@@ -7,6 +7,7 @@ import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
 import { buildProjectInfoSummary } from "../utils/projectRequestText";
+import { getUserDisplayName, USER } from "../constants/uiText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
@@ -35,6 +36,7 @@ export default function QuoteWaitingPage({
   onGoDashboard,
   onProjectDataChange,
   onGoHome,
+  userRole = "member",
 }) {
   const [selectedFiles, setSelectedFiles] = useState(
     projectData.quoteFiles ?? [],
@@ -201,8 +203,8 @@ export default function QuoteWaitingPage({
             </button>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }

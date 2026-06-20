@@ -5,7 +5,7 @@ import Badge from "../components/Badge";
 import BrandHomeButton from "../components/BrandHomeButton";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
-import { saveInternalNotes, updateProject } from "../api/apiClient";
+import { confirmAdminProject, saveInternalNotes, updateProject } from "../api/apiClient";
 import { getStatusUi } from "../utils/statusMap";
 import {
   applyCompareCellOverride,
@@ -20,9 +20,24 @@ import {
   AI_COMPARE_NOTICE,
   AI_FALLBACK_NOTICE,
   FINAL_SELECTION,
+  getUserDisplayName,
+  REVIEW_COMPLETE,
+  USER,
 } from "../constants/uiText";
 
 const VISIBLE_SUPPLIER_COUNT = 3;
+
+function isSelectionFinalizedStatus(workflowStatus) {
+  return (
+    workflowStatus === "완료" ||
+    workflowStatus === "컨펌 요청" ||
+    workflowStatus === "확정 완료"
+  );
+}
+
+function isAdminSelectionComplete(workflowStatus) {
+  return workflowStatus === "완료" || workflowStatus === "확정 완료";
+}
 
 /** 미기재로 간주하는 셀 표시값 */
 const MISSING_COMPARE_CELL_VALUES = ["-", "미기재", "—"];
@@ -129,6 +144,7 @@ export default function DashboardPage({
   onBack,
   onGoProjects,
   onProjectDataChange,
+  userRole = "member",
 }) {
   const [selectedSupplierId, setSelectedSupplierId] = useState(
     projectData.selectedSupplierId ?? "",
@@ -166,9 +182,12 @@ export default function DashboardPage({
     [comparisonSections],
   );
   const [openSections, setOpenSections] = useState(defaultOpenSections);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [permissionDeniedOpen, setPermissionDeniedOpen] = useState(false);
+  const [successFeedback, setSuccessFeedback] = useState(FINAL_SELECTION);
+  const [confirmInProgress, setConfirmInProgress] = useState(false);
   const [selectionFinalized, setSelectionFinalized] = useState(
-    projectData.workflowStatus === "완료",
+    isSelectionFinalizedStatus(projectData.workflowStatus),
   );
   const [toastVisible, setToastVisible] = useState(false);
   const [followupVisible, setFollowupVisible] = useState(false);
@@ -251,7 +270,7 @@ export default function DashboardPage({
   }, [projectData.selectedSupplierId, selectableSuppliers]);
 
   useEffect(() => {
-    setSelectionFinalized(projectData.workflowStatus === "완료");
+    setSelectionFinalized(isSelectionFinalizedStatus(projectData.workflowStatus));
   }, [projectData.workflowStatus]);
 
   useEffect(() => {
@@ -567,26 +586,96 @@ export default function DashboardPage({
 
   const memoValue = isMemoEditing ? draftMemo : reviewMemo;
 
-  const confirmSelection = () => {
-    setConfirmOpen(false);
-    setSelectionFinalized(true);
-    setFollowupVisible(true);
-    setToastVisible(true);
-    onProjectDataChange?.((current) => ({
-      ...current,
-      currentStage: "검토 완료",
-      selectedSupplierId,
-      selectedVendor: selectedSupplier?.name ?? "",
-      workflowStatus: "완료",
-      lastScreen: "dashboard",
-    }));
+  const canExportReport = explanationState === "ready";
+  const projectInfoSummary = buildProjectInfoSummary(projectData);
+  const isMember = userRole !== "admin";
+  const workflowStatus = projectData.workflowStatus ?? "";
+  const isApprovalPending = workflowStatus === "컨펌 요청";
+  const isAdminSelectionDone = isAdminSelectionComplete(workflowStatus);
+  const confirmCopy =
+    confirmAction === "review-complete" ? REVIEW_COMPLETE : FINAL_SELECTION;
+  const finalSelectionConfirmMessage = (() => {
+    const vendorName = selectedSupplier?.name?.trim();
+    if (!vendorName) return FINAL_SELECTION.dialogMessage;
+    return `${withObjectParticle(vendorName)} 최종 선정 업체로 확정하시겠습니까?`;
+  })();
+
+  const submitApprovalRequest = async () => {
     const apiProjectId = projectData.projectApiId ?? projectData.projectId;
-    if (apiProjectId) {
-      updateProject(apiProjectId, { workflow_status: "completed" }).catch(
-        (error) => console.error("완료 상태 저장 실패:", error),
+    if (!apiProjectId) return;
+
+    setConfirmInProgress(true);
+    try {
+      await updateProject(apiProjectId, { workflow_status: "컨펌 요청" });
+      setConfirmAction(null);
+      setSuccessFeedback(REVIEW_COMPLETE);
+      setSelectionFinalized(true);
+      setFollowupVisible(true);
+      setToastVisible(true);
+      onProjectDataChange?.(
+        (current) => ({
+          ...current,
+          currentStage: "결재 요청",
+          selectedSupplierId,
+          selectedVendor: selectedSupplier?.name ?? "",
+          workflowStatus: "컨펌 요청",
+          lastScreen: "dashboard",
+        }),
+        {
+          status: "컨펌 요청",
+          statusTone: "purple",
+          desc: "결재 요청",
+        },
       );
+      window.setTimeout(() => setToastVisible(false), 3200);
+    } catch (error) {
+      console.error("결재 요청 실패:", error);
+    } finally {
+      setConfirmInProgress(false);
     }
-    window.setTimeout(() => setToastVisible(false), 3200);
+  };
+
+  const submitAdminFinalSelection = async () => {
+    const apiProjectId = projectData.projectApiId ?? projectData.projectId;
+    if (!apiProjectId) return;
+
+    setConfirmInProgress(true);
+    try {
+      await confirmAdminProject(apiProjectId);
+      setConfirmAction(null);
+      setSuccessFeedback(FINAL_SELECTION);
+      setSelectionFinalized(true);
+      setFollowupVisible(true);
+      setToastVisible(true);
+      onProjectDataChange?.(
+        (current) => ({
+          ...current,
+          currentStage: "확정 완료",
+          selectedSupplierId,
+          selectedVendor: selectedSupplier?.name ?? "",
+          workflowStatus: "확정 완료",
+          lastScreen: "dashboard",
+        }),
+        {
+          status: "확정 완료",
+          statusTone: "green",
+          desc: "확정 완료",
+        },
+      );
+      window.setTimeout(() => setToastVisible(false), 3200);
+    } catch (error) {
+      console.error("최종 선정 확정 실패:", error);
+    } finally {
+      setConfirmInProgress(false);
+    }
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (confirmAction === "admin-approve") {
+      await submitAdminFinalSelection();
+      return;
+    }
+    await submitApprovalRequest();
   };
 
   const handleExportToExcel = () => {
@@ -601,9 +690,6 @@ export default function DashboardPage({
       compareCellOverrides,
     });
   };
-
-  const canExportReport = explanationState === "ready";
-  const projectInfoSummary = buildProjectInfoSummary(projectData);
 
   return (
     <div className="app-shell">
@@ -638,14 +724,18 @@ export default function DashboardPage({
               title="상태는 화면 진행에 따라 자동으로 반영돼요."
               type="button"
             >
-              {selectionFinalized ? "검토 완료" : "검토 진행 중"}
+              {isAdminSelectionDone
+                ? "선정 완료"
+                : selectionFinalized
+                  ? "검토 완료"
+                  : "검토 진행 중"}
             </button>
           </div>
           <AutoSaveStatus status={autoSaveStatus} />
           <div className="avatar" />
           <div className="user-name">
-            <b>김담당자</b>
-            <small>구매검토팀</small>
+            <b>{getUserDisplayName(userRole)}</b>
+            <small>{USER.team}</small>
           </div>
         </div>
       </header>
@@ -725,7 +815,13 @@ export default function DashboardPage({
             >
               ✎
             </button>
-            <Badge>{selectionFinalized ? "검토 완료" : "견적 검토"}</Badge>
+            <Badge>
+              {isAdminSelectionDone
+                ? "선정 완료"
+                : selectionFinalized
+                  ? "검토 완료"
+                  : "견적 검토"}
+            </Badge>
           </div>
         </section>
 
@@ -1074,48 +1170,110 @@ export default function DashboardPage({
           >
             고객 보고서로 내보내기
           </button>
-          <button
-            className={
-              selectionFinalized
-                ? "button selection-complete-button"
-                : "button action-primary"
-            }
-            disabled={selectionFinalized || !selectedSupplier}
-            onClick={() => setConfirmOpen(true)}
-            type="button"
-          >
-            {selectionFinalized ? "선정 완료" : "최종 선정 확정"}
-          </button>
+          {isMember ? (
+            <>
+              <button
+                className="button action-secondary button-looks-disabled"
+                onClick={() => setPermissionDeniedOpen(true)}
+                type="button"
+              >
+                최종 선정 확정
+              </button>
+              <button
+                className={
+                  selectionFinalized
+                    ? "button selection-complete-button"
+                    : "button action-primary"
+                }
+                disabled={selectionFinalized || !selectedSupplier}
+                onClick={() => setConfirmAction("review-complete")}
+                type="button"
+              >
+                {selectionFinalized ? "결재 요청됨" : "검토 완료"}
+              </button>
+            </>
+          ) : (
+            <button
+              className={
+                isAdminSelectionDone
+                  ? "button selection-complete-button"
+                  : isApprovalPending
+                    ? "button action-primary"
+                    : "button action-secondary button-looks-disabled"
+              }
+              disabled={isAdminSelectionDone || !isApprovalPending}
+              onClick={() => setConfirmAction("admin-approve")}
+              title={
+                !isApprovalPending && !isAdminSelectionDone
+                  ? "결재 요청된 프로젝트만 최종 선정할 수 있어요."
+                  : undefined
+              }
+              type="button"
+            >
+              {isAdminSelectionDone ? "선정 완료" : "최종 선정 확정"}
+            </button>
+          )}
         </footer>
       )}
-      {confirmOpen && (
+      {permissionDeniedOpen && (
         <div className="confirm-layer" role="presentation">
           <div
             className="confirm-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label="최종 선정 확인"
+            aria-labelledby="permission-denied-title"
           >
-            <h2>{FINAL_SELECTION.dialogTitle}</h2>
+            <h2 id="permission-denied-title">{FINAL_SELECTION.noPermissionTitle}</h2>
+            <p>{FINAL_SELECTION.noPermission}</p>
+            <div className="confirm-actions">
+              <button
+                className="button action-primary"
+                onClick={() => setPermissionDeniedOpen(false)}
+                type="button"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {confirmAction && (
+        <div className="confirm-layer" role="presentation">
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={confirmCopy.dialogTitle}
+          >
+            <h2>{confirmCopy.dialogTitle}</h2>
             <p>
-              {withObjectParticle(selectedSupplier?.name ?? "")} 최종 선정
-              공급사로 확정할까요?
+              {confirmAction === "review-complete"
+                ? confirmCopy.dialogMessage
+                : finalSelectionConfirmMessage}
             </p>
-            <p className="confirm-result-note">{FINAL_SELECTION.dialogResult}</p>
+            {confirmAction === "review-complete" && (
+              <p className="confirm-result-note">{confirmCopy.dialogResult}</p>
+            )}
             <div className="confirm-actions">
               <button
                 className="button"
-                onClick={() => setConfirmOpen(false)}
+                disabled={confirmInProgress}
+                onClick={() => setConfirmAction(null)}
                 type="button"
               >
                 취소
               </button>
               <button
                 className="button action-primary"
-                onClick={confirmSelection}
+                disabled={confirmInProgress}
+                onClick={handleConfirmSubmit}
                 type="button"
               >
-                확정
+                {confirmAction === "review-complete"
+                  ? "완료"
+                  : confirmAction === "admin-approve"
+                    ? "확정"
+                    : "확정"}
               </button>
             </div>
           </div>
@@ -1123,8 +1281,7 @@ export default function DashboardPage({
       )}
       {toastVisible && (
         <div className="selection-toast" role="status">
-          {withSubjectParticle(selectedSupplier?.name ?? "")} 최종 선정
-          공급사로 확정됐어요.
+          {successFeedback.toast}
         </div>
       )}
       {selectionFinalized && followupVisible && (
@@ -1137,11 +1294,8 @@ export default function DashboardPage({
           >
             ×
           </button>
-          <b>{FINAL_SELECTION.doneEmotion}</b>
-          <span>
-            {withSubjectParticle(selectedSupplier?.name ?? "")} 최종 선정
-            공급사로 확정됐어요. {FINAL_SELECTION.statusChanged}
-          </span>
+          <b>{successFeedback.doneEmotion}</b>
+          <span>{successFeedback.statusChanged}</span>
           <div>
             <button className="button" onClick={onGoProjects} type="button">
               프로젝트 목록으로 이동

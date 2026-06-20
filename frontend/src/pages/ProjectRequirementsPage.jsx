@@ -9,6 +9,7 @@ import {
   formatProjectSolutions,
   normalizeProjectSolutions,
 } from "../utils/projectRequestText";
+import { getUserDisplayName, USER } from "../constants/uiText";
 import SolutionTagPicker, { SolutionTagChipList } from "../components/SolutionTagPicker";
 
 const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
@@ -28,6 +29,7 @@ export default function ProjectRequirementsPage({
   onAutoSave,
   isPartnerMatchingLoading = false,
   onGoHome,
+  userRole = "member",
 }) {
   const autoSaveTimerRef = useRef(null);
   const autoSaveStatusTimerRef = useRef(null);
@@ -172,8 +174,8 @@ export default function ProjectRequirementsPage({
             </button>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }

@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
 import ProjectListSkeleton from "../components/ProjectListSkeleton";
-import { EMPTY_PROJECTS } from "../constants/uiText";
+import { EMPTY_PROJECTS, getUserDisplayName, USER } from "../constants/uiText";
+
 const FILTER_ALL = "전체";
 const STATUS_IN_PROGRESS = "진행 중";
 const STATUS_IN_REVIEW = "검토 중";
+const STATUS_APPROVAL_REQUEST = "결재 요청";
 const STATUS_DONE = "완료";
+const WORKFLOW_APPROVAL_REQUEST = "컨펌 요청";
 
 const filterOptions = [
   FILTER_ALL,
   STATUS_IN_PROGRESS,
   STATUS_IN_REVIEW,
+  STATUS_APPROVAL_REQUEST,
   STATUS_DONE,
 ];
 
@@ -48,6 +52,7 @@ export default function ProjectListPage({
   const reviewCount = projects.filter(
     (project) => normalizeStatus(project.status) === STATUS_IN_REVIEW,
   ).length;
+  const approvalRequestCount = projects.filter(isApprovalRequestProject).length;
 
   const filteredProjects = projects.filter((project) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -60,6 +65,9 @@ export default function ProjectListPage({
 
     if (!matchesSearch) return false;
     if (activeFilter === FILTER_ALL) return true;
+    if (activeFilter === STATUS_APPROVAL_REQUEST) {
+      return isApprovalRequestProject(project);
+    }
     return normalizeStatus(project.status) === activeFilter;
   });
 
@@ -122,8 +130,8 @@ export default function ProjectListPage({
           <>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName("member")}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }
@@ -146,22 +154,26 @@ export default function ProjectListPage({
           </button>
         </section>
 
-        <section className="flow-stats">
-          <article>
-            <b>{projects.length}</b>
+        <section className="flow-stats project-summary-stats">
+          <article className="project-summary-stat project-summary-stat-total">
             <span>전체 프로젝트</span>
+            <b>{projects.length}</b>
           </article>
-          <article>
-            <b className="blue-text">{activeCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_IN_PROGRESS}</span>
+            <b className="blue-text">{activeCount}</b>
           </article>
-          <article>
-            <b className="orange-text">{reviewCount}</b>
+          <article className="project-summary-stat">
             <span>{STATUS_IN_REVIEW}</span>
+            <b className="orange-text">{reviewCount}</b>
           </article>
-          <article>
-            <b className="green-text">{completedCount}</b>
+          <article className="project-summary-stat">
+            <span>{STATUS_APPROVAL_REQUEST}</span>
+            <b className="approval-text">{approvalRequestCount}</b>
+          </article>
+          <article className="project-summary-stat">
             <span>{STATUS_DONE}</span>
+            <b className="green-text">{completedCount}</b>
           </article>
         </section>
 
@@ -250,7 +262,8 @@ export default function ProjectListPage({
           ) : (
             filteredProjects.map((project) => {
               const isSelected = selectedIds.includes(project.id);
-              const normalizedStatus = normalizeStatus(project.status);
+              const statusLabel = getProjectCardStatusLabel(project);
+              const statusTone = getProjectCardStatusTone(project);
 
               return (
               <article
@@ -293,7 +306,7 @@ export default function ProjectListPage({
                     <span className="history-card-id">{project.id}</span>
                   </div>
                   <div className="history-card-actions">
-                    <Badge tone={project.statusTone}>{normalizedStatus}</Badge>
+                    <Badge tone={statusTone}>{statusLabel}</Badge>
                     {!manageMode && (
                       <div className="project-menu-wrap">
                         <button
@@ -416,6 +429,41 @@ export default function ProjectListPage({
       )}
     </div>
   );
+}
+
+function isApprovalRequestProject(project) {
+  return (project.data?.workflowStatus ?? "") === WORKFLOW_APPROVAL_REQUEST;
+}
+
+function getWorkflowStatusBadgeLabel(workflowStatus) {
+  if (workflowStatus === "컨펌 요청") return "결재 요청";
+  if (workflowStatus === "확정 완료") return "승인 완료";
+  if (workflowStatus === "completed" || workflowStatus === "완료") return "완료";
+  return workflowStatus;
+}
+
+function isWorkflowStatusBadge(workflowStatus) {
+  return (
+    workflowStatus === "컨펌 요청" ||
+    workflowStatus === "확정 완료" ||
+    workflowStatus === "completed" ||
+    workflowStatus === "완료"
+  );
+}
+
+function getProjectCardStatusLabel(project) {
+  const workflowStatus = project.data?.workflowStatus ?? "";
+  if (isWorkflowStatusBadge(workflowStatus)) {
+    return getWorkflowStatusBadgeLabel(workflowStatus);
+  }
+  return normalizeStatus(project.status);
+}
+
+function getProjectCardStatusTone(project) {
+  const workflowStatus = project.data?.workflowStatus ?? "";
+  if (workflowStatus === "컨펌 요청") return "purple";
+  if (workflowStatus === "확정 완료") return "green";
+  return project.statusTone;
 }
 
 function normalizeStatus(value) {

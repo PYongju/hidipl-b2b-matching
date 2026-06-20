@@ -4,6 +4,7 @@ import FlowTopbar from "../components/FlowTopbar";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 import { saveQuoteIdsToStorage } from "../utils/projectQuoteIds";
+import { getUserDisplayName, USER } from "../constants/uiText";
 
 const REVIEW_STEPS = [
   {
@@ -49,6 +50,7 @@ export default function QuoteReviewLoadingPage({
   onComplete,
   onProjectDataChange,
   onGoHome,
+  userRole = "member",
 }) {
   const [activeStep, setActiveStep] = useState(0);
   const [uploadSkipped, setUploadSkipped] = useState(false);
@@ -164,8 +166,8 @@ export default function QuoteReviewLoadingPage({
             </button>
             <div className="avatar" />
             <div className="user-name">
-              <b>김담당자</b>
-              <small>구매검토팀</small>
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
             </div>
           </>
         }

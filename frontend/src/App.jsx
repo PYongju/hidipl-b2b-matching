@@ -3,6 +3,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { msalInstance } from "./auth/msalInstance";
 import { msalReady } from "./auth/msalInstance";
 import LoginPage from "./pages/LoginPage";
+import AdminProjectListPage from "./pages/AdminProjectListPage";
 import ProjectListPage from "./pages/ProjectListPage";
 import ProjectCreatePage from "./pages/ProjectCreatePage";
 import ProjectRequirementsPage from "./pages/ProjectRequirementsPage";
@@ -13,8 +14,10 @@ import PartnerMatchingLoadingModal from "./components/PartnerMatchingLoadingModa
 import QuoteWaitingPage from "./pages/QuoteWaitingPage";
 import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
 import {
+  ApiError,
   createProject,
   deleteProjects as deleteProjectsApi,
+  fetchAdminProjects,
   fetchCandidateVendors,
   fetchProject,
   fetchProjectMatches,
@@ -132,6 +135,30 @@ async function runPartnerMatchingStep(step, setStep, action) {
   return result;
 }
 
+async function detectUserRole() {
+  try {
+    await fetchAdminProjects();
+    return "admin";
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      return "member";
+    }
+    console.error("역할 확인 실패:", error);
+    return "member";
+  }
+}
+
+function resolveWorkflowStatusFromServer(item) {
+  if (item.workflow_status === "completed") return "완료";
+  if (
+    item.workflow_status === "컨펌 요청" ||
+    item.workflow_status === "확정 완료"
+  ) {
+    return item.workflow_status;
+  }
+  return getWorkflowStatusFromServerStatus(item.status);
+}
+
 export default function App() {
   const savedSession = readSavedSession();
   const isAuthenticated = msalInstance.getAllAccounts().length > 0;
@@ -157,6 +184,7 @@ export default function App() {
     useState("creating-project");
   const [partnerMatchingError, setPartnerMatchingError] = useState("");
   const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [userRole, setUserRole] = useState(null);
   const [projectsLoading, setProjectsLoading] = useState(
     () => savedSession.screen === "projects",
   );
@@ -370,10 +398,47 @@ export default function App() {
     }
   };
 
-  const loadProjects = async () => {
+  const buildAdminProjectListItem = (item) => {
+    const projectId = resolveServerProjectId(item);
+    if (!projectId) return null;
+
+    return {
+      id: projectId,
+      name: item.company_name ?? "",
+      companyName: item.company_name ?? "",
+      status: item.status ?? "",
+      workflowStatus: item.workflow_status ?? "",
+      location: item.location ?? "",
+      deadline: item.deadline ?? "",
+      createdAt: item.created_at ?? "",
+      data: {
+        projectApiId: projectId,
+        projectId,
+        companyName: item.company_name ?? "",
+        location: item.location ?? "",
+        projectDate: item.deadline ?? "",
+        serverStatus: item.status,
+        workflowStatus: resolveWorkflowStatusFromServer(item),
+        currentStage: getCurrentStageFromServerStatus(item.status),
+      },
+    };
+  };
+
+  const loadProjects = async (options = {}) => {
+    const role = options.role ?? userRole;
+    const statusFilter = options.statusFilter ?? null;
     setProjectsLoading(true);
 
     try {
+      if (role === "admin") {
+        const list = await fetchAdminProjects(statusFilter);
+        const items = Array.isArray(list) ? list : [];
+        const mappedProjects = items.map(buildAdminProjectListItem).filter(Boolean);
+        setProjectsLoadError("");
+        setProjects(mappedProjects);
+        return mappedProjects;
+      }
+
       const list = await fetchProjects();
       const items = normalizeProjectsResponse(list);
 
@@ -407,10 +472,7 @@ export default function App() {
               reviewMemo: resolveReviewMemo({ projectApiId: projectId }),
               solutions: parsedFields.solutions ?? [],
               serverStatus: item.status,
-              workflowStatus:
-                item.workflow_status === "completed"
-                  ? "완료"
-                  : getWorkflowStatusFromServerStatus(item.status),
+              workflowStatus: resolveWorkflowStatusFromServer(item),
               currentStage: getCurrentStageFromServerStatus(item.status),
             },
             projectId,
@@ -516,9 +578,13 @@ export default function App() {
     setEditingProjectId(id);
   };
 
-  const restoreProjectSession = async (savedProjectApiId, savedScreen) => {
+  const restoreProjectSession = async (
+    savedProjectApiId,
+    savedScreen,
+    role = userRole,
+  ) => {
     resetSaveScope();
-    const loadedProjects = await loadProjects();
+    const loadedProjects = await loadProjects({ role });
     const cachedProject = loadedProjects.find(
       (project) =>
         project.id === savedProjectApiId ||
@@ -554,7 +620,7 @@ export default function App() {
   };
 
   const goToProjects = async () => {
-    await loadProjects();
+    await loadProjects({ role: userRole });
     setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
@@ -565,34 +631,42 @@ export default function App() {
       ...current,
       lastScreen: screen,
     }));
-    await loadProjects();
+    await loadProjects({ role: userRole });
     setAutoSaveStatus("idle");
     setScreen("projects");
     persistAppSession("projects");
   };
 
   useEffect(() => {
-    msalReady.then((result) => {
-      if (result && result.account) {
-        setScreen("projects");
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     let ignore = false;
 
     (async () => {
+      await msalReady;
+
+      if (msalInstance.getAllAccounts().length === 0) {
+        if (!ignore) {
+          setUserRole(null);
+          setRestoring(false);
+        }
+        return;
+      }
+
+      const role = await detectUserRole();
+      if (ignore) return;
+
+      setUserRole(role);
+
       if (shouldRestoreSession) {
         try {
           await restoreProjectSession(
             savedSession.projectApiId,
             savedSession.screen,
+            role,
           );
         } catch (error) {
           console.error("분석 실행 실패:", error);
           if (!ignore) {
-            await loadProjects();
+            await loadProjects({ role });
             setScreen("projects");
             persistAppSession("projects");
           }
@@ -604,9 +678,9 @@ export default function App() {
         return;
       }
 
-      if (savedSession.screen === "projects" || screen === "projects") {
-        await loadProjects();
-      }
+      await loadProjects({ role });
+      setScreen("projects");
+      persistAppSession("projects");
       if (!ignore) {
         setRestoring(false);
       }
@@ -976,7 +1050,9 @@ export default function App() {
     }
   };
 
-  if (restoring) {
+  const rolePending = isAuthenticated && userRole === null;
+
+  if (restoring || rolePending) {
     return (
       <div
         aria-busy="true"
@@ -998,6 +1074,21 @@ export default function App() {
 
   // 6/12 백엔드 작업 반영
   if (screen === "projects") {
+    if (userRole === "admin") {
+      return (
+        <AdminProjectListPage
+          isLoading={projectsLoading}
+          loadError={projectsLoadError}
+          projects={projects}
+          onGoHome={goHome}
+          onOpenProject={openProjectFromList}
+          onReloadProjects={(options) =>
+            loadProjects({ role: "admin", ...options })
+          }
+        />
+      );
+    }
+
     return (
       <ProjectListPage
         isLoading={projectsLoading}
@@ -1008,7 +1099,7 @@ export default function App() {
         onEditProject={editProject}
         onGoHome={goHome}
         onOpenDashboard={openProjectFromList}
-        onReloadProjects={loadProjects}
+        onReloadProjects={() => loadProjects({ role: "member" })}
       />
     );
   }
@@ -1070,6 +1161,7 @@ export default function App() {
         <ProjectRequirementsPage
           isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
           projectData={projectData}
+          userRole={userRole}
           onBack={goToProjects}
           onGoHome={goHome}
           onGoProjects={goToProjects}
@@ -1128,6 +1220,7 @@ export default function App() {
     return (
       <PartnerMatchingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => {
           setScreen("requirements");
           updateProjectData((current) => ({
@@ -1146,6 +1239,7 @@ export default function App() {
     return (
       <QuoteWaitingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => setScreen("partnerMatching")}
         onGoDashboard={goQuoteReviewLoading}
         onGoHome={goHome}
@@ -1158,6 +1252,7 @@ export default function App() {
     return (
       <QuoteReviewLoadingPage
         projectData={projectData}
+        userRole={userRole}
         onBack={() => setScreen("quoteWaiting")}
         onComplete={openDashboardAfterMatch}
         onGoHome={goHome}
@@ -1170,6 +1265,7 @@ export default function App() {
     <DashboardPage
       onBack={() => setScreen("quoteWaiting")}
       projectData={projectData}
+      userRole={userRole}
       onGoProjects={goToProjects}
       onProjectDataChange={updateProjectData}
     />
@@ -1194,8 +1290,9 @@ function resolveRestoredScreen(projectData, savedScreen) {
 }
 
 function getProjectStatusTone(status) {
-  if (status === "완료") return "green";
+  if (status === "완료" || status === "확정 완료") return "green";
   if (status === "검토 중") return "orange";
+  if (status === "컨펌 요청") return "purple";
   return "blue";
 }
 
@@ -1206,13 +1303,16 @@ function mergeServerProjectData(localData, serverProject) {
     serverStatus,
     localData.lastScreen,
   );
+  const serverWorkflow = serverProject?.workflow_status;
   const workflowStatus =
     localData.workflowStatus === "완료"
       ? "완료"
-      : getWorkflowStatusFromServerStatus(
-          serverStatus,
-          localData.workflowStatus,
-        );
+      : serverWorkflow === "컨펌 요청" || serverWorkflow === "확정 완료"
+        ? serverWorkflow
+        : getWorkflowStatusFromServerStatus(
+            serverStatus,
+            localData.workflowStatus,
+          );
   const requestText = serverProject?.request_text ?? localData.requestText;
   const parsedFields = applyParsedRequestTextToProjectData(
     localData,

@@ -1,6 +1,13 @@
 import { msalInstance } from "../auth/msalInstance";
 import { loginRequest } from "../auth/msalConfig";
 
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
+
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const API_BASE_URL = configuredApiBaseUrl
   ? configuredApiBaseUrl.replace(/\/$/, "")
@@ -41,11 +48,9 @@ async function request(endpoint, options = {}) {
   const payload = await parseJson(response);
 
   if (!response.ok) {
-    throw new Error(
-      getApiErrorMessage(
-        payload,
-        "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
-      ),
+    throw new ApiError(
+      getApiErrorMessage(payload, "요청을 처리하지 못했어요."),
+      response.status,
     );
   }
 
@@ -192,6 +197,19 @@ function fetchProjects() {
   });
 }
 
+function fetchAdminProjects(statusFilter = null) {
+  const query = statusFilter
+    ? `?status_filter=${encodeURIComponent(statusFilter)}`
+    : "";
+  return request(`/api/v1/admin/projects${query}`, { method: "GET" });
+}
+
+function confirmAdminProject(projectId) {
+  return request(`/api/v1/admin/projects/${projectId}/confirm`, {
+    method: "PATCH",
+  });
+}
+
 function deleteProjects(projectIds) {
   return request("/api/v1/projects", {
     method: "DELETE",
@@ -216,8 +234,11 @@ function updateCandidateVendorField(projectId, vendorName, fields) {
 }
 
 export {
+  ApiError,
+  confirmAdminProject,
   createProject,
   deleteProjects, // 6/12 백엔드 작업에서 추가
+  fetchAdminProjects,
   fetchCandidateVendors,
   getCandidateVendors,
   fetchCompare,
