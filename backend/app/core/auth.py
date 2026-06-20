@@ -59,17 +59,19 @@ async def verify_token(
         try:
             db.execute(
                 text("""
-                    INSERT INTO users (user_id, email, display_name, last_login_at)
-                    VALUES (:user_id, :email, :display_name, :last_login_at)
+                    INSERT INTO users (user_id, email, display_name, user_name, last_login_at)
+                    VALUES (:user_id, :email, :display_name, :user_name, :last_login_at)
                     ON DUPLICATE KEY UPDATE
                         email = VALUES(email),
                         display_name = VALUES(display_name),
+                        user_name = VALUES(user_name),
                         last_login_at = VALUES(last_login_at)
                 """),
                 {
                     "user_id": payload.get("oid"),
                     "email": payload.get("preferred_username") or payload.get("upn"),
                     "display_name": payload.get("name"),
+                    "user_name": (payload.get("family_name") or "") + (payload.get("given_name") or ""),
                     "last_login_at": datetime.now(),
                 }
             )
@@ -90,7 +92,7 @@ async def verify_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"토큰 검증 실패: {str(e)}",
         )
-    
+
 async def verify_admin(
     token: dict = Depends(verify_token),
 ) -> dict:
