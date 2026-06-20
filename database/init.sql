@@ -10,9 +10,10 @@ SET time_zone = '+09:00';
 -- 사용자 (Azure Entra ID 연동)
 -- ------------------------------------
 CREATE TABLE IF NOT EXISTS users (
-    user_id         VARCHAR(64)             NOT NULL,              -- Entra ID oid 클레임
-    email           VARCHAR(256)            NOT NULL,              -- Entra ID upn
-    display_name    VARCHAR(256)            DEFAULT NULL,          -- Entra ID name 클레임
+    user_id         VARCHAR(64)             NOT NULL,
+    email           VARCHAR(256)            NOT NULL,
+    display_name    VARCHAR(256)            DEFAULT NULL,
+    user_name       VARCHAR(256)            DEFAULT NULL,
     role            ENUM('admin','member')  NOT NULL DEFAULT 'member',
     is_active       TINYINT(1)              NOT NULL DEFAULT 1,
     last_login_at   DATETIME                DEFAULT NULL,
