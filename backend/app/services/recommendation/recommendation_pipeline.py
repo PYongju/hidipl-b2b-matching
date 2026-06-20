@@ -13,6 +13,7 @@ from services.recommendation.product_group_filter import (
     filter_quotes_by_product_group_scope,
     group_quotes_by_product_group,
 )
+from services.recommendation.rank_score_consistency import validate_rank_score_consistency
 from services.requirement_ingestion.schemas import RequirementIngestionResult
 
 
@@ -71,6 +72,7 @@ class RecommendationPipeline:
                     "grouped_recommendation": True,
                 }
             )
+            self._validate_recommendation_rank_score_consistency(result)
             grouped_results[product_group] = result
         return grouped_results
 
@@ -129,7 +131,7 @@ class RecommendationPipeline:
             "input_quote_count": sum(product_group_counts.values()),
         }
 
-        return RecommendationPipelineResult(
+        result = RecommendationPipelineResult(
             request_id=requirement_result.request_id,
             customer_name=requirement.customer_name,
             top_n=top_n,
@@ -139,6 +141,8 @@ class RecommendationPipeline:
             filtered_candidates=filtered_candidates,
             metadata=metadata,
         )
+        self._validate_recommendation_rank_score_consistency(result)
+        return result
 
     def _recommend_internal(
         self,
@@ -235,7 +239,7 @@ class RecommendationPipeline:
             if not item.business_rule_passed
         ]
 
-        return RecommendationPipelineResult(
+        result = RecommendationPipelineResult(
             request_id=requirement_result.request_id,
             customer_name=requirement.customer_name,
             top_n=top_n,
@@ -263,6 +267,8 @@ class RecommendationPipeline:
                 "filter_by_selected_partners": filter_by_selected_partners,
             },
         )
+        self._validate_recommendation_rank_score_consistency(result)
+        return result
 
     def to_storage_dict(self, result: RecommendationPipelineResult) -> dict[str, Any]:
         return self._to_jsonable(asdict(result))
@@ -326,6 +332,7 @@ class RecommendationPipeline:
             check_required=result.check_required,
             score_breakdown=result.score_breakdown,
             comparison_risks=list(result.comparison_risks),
+            critical_risks=list(result.critical_risks),
             special_notes=[
                 note
                 for note in (quote.notes_raw or "").splitlines()
@@ -336,6 +343,19 @@ class RecommendationPipeline:
             vendor_snapshot_source=result.metadata.get("vendor_snapshot_source"),
             vendor_snapshot_summary=self._vendor_snapshot_summary(quote),
             metadata=result.metadata,
+        )
+
+    def _validate_recommendation_rank_score_consistency(
+        self,
+        recommendation_result: RecommendationPipelineResult,
+    ) -> None:
+        validate_rank_score_consistency(
+            recommendation_result.all_items,
+            group_key="product_group",
+        )
+        validate_rank_score_consistency(
+            recommendation_result.items,
+            group_key="product_group",
         )
 
     def _vendor_snapshot_summary(self, quote) -> dict[str, Any]:

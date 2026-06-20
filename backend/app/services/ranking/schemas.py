@@ -61,6 +61,7 @@ class RankingResult:
     check_required: list[str]
     score_breakdown: dict[str, float]
     comparison_risks: list[str] = field(default_factory=list)
+    critical_risks: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

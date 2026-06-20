@@ -58,6 +58,11 @@ def main() -> None:
             "after_v10_generalized",
             "after_v11_generalized",
             "after_v12_generalized",
+            "after_mockdata_generalization",
+            "after_mockdata_full_pipeline",
+            "after_hardware_spec_generalization",
+            "after_hardware_spec_v2",
+            "after_hardware_spec_v5",
         ],
         required=True,
     )

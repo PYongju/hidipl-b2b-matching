@@ -2,6 +2,10 @@ from typing import Any
 
 from services.explanation.schemas import ExplanationInput
 from services.explanation.explanation_text_policy import split_check_required
+from services.recommendation.rank_score_consistency import (
+    get_critical_risk_messages,
+    get_critical_risks,
+)
 from services.recommendation.schemas import RecommendationPipelineResult
 
 _ALLOWED_ITEM_FIELDS = [
@@ -22,6 +26,7 @@ _ALLOWED_ITEM_FIELDS = [
     "line_item_count",
     "check_required",
     "comparison_risks",
+    "critical_risks",
     "special_notes",
     "vendor_snapshot_summary",
     "score_breakdown",
@@ -47,6 +52,10 @@ def build_explanation_input(
         for field_name in _ALLOWED_ITEM_FIELDS:
             item_dict[field_name] = getattr(item, field_name, None)
         decision_risks, _ = split_check_required(item.check_required)
+        critical_risks = get_critical_risks(item)
+        for message in get_critical_risk_messages(item):
+            if message not in decision_risks:
+                decision_risks.append(message)
         item_dict["delivery_basis_raw"] = getattr(item, "delivery_basis_raw", None)
         item_dict["installation_included"] = getattr(item, "metadata", {}).get(
             "installation_included"
@@ -55,6 +64,7 @@ def build_explanation_input(
         item_dict["comparison_risks"] = list(
             getattr(item, "comparison_risks", []) or []
         )
+        item_dict["critical_risks"] = critical_risks
         item_dict["relative_position"] = _build_relative_position(
             item,
             recommendation_result.items[:3],
