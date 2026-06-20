@@ -34,7 +34,7 @@ export default function ProjectListPage({
   const [openMenuId, setOpenMenuId] = useState("");
   const [activeFilter, setActiveFilter] = useState(FILTER_ALL);
   const [searchTerm, setSearchTerm] = useState("");
-  const [manageMode, setManageMode] = useState(false);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -53,6 +53,13 @@ export default function ProjectListPage({
     (project) => normalizeStatus(project.status) === STATUS_IN_REVIEW,
   ).length;
   const approvalRequestCount = projects.filter(isApprovalRequestProject).length;
+  const filterCounts = {
+    [FILTER_ALL]: projects.length,
+    [STATUS_IN_PROGRESS]: activeCount,
+    [STATUS_IN_REVIEW]: reviewCount,
+    [STATUS_APPROVAL_REQUEST]: approvalRequestCount,
+    [STATUS_DONE]: completedCount,
+  };
 
   const filteredProjects = projects.filter((project) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -97,13 +104,13 @@ export default function ProjectListPage({
     ]);
   };
 
-  const enterManageMode = () => {
-    setManageMode(true);
+  const enterDeleteMode = () => {
+    setIsDeleteMode(true);
     setOpenMenuId("");
   };
 
-  const cancelManageMode = () => {
-    setManageMode(false);
+  const cancelDeleteMode = () => {
+    setIsDeleteMode(false);
     setDeleteConfirmOpen(false);
     setOpenMenuId("");
     setSelectedIds([]);
@@ -118,7 +125,7 @@ export default function ProjectListPage({
     if (selectedIds.length === 0) return;
     await onDeleteProjects(selectedIds);
     setDeleteConfirmOpen(false);
-    setManageMode(false);
+    setIsDeleteMode(false);
     setSelectedIds([]);
   };
 
@@ -137,45 +144,22 @@ export default function ProjectListPage({
         }
       />
       <main className="flow-main">
-        <section className="flow-hero">
-          <div>
-            <p>프로젝트 히스토리</p>
+        <header className="project-list-header">
+          <p>프로젝트 히스토리</p>
+          <div className="project-list-header-title-row">
             <h1>프로젝트 목록</h1>
-            <span>
-              진행 중인 견적 검토와 완료된 이력을 프로젝트 단위로 관리해요.
-            </span>
+            <button
+              className="button action-primary"
+              onClick={onCreate}
+              type="button"
+            >
+              {EMPTY_PROJECTS.cta}
+            </button>
           </div>
-          <button
-            className="button action-primary"
-            onClick={onCreate}
-            type="button"
-          >
-            {EMPTY_PROJECTS.cta}
-          </button>
-        </section>
-
-        <section className="flow-stats project-summary-stats">
-          <article className="project-summary-stat project-summary-stat-total">
-            <span>전체 프로젝트</span>
-            <b>{projects.length}</b>
-          </article>
-          <article className="project-summary-stat">
-            <span>{STATUS_IN_PROGRESS}</span>
-            <b className="blue-text">{activeCount}</b>
-          </article>
-          <article className="project-summary-stat">
-            <span>{STATUS_IN_REVIEW}</span>
-            <b className="orange-text">{reviewCount}</b>
-          </article>
-          <article className="project-summary-stat">
-            <span>{STATUS_APPROVAL_REQUEST}</span>
-            <b className="approval-text">{approvalRequestCount}</b>
-          </article>
-          <article className="project-summary-stat">
-            <span>{STATUS_DONE}</span>
-            <b className="green-text">{completedCount}</b>
-          </article>
-        </section>
+          <span className="project-list-header-desc">
+            진행 중인 견적 검토와 완료된 이력을 프로젝트 단위로 관리해요.
+          </span>
+        </header>
 
         {loadError && (
           <div className="empty-project-result" role="alert">
@@ -192,64 +176,74 @@ export default function ProjectListPage({
           </div>
         )}
 
-        <section className="project-tools-wrap">
-          <section className="project-tools">
-            <input
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="프로젝트명 또는 ID 검색"
-              value={searchTerm}
-            />
-            {filterOptions.map((filter) => (
-              <button
-                className={`chip ${activeFilter === filter ? "active" : ""}`}
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                type="button"
-              >
-                {filter}
-              </button>
-            ))}
-            {!manageMode && (
-              <button
-                className="chip destructive-manage-chip"
-                disabled={projects.length === 0}
-                onClick={enterManageMode}
-                type="button"
-              >
-                삭제
-              </button>
-            )}
-            {manageMode && (
-              <>
+        <section className="filter-block">
+          <div className="filter-block-row">
+            <div className="filter-block-tabs" role="tablist">
+              {filterOptions.map((filter) => (
                 <button
-                  className={`chip ${allVisibleSelected ? "active" : ""}`}
-                  disabled={visibleProjectIds.length === 0}
-                  onClick={toggleSelectAll}
+                  aria-selected={activeFilter === filter}
+                  className={`filter-tab ${activeFilter === filter ? "active" : ""}`}
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  role="tab"
                   type="button"
                 >
-                  {allVisibleSelected ? "전체 해제" : "전체 선택"}
+                  <span className="filter-tab-label">{filter}</span>
+                  <span className="filter-tab-count">{filterCounts[filter]}</span>
                 </button>
+              ))}
+            </div>
+            <div className="filter-block-tools">
+              <div className="filter-block-search">
+                <i
+                  aria-hidden="true"
+                  className="fa-solid fa-magnifying-glass filter-block-search-icon"
+                />
+                <input
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="프로젝트명 또는 ID 검색"
+                  type="search"
+                  value={searchTerm}
+                />
+              </div>
+              {!isDeleteMode ? (
                 <button
-                  className="chip danger-chip"
-                  disabled={selectedIds.length === 0}
-                  onClick={requestDeleteSelected}
+                  className="filter-btn-text filter-btn-text-delete"
+                  disabled={projects.length === 0}
+                  onClick={enterDeleteMode}
                   type="button"
                 >
-                  {selectedIds.length}개 삭제
+                  삭제
                 </button>
-                <button
-                  className="chip neutral-chip"
-                  onClick={cancelManageMode}
-                  type="button"
-                >
-                  취소
-                </button>
-              </>
-            )}
-          </section>
-          {manageMode && (
-            <p className="project-manage-hint">삭제할 항목을 선택하세요.</p>
-          )}
+              ) : (
+                <>
+                  <button
+                    className={`filter-btn filter-btn-outline ${allVisibleSelected ? "active" : ""}`}
+                    disabled={visibleProjectIds.length === 0}
+                    onClick={toggleSelectAll}
+                    type="button"
+                  >
+                    {allVisibleSelected ? "전체 해제" : "전체 선택"}
+                  </button>
+                  <button
+                    className="filter-btn filter-btn-danger-fill"
+                    disabled={selectedIds.length === 0}
+                    onClick={requestDeleteSelected}
+                    type="button"
+                  >
+                    {selectedIds.length}개 삭제
+                  </button>
+                  <button
+                    className="filter-btn filter-btn-outline"
+                    onClick={cancelDeleteMode}
+                    type="button"
+                  >
+                    취소
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </section>
 
         <section
@@ -267,16 +261,16 @@ export default function ProjectListPage({
 
               return (
               <article
-                aria-pressed={manageMode ? isSelected : undefined}
-                className={`history-card ${manageMode ? "manage-mode" : ""} ${
+                aria-pressed={isDeleteMode ? isSelected : undefined}
+                className={`history-card ${isDeleteMode ? "manage-mode" : ""} ${
                   isSelected ? "selected" : ""
                 }`}
                 key={project.id}
                 onClick={
-                  manageMode ? () => toggleSelected(project.id) : undefined
+                  isDeleteMode ? () => toggleSelected(project.id) : undefined
                 }
                 onKeyDown={
-                  manageMode
+                  isDeleteMode
                     ? (event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
@@ -285,29 +279,27 @@ export default function ProjectListPage({
                       }
                     : undefined
                 }
-                role={manageMode ? "button" : undefined}
-                tabIndex={manageMode ? 0 : undefined}
+                role={isDeleteMode ? "button" : undefined}
+                tabIndex={isDeleteMode ? 0 : undefined}
               >
                 <div className="history-card-top">
-                  <div className="history-card-title-row">
-                    {manageMode && (
-                      <label
-                        className="project-select-check"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <input
-                          checked={isSelected}
-                          onChange={() => toggleSelected(project.id)}
-                          type="checkbox"
-                        />
-                        <span className="sr-only">{project.name} 선택</span>
-                      </label>
-                    )}
+                  {isDeleteMode && (
+                    <label
+                      className="project-select-check"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        checked={isSelected}
+                        onChange={() => toggleSelected(project.id)}
+                        type="checkbox"
+                      />
+                      <span className="sr-only">{project.name} 선택</span>
+                    </label>
+                  )}
+                  <Badge tone={statusTone}>{statusLabel}</Badge>
+                  <div className="history-card-top-right">
                     <span className="history-card-id">{project.id}</span>
-                  </div>
-                  <div className="history-card-actions">
-                    <Badge tone={statusTone}>{statusLabel}</Badge>
-                    {!manageMode && (
+                    {!isDeleteMode && (
                       <div className="project-menu-wrap">
                         <button
                           aria-label={`${project.name} 메뉴`}
@@ -320,7 +312,10 @@ export default function ProjectListPage({
                           }}
                           type="button"
                         >
-                          ...
+                          <i
+                            aria-hidden="true"
+                            className="fa-solid fa-ellipsis-vertical"
+                          />
                         </button>
                         {openMenuId === project.id && (
                           <div
@@ -345,7 +340,7 @@ export default function ProjectListPage({
                 <button
                   className="history-card-main"
                   onClick={() => {
-                    if (!manageMode) {
+                    if (!isDeleteMode) {
                       onOpenDashboard(project.id);
                     }
                   }}

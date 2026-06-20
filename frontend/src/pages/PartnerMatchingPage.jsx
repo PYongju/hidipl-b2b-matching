@@ -17,7 +17,7 @@ import {
 import { getUserDisplayName, USER } from "../constants/uiText";
 
 const DEFAULT_VISIBLE_PARTNERS = 15;
-const REQUEST_PANEL_SCROLL_THRESHOLD = 7;
+const REQUEST_PANEL_SCROLL_THRESHOLD = 6;
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
@@ -662,9 +662,16 @@ export default function PartnerMatchingPage({
 
         <section className="partner-layout">
           <div className="partner-table-panel">
-            <div className="partner-section-title compact">
+            <div className="requirements-section-title partner-section-header">
               <div>
-                <h2>추천 공급사 목록</h2>
+                <div className="partner-section-header-row">
+                  <h2>추천 공급사 목록</h2>
+                  <div className="partner-count-chips compact">
+                    <Badge tone="blue">AI 추천 {recommendedCount}</Badge>
+                    <Badge tone="blue">선택 {targetPartners.length}</Badge>
+                    <Badge tone="orange">주의 {cautionCount}</Badge>
+                  </div>
+                </div>
                 <p>AI 추천 공급사를 확인한 뒤, 실제로 보낼 공급사만 체크하거나 추가해 주세요.</p>
               </div>
             </div>
@@ -702,20 +709,12 @@ export default function PartnerMatchingPage({
                 {showRecommendedOnly ? "전체 보기" : "AI 추천만 보기"}
               </button>
               <button
-                className="button button-small"
+                className="partner-expand-button partner-expand-button-inline"
                 onClick={addRecommendedPartners}
                 type="button"
               >
                 AI 추천 대상 모두 추가
               </button>
-            </div>
-
-            <div className="partner-toolbar-meta">
-              <div className="partner-count-chips compact">
-                <Badge tone="blue">AI 추천 {recommendedCount}</Badge>
-                <Badge tone="blue">선택 {targetPartners.length}</Badge>
-                <Badge tone="orange">주의 {cautionCount}</Badge>
-              </div>
             </div>
 
             <div className="partner-table-wrap">
@@ -838,7 +837,6 @@ export default function PartnerMatchingPage({
                       ? "15개만 보기"
                       : `${filteredPartners.length - DEFAULT_VISIBLE_PARTNERS}개 더 보기`}
                   </span>
-                  <span>{expandedPartnerList ? "접기" : "열기"}</span>
                 </button>
               </div>
             )}
@@ -853,22 +851,25 @@ export default function PartnerMatchingPage({
           >
             <div className="request-card">
               <div className="request-card-head">
-                <div>
-                  <h2>요청 발송 대상</h2>
-                  <p>선택한 공급사를 최종 확인해요.</p>
-                </div>
-                <div className="request-card-head-actions">
-                  <Badge tone="blue">{targetPartners.length}개 대상</Badge>
-                  <button
-                    className="button button-small"
-                    disabled={targetPartners.length === 0}
-                    onClick={() => openCopyModal()}
-                    type="button"
-                  >
-                    견적 요청 문구 복사
-                  </button>
+                <div className="requirements-section-title">
+                  <div>
+                    <div className="request-card-title-row">
+                      <h2>요청 발송 대상</h2>
+                      <Badge tone="blue">{targetPartners.length}개 대상</Badge>
+                    </div>
+                    <p>선택한 공급사를 최종 확인해요.</p>
+                  </div>
                 </div>
               </div>
+
+              <button
+                className="button action-primary request-card-copy-button"
+                disabled={targetPartners.length === 0}
+                onClick={() => openCopyModal()}
+                type="button"
+              >
+                견적 요청 문구 복사
+              </button>
 
               {targetPartners.length === 0 ? (
                 <div className="request-empty">

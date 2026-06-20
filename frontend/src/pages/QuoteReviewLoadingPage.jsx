@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import { uploadProjectQuotes, runProjectMatch } from "../api/apiClient";
 import { createMatchViewModel } from "../utils/matchAdapter";
 import { saveQuoteIdsToStorage } from "../utils/projectQuoteIds";
+import { buildProjectInfoSummary } from "../utils/projectRequestText";
 import { getUserDisplayName, USER } from "../constants/uiText";
 
 const REVIEW_STEPS = [
@@ -150,6 +152,10 @@ export default function QuoteReviewLoadingPage({
     return () => window.clearInterval(interval);
   }, [isComplete, onComplete]);
 
+  const projectInfoSummary = buildProjectInfoSummary(projectData, {
+    includeLocation: true,
+  });
+
   return (
     <div className="flow-page matching-loading-page">
       <FlowTopbar
@@ -174,6 +180,12 @@ export default function QuoteReviewLoadingPage({
       />
 
       <main className="matching-loading-main">
+        <ProjectDetailHeader
+          infoSummary={projectInfoSummary}
+          onBack={onBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
+
         <section className="matching-loading-card">
           <div
             className={`matching-loading-symbol${
@@ -186,9 +198,13 @@ export default function QuoteReviewLoadingPage({
             aria-hidden="true"
           >
             {analysisState === "error" ? (
-              <span>!</span>
+              <span>
+                <i className="fa-solid fa-exclamation" />
+              </span>
             ) : isComplete ? (
-              <span>✓</span>
+              <span>
+                <i className="fa-solid fa-check" />
+              </span>
             ) : (
               <span />
             )}
@@ -256,7 +272,15 @@ export default function QuoteReviewLoadingPage({
                     className={`${isDone ? "done" : ""} ${isActive ? "active" : ""} ${isErrorStep ? "error" : ""}`.trim()}
                     key={step.id}
                   >
-                    <span>{isDone ? "✓" : isErrorStep ? "!" : index + 1}</span>
+                    <span>
+                      {isDone ? (
+                        <i className="fa-solid fa-check" />
+                      ) : isErrorStep ? (
+                        <i className="fa-solid fa-exclamation" />
+                      ) : (
+                        index + 1
+                      )}
+                    </span>
                     <div>
                       <b>{step.title}</b>
                       <small>{detail}</small>

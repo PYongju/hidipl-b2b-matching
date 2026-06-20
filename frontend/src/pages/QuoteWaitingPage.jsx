@@ -227,19 +227,16 @@ export default function QuoteWaitingPage({
 
         <section className="quote-waiting-layout">
           <div className="quote-board-panel">
-            <div className="quote-panel-title with-progress">
+            <div className="requirements-section-title partner-section-header">
               <div>
-                <h2>견적서 업로드</h2>
+                <div className="partner-section-header-row">
+                  <h2>견적서 업로드</h2>
+                  <Badge tone="blue">{selectedFiles.length}개 선택</Badge>
+                </div>
                 <p>
                   공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트
                   단위로 업로드돼요.
                 </p>
-              </div>
-              <div className="quote-progress">
-                <span>{selectedFiles.length}개 선택</span>
-                <div>
-                  <i style={{ width: selectedFiles.length ? "100%" : "0%" }} />
-                </div>
               </div>
             </div>
 
@@ -250,14 +247,20 @@ export default function QuoteWaitingPage({
                 onChange={handleFiles}
                 type="file"
               />
-              <b>파일을 드래그하거나 클릭하여 업로드</b>
-              <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
+              <div className="quote-drop-zone-content">
+                <span aria-hidden="true" className="quote-drop-zone-icon">
+                  <i className="fa-solid fa-file-arrow-up" />
+                </span>
+                <b>파일을 드래그하거나 클릭하여 업로드</b>
+                <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
+              </div>
             </label>
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
-                <div className="empty-file-row">
+                <div className="request-empty quote-upload-empty">
                   아직 업로드한 견적서가 없어요.
+                  <span>위 영역에 파일을 드래그하거나 클릭해서 추가해 주세요.</span>
                 </div>
               ) : (
                 selectedFiles.map((file) => (
@@ -290,23 +293,24 @@ export default function QuoteWaitingPage({
             ) : null}
           </div>
 
-          <aside className="quote-ops-panel panel-sticky">
-            <div className="quote-panel-title quote-ops-panel-title">
-              <div>
-                <h2>견적 요청 발송 대상</h2>
-                <p>이전 단계에서 선택한 공급사를 다시 확인해요.</p>
+          <aside className="request-panel panel-sticky">
+            <div className="request-card">
+              <div className="request-card-head">
+                <div className="requirements-section-title">
+                  <div>
+                    <div className="request-card-title-row">
+                      <h2>견적 요청 발송 대상</h2>
+                      {requestTargets.length > 0 ? (
+                        <Badge tone="blue">{requestTargets.length}개 대상</Badge>
+                      ) : null}
+                    </div>
+                    <p>이전 단계에서 선택한 공급사를 다시 확인해요.</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <section>
-              <h3>
-                견적 요청 발송 대상
-                {requestTargets.length > 0 ? (
-                  <Badge tone="blue">{requestTargets.length}</Badge>
-                ) : null}
-              </h3>
               {requestTargets.length === 0 ? (
-                <div className="quote-request-empty">
+                <div className="request-empty">
                   파트너 매칭 단계에서 선택한 견적 요청 대상이 없어요.
                   <span>이전 단계에서 발송 대상 공급사를 선택해 주세요.</span>
                 </div>
@@ -323,9 +327,6 @@ export default function QuoteWaitingPage({
                           {partner.score != null
                             ? `AI 추천 점수 ${partner.score}`
                             : "점수 미확인"}
-                          {partner.response
-                            ? ` · 응답 ${partner.response}`
-                            : ""}
                         </small>
                       </span>
                       {partner.caution ? (
@@ -335,7 +336,7 @@ export default function QuoteWaitingPage({
                   ))}
                 </div>
               )}
-            </section>
+            </div>
           </aside>
         </section>
       </main>
@@ -403,10 +404,6 @@ function resolveRequestTargets(projectData) {
               ? Math.round(raw.semantic_similarity_score * 100)
               : Math.round(raw.semantic_similarity_score)
             : null,
-        response:
-          typeof raw.response_speed === "number"
-            ? `${raw.response_speed}시간`
-            : (raw.response_speed ?? "미확인"),
         caution: (raw.filter_reasons ?? []).some(
           (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
         ),

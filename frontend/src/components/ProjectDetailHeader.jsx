@@ -8,10 +8,10 @@ export default function ProjectDetailHeader({
     <section className="requirements-header">
       <div>
         <button
+          aria-label={backLabel}
           className="partner-back"
           onClick={onBack}
           type="button"
-          aria-label={backLabel}
         >
           ‹
         </button>

@@ -1051,8 +1051,9 @@ export default function App() {
   };
 
   const rolePending = isAuthenticated && userRole === null;
+  const isRestoringProjectFlow = restoring && screen !== "projects";
 
-  if (restoring || rolePending) {
+  if (isRestoringProjectFlow) {
     return (
       <div
         aria-busy="true"
@@ -1074,10 +1075,12 @@ export default function App() {
 
   // 6/12 백엔드 작업 반영
   if (screen === "projects") {
+    const isListLoading = projectsLoading || rolePending;
+
     if (userRole === "admin") {
       return (
         <AdminProjectListPage
-          isLoading={projectsLoading}
+          isLoading={isListLoading}
           loadError={projectsLoadError}
           projects={projects}
           onGoHome={goHome}
@@ -1091,7 +1094,7 @@ export default function App() {
 
     return (
       <ProjectListPage
-        isLoading={projectsLoading}
+        isLoading={isListLoading}
         loadError={projectsLoadError}
         projects={projects}
         onCreate={startNewProject}
