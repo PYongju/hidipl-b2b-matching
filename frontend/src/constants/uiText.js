@@ -46,16 +46,16 @@ export const FINAL_SELECTION = {
   dialogMessage: "업체를 최종 선정 업체로 확정하시겠습니까?",
   toast: "최종 선정이 확정됐어요.",
   doneEmotion: "최종 선정을 마쳤어요. 수고하셨어요.",
-  statusChanged: "프로젝트 상태가 승인 완료로 바뀌었어요.",
+  statusChanged: "프로젝트 상태가 확정 완료로 바뀌었어요.",
   noPermission: "최종 선정 확정 권한이 없어요.",
   noPermissionTitle: "권한 없음",
 };
 
 export const REVIEW_COMPLETE = {
   dialogTitle: "검토 완료",
-  dialogMessage: "검토를 완료하고 관리자에게 결재를 요청할까요?",
+  dialogMessage: "최종 선정하여 결재를 요청할까요?",
   dialogResult:
-    "요청 후에는 관리자 승인 전까지 결재 상태가 '결재 요청'으로 표시돼요.",
+    "요청 후에는 관리자 승인 전까지 '결재 요청' 상태로 표시돼요.",
   toast: "결재 요청이 완료되었습니다.",
   doneEmotion: "결재 요청을 보냈어요.",
   statusChanged: "프로젝트 목록에서 결재 진행 상태를 확인할 수 있어요.",

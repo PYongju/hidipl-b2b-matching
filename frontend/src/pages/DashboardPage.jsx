@@ -39,6 +39,28 @@ function isAdminSelectionComplete(workflowStatus) {
   return workflowStatus === "완료" || workflowStatus === "확정 완료";
 }
 
+/** 최종 선정 라디오와 동일한 견적서 업체 표시명 (회사명 + N안) */
+function resolveSelectedSupplierLabel(supplier, fallbackVendor = "") {
+  return (
+    supplier?.name?.trim() ||
+    supplier?.vendorName?.trim() ||
+    fallbackVendor.trim() ||
+    ""
+  );
+}
+
+function buildFinalSelectionConfirmMessage(supplier, fallbackVendor = "") {
+  const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
+  if (!vendorLabel) return FINAL_SELECTION.dialogMessage;
+  return `${withObjectParticle(vendorLabel)} 최종 선정 업체로 확정하시겠습니까?`;
+}
+
+function buildReviewCompleteConfirmMessage(supplier, fallbackVendor = "") {
+  const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
+  if (!vendorLabel) return REVIEW_COMPLETE.dialogMessage;
+  return `${withObjectParticle(vendorLabel)} 최종 선정하여 결재를 요청할까요?`;
+}
+
 /** 미기재로 간주하는 셀 표시값 */
 const MISSING_COMPARE_CELL_VALUES = ["-", "미기재", "—"];
 
@@ -166,6 +188,10 @@ export default function DashboardPage({
     overallSummary,
     supplierExplanations,
   } = useExplanationResult(projectData, suppliers);
+  const explanationByQuote = useMemo(
+    () => new Map(supplierExplanations.map((item) => [item.quoteId, item])),
+    [supplierExplanations],
+  );
   const explanationByVendor = useMemo(
     () => new Map(supplierExplanations.map((item) => [item.vendorName, item])),
     [supplierExplanations],
@@ -317,8 +343,10 @@ export default function DashboardPage({
     }
 
     return (
+      explanationByQuote.get(supplier.id)?.cardSummary ??
       explanationByVendor.get(supplier.vendorName ?? supplier.name)
-        ?.cardSummary ?? ""
+        ?.cardSummary ??
+      ""
     );
   };
 
@@ -534,11 +562,14 @@ export default function DashboardPage({
   const isAdminSelectionDone = isAdminSelectionComplete(workflowStatus);
   const confirmCopy =
     confirmAction === "review-complete" ? REVIEW_COMPLETE : FINAL_SELECTION;
-  const finalSelectionConfirmMessage = (() => {
-    const vendorName = selectedSupplier?.name?.trim();
-    if (!vendorName) return FINAL_SELECTION.dialogMessage;
-    return `${withObjectParticle(vendorName)} 최종 선정 업체로 확정하시겠습니까?`;
-  })();
+  const finalSelectionConfirmMessage = buildFinalSelectionConfirmMessage(
+    selectedSupplier,
+    projectData.selectedVendor,
+  );
+  const reviewCompleteConfirmMessage = buildReviewCompleteConfirmMessage(
+    selectedSupplier,
+    projectData.selectedVendor,
+  );
 
   const submitApprovalRequest = async () => {
     const apiProjectId = projectData.projectApiId ?? projectData.projectId;
@@ -653,7 +684,7 @@ export default function DashboardPage({
                 type="button"
               >
                 {isAdminSelectionDone
-                  ? "선정 완료"
+                  ? "확정 완료"
                   : selectionFinalized
                     ? "검토 완료"
                     : "검토 진행 중"}
@@ -695,7 +726,7 @@ export default function DashboardPage({
                 </h1>
                 <Badge className="project-title-status-badge">
                   {isAdminSelectionDone
-                    ? "선정 완료"
+                    ? "확정 완료"
                     : selectionFinalized
                       ? "검토 완료"
                       : "견적 검토"}
@@ -942,23 +973,16 @@ export default function DashboardPage({
                 </button>
                 {prosOpen && (
                   <div className="pros-list">
-                    {supplierExplanations.map((supplier) => {
-                      const matchedSupplier = suppliers.find(
-                        (item) =>
-                          item.vendorName === supplier.vendorName ||
-                          item.name === supplier.vendorName,
-                      );
-
-                      return (
+                    {supplierExplanations.map((supplier) => (
                       <div
                         className={`pros-item${
-                          matchedSupplier?.recommended ? " recommended" : ""
+                          supplier.recommended ? " recommended" : ""
                         }`}
-                        key={supplier.quoteId ?? supplier.vendorName}
+                        key={supplier.quoteId ?? supplier.displayName}
                       >
                         <div className="pros-brand">
                           <span className="rank">{supplier.rank}</span>
-                          <b>{supplier.vendorName}</b>
+                          <b>{supplier.displayName ?? supplier.vendorName}</b>
                         </div>
                         <div className="pros-detail">
                           <ProsConsGroup
@@ -971,8 +995,7 @@ export default function DashboardPage({
                           />
                         </div>
                       </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 )}
               </section>
@@ -1065,7 +1088,7 @@ export default function DashboardPage({
         <footer className="dashboard-bottom-actions">
           <span>
             {isAdminSelectionDone
-              ? "상태: 선정 완료"
+              ? "상태: 확정 완료"
               : selectionFinalized
                 ? "상태: 검토 완료 · 결재 대기"
                 : "상태: 견적 검토 진행 중"}
@@ -1139,7 +1162,7 @@ export default function DashboardPage({
               }
               type="button"
             >
-              {isAdminSelectionDone ? "선정 완료" : "최종 선정 확정"}
+              {isAdminSelectionDone ? "확정 완료" : "최종 선정 확정"}
             </button>
           )}
           </div>
@@ -1210,7 +1233,7 @@ export default function DashboardPage({
             <h2>{confirmCopy.dialogTitle}</h2>
             <p>
               {confirmAction === "review-complete"
-                ? confirmCopy.dialogMessage
+                ? reviewCompleteConfirmMessage
                 : finalSelectionConfirmMessage}
             </p>
             {confirmAction === "review-complete" && (
@@ -1249,7 +1272,7 @@ export default function DashboardPage({
       {selectionFinalized && followupVisible && (
         <div className="selection-followup">
           <button
-            aria-label="선정 완료 안내 닫기"
+            aria-label="확정 완료 안내 닫기"
             className="selection-followup-close"
             onClick={() => setFollowupVisible(false)}
             type="button"
