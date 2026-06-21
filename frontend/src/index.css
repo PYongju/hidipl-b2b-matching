@@ -4686,6 +4686,10 @@ textarea {
   border-bottom-color: #fde68a;
 }
 
+.partner-table .caution-row:hover td {
+  background: #fef3c7;
+}
+
 .partner-row-action {
   min-height: 28px;
   border: 1px solid #bfdbfe;
@@ -4925,29 +4929,71 @@ textarea {
   background: #fff;
 }
 
-.blacklist-card h3 {
-  margin: 0 0 4px;
+.blacklist-panel {
+  display: grid;
+  gap: 0;
+}
+
+.blacklist-card-icon {
+  flex-shrink: 0;
+  color: rgba(234, 88, 12, 0.7);
+  font-size: 16px;
+}
+
+.blacklist-alert {
+  border: 1px solid #d7dde8;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px;
+}
+
+.blacklist-alert-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.blacklist-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blacklist-alert-title strong {
   color: #0f172a;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.4;
-  letter-spacing: -0.1px;
 }
 
-.blacklist-card strong,
-.blacklist-card span {
-  display: block;
-  font-size: 13px;
+.blacklist-alert-list {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding-left: 0;
+  list-style: none;
 }
 
-.blacklist-card strong {
-  margin-top: 12px;
+.blacklist-alert-item {
   color: #0f172a;
 }
 
-.blacklist-card span {
-  margin-top: 5px;
+.blacklist-alert-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.blacklist-alert-item span {
+  display: block;
+  margin-top: 0;
   color: #92400e;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: keep-all;
 }
 
 .request-actions {
