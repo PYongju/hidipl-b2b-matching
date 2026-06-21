@@ -190,26 +190,6 @@ function PartnerSearchIcon() {
   );
 }
 
-function PartnerRemoveIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="selected-partner-remove-icon"
-      fill="none"
-      height="12"
-      viewBox="0 0 24 24"
-      width="12"
-    >
-      <path
-        d="M6 6l12 12M18 6 6 18"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
 function getCandidateEmptyMessage(status) {
   if (status === "missing-project-api-id") {
     return {
@@ -655,9 +635,12 @@ export default function PartnerMatchingPage({
         />
 
         <section className="partner-notice strong">
-          {partners.length === 0
-            ? "공급사 추천 결과를 불러오고 있어요. 아직 추천된 공급사가 없을 수 있어요."
-            : `공급사 ${partners.length}개를 순위대로 보여드려요. 상위 10개는 AI 추천으로 표시되고, 기본 미충족 공급사는 아래에 구분되어 보여요.`}
+          <i aria-hidden="true" className="fa-solid fa-info partner-notice-icon" />
+          <span>
+            {partners.length === 0
+              ? "공급사 추천 결과를 불러오고 있어요. 아직 추천된 공급사가 없을 수 있어요."
+              : `공급사 ${partners.length}개를 순위대로 보여드려요. 상위 10개는 AI 추천으로 표시되고, 기본 미충족 공급사는 아래에 구분되어 보여요.`}
+          </span>
         </section>
 
         <section className="partner-layout">
@@ -808,14 +791,21 @@ export default function PartnerMatchingPage({
                         </td>
                         <td>
                           <button
-                            className="partner-row-action"
+                            aria-label={isTarget ? "제거" : "추가"}
+                            className={`partner-row-action${
+                              isTarget ? " partner-row-action-remove" : ""
+                            }`}
                             onClick={(event) => {
                               event.stopPropagation();
                               togglePartner(partner.id);
                             }}
                             type="button"
                           >
-                            {isTarget ? "제거" : "추가"}
+                            {isTarget ? (
+                              <i aria-hidden="true" className="fa-solid fa-minus" />
+                            ) : (
+                              <i aria-hidden="true" className="fa-solid fa-plus" />
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -902,7 +892,10 @@ export default function PartnerMatchingPage({
                         }}
                         type="button"
                       >
-                        <PartnerRemoveIcon />
+                        <i
+                          aria-hidden="true"
+                          className="fa-solid fa-xmark selected-partner-remove-icon"
+                        />
                       </button>
                     </button>
                   ))}
@@ -976,7 +969,7 @@ export default function PartnerMatchingPage({
                 onClick={closeCopyModal}
                 type="button"
               >
-                ×
+                <i aria-hidden="true" className="fa-solid fa-xmark" />
               </button>
             </div>
 

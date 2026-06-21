@@ -143,9 +143,10 @@ export default function AdminProjectListPage({
         <section className="admin-table-panel">
           <div className="admin-table-toolbar">
             <div className="admin-table-search">
-              <span aria-hidden="true" className="admin-table-search-icon">
-                ⌕
-              </span>
+              <i
+                aria-hidden="true"
+                className="fa-solid fa-magnifying-glass admin-table-search-icon"
+              />
               <input
                 aria-label="프로젝트 검색"
                 onChange={(event) => setSearchTerm(event.target.value)}
@@ -288,7 +289,7 @@ export default function AdminProjectListPage({
                   onClick={() => setPage((value) => Math.max(1, value - 1))}
                   type="button"
                 >
-                  ‹
+                  <i aria-hidden="true" className="fa-solid fa-angle-left" />
                 </button>
                 <button
                   aria-label="다음 페이지"
@@ -299,7 +300,7 @@ export default function AdminProjectListPage({
                   }
                   type="button"
                 >
-                  ›
+                  <i aria-hidden="true" className="fa-solid fa-angle-right" />
                 </button>
               </div>
             </div>
@@ -330,10 +331,14 @@ function getWorkflowBadge(workflowStatus) {
     return { label: "진행 중", tone: "blue" };
   }
   if (value === "컨펌 요청") {
-    return { label: "결재 요청", tone: "orange" };
+    return { label: "결재 요청", tone: "rose" };
   }
-  if (value === "확정 완료" || value === "completed") {
-    return { label: "승인 완료", tone: "green" };
+  if (
+    value === "확정 완료" ||
+    value === "승인 완료" ||
+    value === "completed"
+  ) {
+    return { label: "확정 완료", tone: "green" };
   }
   return null;
 }

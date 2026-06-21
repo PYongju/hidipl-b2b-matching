@@ -6,10 +6,21 @@ import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
+import {
+  clearQuoteDraftFiles,
+  loadQuoteDraftFiles,
+  resolveQuoteDraftStorageKey,
+  saveQuoteDraftFiles,
+} from "../utils/quoteDraftFilesStorage";
+import {
+  hydrateRequestTargets,
+  shouldHydrateRequestTargets,
+} from "../utils/requestTargetHydration";
 import { buildProjectInfoSummary } from "../utils/projectRequestText";
 import { getUserDisplayName, USER } from "../constants/uiText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
+const ACCEPTED_QUOTE_EXTENSIONS = [".pdf", ".xlsx", ".xls", ".png", ".jpg", ".jpeg", ".webp"];
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
@@ -42,8 +53,11 @@ export default function QuoteWaitingPage({
     projectData.quoteFiles ?? [],
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
+  const draftFilesHydratedRef = useRef(false);
+  const fileInputRef = useRef(null);
   const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
   const canCompare = selectedFiles.length > 0;
   const receivedCount = selectedFiles.length;
@@ -110,6 +124,78 @@ export default function QuoteWaitingPage({
     projectData.quoteIds,
   ]);
 
+  useEffect(() => {
+    if (!shouldHydrateRequestTargets(projectData)) return undefined;
+
+    let cancelled = false;
+
+    hydrateRequestTargets(projectData.projectApiId, (updater) => {
+      if (!cancelled) {
+        onProjectDataChange(updater);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onProjectDataChange, projectData.projectApiId]);
+
+  useEffect(() => {
+    if (draftFilesHydratedRef.current) return undefined;
+
+    const storageKey = resolveQuoteDraftStorageKey(projectData);
+    if (!storageKey) return undefined;
+
+    if (hasUploadedQuotes) {
+      clearQuoteDraftFiles(storageKey);
+      draftFilesHydratedRef.current = true;
+      return undefined;
+    }
+
+    let ignore = false;
+
+    (async () => {
+      const draftFiles = await loadQuoteDraftFiles(storageKey);
+      if (ignore) return;
+
+      draftFilesHydratedRef.current = true;
+
+      if (!draftFiles.length || (projectData.quoteFiles ?? []).length > 0) {
+        return;
+      }
+
+      setSelectedFiles(draftFiles);
+      onProjectDataChange((current) => ({
+        ...current,
+        quoteFiles: draftFiles,
+      }));
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    hasUploadedQuotes,
+    onProjectDataChange,
+    projectData.projectApiId,
+    projectData.projectId,
+    projectData.quoteFiles,
+  ]);
+
+  useEffect(() => {
+    const storageKey = resolveQuoteDraftStorageKey(projectData);
+    if (!storageKey || hasUploadedQuotes || !draftFilesHydratedRef.current) {
+      return;
+    }
+
+    saveQuoteDraftFiles(storageKey, selectedFiles);
+  }, [
+    hasUploadedQuotes,
+    projectData.projectApiId,
+    projectData.projectId,
+    selectedFiles,
+  ]);
+
   useEffect(
     () => () => {
       if (autoSaveStatusTimerRef.current) {
@@ -154,12 +240,43 @@ export default function QuoteWaitingPage({
     }));
   };
 
-  const handleFiles = (event) => {
-    const nextFiles = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  const appendFiles = (fileList) => {
+    const nextFiles = filterAcceptedQuoteFiles(fileList);
     if (!nextFiles.length) return;
     updateFiles(mergeFiles(selectedFiles, nextFiles));
     setErrorMessage("");
+  };
+
+  const handleFiles = (event) => {
+    appendFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    appendFiles(event.dataTransfer.files);
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   const removeFile = (fileToRemove) => {
@@ -240,11 +357,29 @@ export default function QuoteWaitingPage({
               </div>
             </div>
 
-            <label className="drop-zone upload-drop-zone quote-bulk-drop-zone">
+            <div
+              className={`drop-zone upload-drop-zone quote-bulk-drop-zone${
+                isDragging ? " is-dragging" : ""
+              }`}
+              onClick={openFilePicker}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openFilePicker();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <input
                 accept={ACCEPTED_QUOTE_FILES}
                 multiple
                 onChange={handleFiles}
+                ref={fileInputRef}
                 type="file"
               />
               <div className="quote-drop-zone-content">
@@ -254,7 +389,7 @@ export default function QuoteWaitingPage({
                 <b>파일을 드래그하거나 클릭하여 업로드</b>
                 <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
               </div>
-            </label>
+            </div>
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
@@ -280,7 +415,7 @@ export default function QuoteWaitingPage({
                         onClick={() => removeFile(file)}
                         type="button"
                       >
-                        ×
+                        <i aria-hidden="true" className="fa-solid fa-xmark" />
                       </button>
                     </div>
                   </div>
@@ -293,7 +428,7 @@ export default function QuoteWaitingPage({
             ) : null}
           </div>
 
-          <aside className="request-panel panel-sticky">
+          <aside className="request-panel panel-static">
             <div className="request-card">
               <div className="request-card-head">
                 <div className="requirements-section-title">
@@ -418,6 +553,13 @@ function mergeFiles(existingFiles, nextFiles) {
     fileMap.set(`${file.name}-${file.lastModified}-${file.size}`, file);
   });
   return Array.from(fileMap.values());
+}
+
+function filterAcceptedQuoteFiles(fileList) {
+  return Array.from(fileList ?? []).filter((file) => {
+    const name = file.name.toLowerCase();
+    return ACCEPTED_QUOTE_EXTENSIONS.some((extension) => name.endsWith(extension));
+  });
 }
 
 function formatFileSize(size) {

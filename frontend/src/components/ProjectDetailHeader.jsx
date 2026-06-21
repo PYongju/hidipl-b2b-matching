@@ -13,7 +13,7 @@ export default function ProjectDetailHeader({
           onClick={onBack}
           type="button"
         >
-          ‹
+          <i aria-hidden="true" className="fa-solid fa-angle-left" />
         </button>
         <div className="requirements-header-body">
           <p>프로젝트 상세</p>

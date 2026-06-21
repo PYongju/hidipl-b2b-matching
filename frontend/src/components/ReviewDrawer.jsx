@@ -23,7 +23,7 @@ export default function ReviewDrawer({ open, onClose }) {
               <h2>요구사항 입력부터 AI 비교까지</h2>
             </div>
             <button className="drawer-close" onClick={onClose} type="button" aria-label="닫기">
-              ×
+              <i aria-hidden="true" className="fa-solid fa-xmark" />
             </button>
           </div>
 
@@ -128,7 +128,8 @@ export default function ReviewDrawer({ open, onClose }) {
               onClick={() => setStep(step + 1)}
               type="button"
             >
-              다음 ›
+              다음{" "}
+              <i aria-hidden="true" className="fa-solid fa-angle-right" />
             </button>
           )}
         </div>

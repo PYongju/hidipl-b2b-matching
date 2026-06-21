@@ -8,7 +8,7 @@ const FILTER_ALL = "전체";
 const STATUS_IN_PROGRESS = "진행 중";
 const STATUS_IN_REVIEW = "검토 중";
 const STATUS_APPROVAL_REQUEST = "결재 요청";
-const STATUS_DONE = "완료";
+const STATUS_DONE = "확정 완료";
 const WORKFLOW_APPROVAL_REQUEST = "컨펌 요청";
 
 const filterOptions = [
@@ -44,7 +44,7 @@ export default function ProjectListPage({
   }, [projects]);
 
   const completedCount = projects.filter(
-    (project) => normalizeStatus(project.status) === STATUS_DONE,
+    (project) => getProjectListFilterKey(project) === STATUS_DONE,
   ).length;
   const activeCount = projects.filter(
     (project) => normalizeStatus(project.status) === STATUS_IN_PROGRESS,
@@ -75,7 +75,7 @@ export default function ProjectListPage({
     if (activeFilter === STATUS_APPROVAL_REQUEST) {
       return isApprovalRequestProject(project);
     }
-    return normalizeStatus(project.status) === activeFilter;
+    return getProjectListFilterKey(project) === activeFilter;
   });
 
   const visibleProjectIds = filteredProjects.map((project) => project.id);
@@ -182,7 +182,9 @@ export default function ProjectListPage({
               {filterOptions.map((filter) => (
                 <button
                   aria-selected={activeFilter === filter}
-                  className={`filter-tab ${activeFilter === filter ? "active" : ""}`}
+                  className={`filter-tab ${getFilterTabToneClass(filter)} ${
+                    activeFilter === filter ? "active" : ""
+                  }`}
                   key={filter}
                   onClick={() => setActiveFilter(filter)}
                   role="tab"
@@ -430,19 +432,43 @@ function isApprovalRequestProject(project) {
   return (project.data?.workflowStatus ?? "") === WORKFLOW_APPROVAL_REQUEST;
 }
 
+function getFilterTabToneClass(filter) {
+  if (filter === STATUS_IN_PROGRESS) return "filter-tab-tone-blue";
+  if (filter === STATUS_IN_REVIEW) return "filter-tab-tone-orange";
+  if (filter === STATUS_APPROVAL_REQUEST) return "filter-tab-tone-rose";
+  if (filter === STATUS_DONE) return "filter-tab-tone-green";
+  return "filter-tab-tone-all";
+}
+
+function isDoneWorkflowStatus(workflowStatus) {
+  return (
+    workflowStatus === "확정 완료" ||
+    workflowStatus === "승인 완료" ||
+    workflowStatus === "완료" ||
+    workflowStatus === "completed"
+  );
+}
+
+function getProjectListFilterKey(project) {
+  const workflowStatus = project.data?.workflowStatus ?? "";
+  if (workflowStatus === WORKFLOW_APPROVAL_REQUEST) {
+    return STATUS_APPROVAL_REQUEST;
+  }
+  if (isDoneWorkflowStatus(workflowStatus)) {
+    return STATUS_DONE;
+  }
+  return normalizeStatus(project.status);
+}
+
 function getWorkflowStatusBadgeLabel(workflowStatus) {
   if (workflowStatus === "컨펌 요청") return "결재 요청";
-  if (workflowStatus === "확정 완료") return "승인 완료";
-  if (workflowStatus === "completed" || workflowStatus === "완료") return "완료";
+  if (isDoneWorkflowStatus(workflowStatus)) return STATUS_DONE;
   return workflowStatus;
 }
 
 function isWorkflowStatusBadge(workflowStatus) {
   return (
-    workflowStatus === "컨펌 요청" ||
-    workflowStatus === "확정 완료" ||
-    workflowStatus === "completed" ||
-    workflowStatus === "완료"
+    workflowStatus === "컨펌 요청" || isDoneWorkflowStatus(workflowStatus)
   );
 }
 
@@ -456,19 +482,20 @@ function getProjectCardStatusLabel(project) {
 
 function getProjectCardStatusTone(project) {
   const workflowStatus = project.data?.workflowStatus ?? "";
-  if (workflowStatus === "컨펌 요청") return "purple";
+  if (workflowStatus === "컨펌 요청") return "rose";
   if (workflowStatus === "확정 완료") return "green";
   return project.statusTone;
 }
 
 function normalizeStatus(value) {
-  if (value === STATUS_DONE || String(value).includes("완료")) {
+  const text = String(value ?? "").trim();
+  if (isDoneWorkflowStatus(text) || text === STATUS_DONE) {
     return STATUS_DONE;
   }
-  if (String(value).includes("검토")) {
+  if (text.includes("검토")) {
     return STATUS_IN_REVIEW;
   }
-  if (String(value).includes("진행")) {
+  if (text.includes("진행")) {
     return STATUS_IN_PROGRESS;
   }
   return readable(value, STATUS_IN_PROGRESS);

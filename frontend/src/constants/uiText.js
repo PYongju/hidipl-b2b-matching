@@ -53,8 +53,9 @@ export const FINAL_SELECTION = {
 
 export const REVIEW_COMPLETE = {
   dialogTitle: "검토 완료",
-  dialogMessage: "검토를 완료하고 결재를 요청할까요?",
-  dialogResult: "완료하면 관리자 결재 목록에 요청이 등록돼요.",
+  dialogMessage: "검토를 완료하고 관리자에게 결재를 요청할까요?",
+  dialogResult:
+    "요청 후에는 관리자 승인 전까지 결재 상태가 '결재 요청'으로 표시돼요.",
   toast: "결재 요청이 완료되었습니다.",
   doneEmotion: "결재 요청을 보냈어요.",
   statusChanged: "프로젝트 목록에서 결재 진행 상태를 확인할 수 있어요.",
