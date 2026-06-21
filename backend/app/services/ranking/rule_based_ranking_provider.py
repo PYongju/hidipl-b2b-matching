@@ -11,6 +11,7 @@ from services.ranking.schemas import (
     RankingSummary,
 )
 from services.requirement.schemas import RequirementInfo
+from services.recommendation.rank_score_consistency import validate_rank_score_consistency
 from services.similarity.base import SimilarityProvider
 
 
@@ -73,6 +74,8 @@ class RuleBasedRankingProvider(RankingProvider):
 
         for index, result in enumerate(results, start=1):
             result.rank = index
+
+        validate_rank_score_consistency(results)
 
         passed_results = [result for result in results if result.business_rule_passed]
 

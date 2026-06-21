@@ -20,6 +20,7 @@ from services.recommendation.product_group_filter import (
     group_quotes_by_product_group,
     resolve_quote_product_groups,
 )
+from services.recommendation.rank_score_consistency import get_critical_risks
 
 
 INTERNAL_COMPARE_NOTE_PATTERNS = [
@@ -351,6 +352,9 @@ def build_recommendation_item(item) -> dict[str, Any]:
                 ),
                 "check_required": item.get("check_required", []) or [],
                 "comparison_risks": item.get("comparison_risks", []) or [],
+                "critical_risks": item.get("critical_risks")
+                or (item.get("metadata", {}) or {}).get("critical_risks", [])
+                or [],
                 "rule_warnings": item.get("rule_warnings", []) or [],
                 "matched_rules": item.get("matched_rules", []) or [],
                 "partner_found": item.get("partner_found"),
@@ -384,6 +388,7 @@ def build_recommendation_item(item) -> dict[str, Any]:
         "installation_included": _quote_installation_included(item),
         "check_required": item.check_required,
         "comparison_risks": list(getattr(item, "comparison_risks", []) or []),
+        "critical_risks": get_critical_risks(item),
         "rule_warnings": item.rule_warnings,
         "matched_rules": item.matched_rules,
         "partner_found": item.partner_found,
@@ -661,6 +666,7 @@ def _build_compare_row(
     check_required = _filter_visible_compare_notes(check_required)
     comparison_risks = _filter_visible_compare_notes(comparison_risks)
     matched_rules = list(getattr(score_item, "matched_rules", []) or [])
+    critical_risks = get_critical_risks(score_item)
     installation_included = _quote_document_installation_included(quote, score_item)
     install_location = _resolve_install_location(
         result,
@@ -696,6 +702,7 @@ def _build_compare_row(
         "installation_score": getattr(score_item, "installation_score", None),
         "check_required": check_required,
         "comparison_risks": comparison_risks,
+        "critical_risks": critical_risks,
         "rule_warnings": rule_warnings,
         "matched_rules": matched_rules,
         "is_premium_partner": getattr(snapshot, "is_premium_partner", False),
