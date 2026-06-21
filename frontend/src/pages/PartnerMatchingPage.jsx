@@ -16,6 +16,41 @@ import {
 } from "../utils/projectRequestText";
 import { getUserDisplayName, USER } from "../constants/uiText";
 
+const MOCK_CAUTION_PARTNERS = [
+  {
+    id: "mock-caution-daechung-display",
+    name: "\uC8FC\uC2DD\uD68C\uC0AC \uB300\uCDA9\uB514\uC2A4\uD50C\uB808\uC774",
+    specialty: "\uAC00\uC0C1 \uACF5\uAE09\uC0AC, LED \uC804\uAD11\uD310",
+    score: 18,
+    cases: 2,
+    premium: false,
+    response: "\uBBF8\uD655\uC778",
+    businessRulePassed: false,
+    recommended: false,
+    caution: true,
+    reason:
+      "\uACAC\uC801 \uC0C1\uC138 \uC870\uAC74 \uB204\uB77D \uC774\uB825\uC774 \uC788\uC5B4 \uAC80\uD1A0\uAC00 \uD544\uC694\uD574\uC694.",
+  },
+  {
+    id: "mock-caution-send-first",
+    name: "\uC8FC\uC2DD\uD68C\uC0AC \uC77C\uB2E8\uBCF4\uB0B4",
+    specialty: "\uAC00\uC0C1 \uACF5\uAE09\uC0AC, \uC0AC\uC774\uB2C8\uC9C0",
+    score: 16,
+    cases: 1,
+    premium: false,
+    response: "\uBBF8\uD655\uC778",
+    businessRulePassed: false,
+    recommended: false,
+    caution: true,
+    reason:
+      "\uC81C\uC548 \uC870\uAC74 \uB204\uB77D \uC774\uB825\uC774 \uC788\uC5B4 \uC694\uCCAD \uC804 \uD655\uC778\uC774 \uD544\uC694\uD574\uC694.",
+  },
+];
+
+const MOCK_CAUTION_PARTNER_IDS = new Set(
+  MOCK_CAUTION_PARTNERS.map((partner) => partner.id),
+);
+
 const DEFAULT_VISIBLE_PARTNERS = 15;
 const REQUEST_PANEL_SCROLL_THRESHOLD = 6;
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
@@ -369,7 +404,13 @@ export default function PartnerMatchingPage({
 
   const candidates = projectData.candidateVendors ?? [];
   const partners = useMemo(
-    () => candidates.map(normalizeCandidateVendor),
+    () => [
+      ...candidates.map(normalizeCandidateVendor),
+      ...MOCK_CAUTION_PARTNERS.map((partner, index) => ({
+        ...partner,
+        rank: candidates.length + index + 1,
+      })),
+    ],
     [candidates],
   );
   const candidateStatus = projectData.projectApiId
@@ -387,28 +428,37 @@ export default function PartnerMatchingPage({
       ? partners.filter((partner) => partner.recommended)
       : partners;
 
-    return base
-      .filter((partner) => {
-        const matchesSearch =
-          !normalizedSearch ||
-          partner.name.toLowerCase().includes(normalizedSearch) ||
-          partner.specialty.toLowerCase().includes(normalizedSearch);
-        const matchesPremium =
-          premiumFilter === "all" ||
-          (premiumFilter === "premium" && partner.premium) ||
-          (premiumFilter === "standard" && !partner.premium);
-        return matchesSearch && matchesPremium;
-      })
-      .sort((a, b) => {
-        if (sortKey === "cases") {
-          const caseDiff = (b.cases ?? 0) - (a.cases ?? 0);
-          if (caseDiff !== 0) return caseDiff;
-          return b.score - a.score || a.rank - b.rank;
-        }
-        const scoreDiff = b.score - a.score;
-        if (scoreDiff !== 0) return scoreDiff;
-        return a.rank - b.rank;
-      });
+    const matchedPartners = base.filter((partner) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        partner.name.toLowerCase().includes(normalizedSearch) ||
+        partner.specialty.toLowerCase().includes(normalizedSearch);
+      const matchesPremium =
+        premiumFilter === "all" ||
+        (premiumFilter === "premium" && partner.premium) ||
+        (premiumFilter === "standard" && !partner.premium);
+      return matchesSearch && matchesPremium;
+    });
+
+    const mockPartners = matchedPartners.filter((partner) =>
+      MOCK_CAUTION_PARTNER_IDS.has(partner.id),
+    );
+    const realPartners = matchedPartners.filter(
+      (partner) => !MOCK_CAUTION_PARTNER_IDS.has(partner.id),
+    );
+
+    const sortedRealPartners = realPartners.sort((a, b) => {
+      if (sortKey === "cases") {
+        const caseDiff = (b.cases ?? 0) - (a.cases ?? 0);
+        if (caseDiff !== 0) return caseDiff;
+        return b.score - a.score || a.rank - b.rank;
+      }
+      const scoreDiff = b.score - a.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.rank - b.rank;
+    });
+
+    return [...sortedRealPartners, ...mockPartners];
   }, [partners, premiumFilter, searchTerm, showRecommendedOnly, sortKey]);
 
   const displayPartners = useMemo(() => {
@@ -772,6 +822,7 @@ export default function PartnerMatchingPage({
                         </td>
                         <td>
                           <Badge
+                            title={partner.caution ? partner.reason : undefined}
                             tone={
                               partner.caution
                                 ? "orange"
@@ -781,12 +832,12 @@ export default function PartnerMatchingPage({
                             }
                           >
                             {partner.caution
-                              ? "주의"
+                              ? "\uC8FC\uC758"
                               : partner.recommended
-                                ? "AI 추천"
+                                ? "AI \uCD94\uCC9C"
                                 : partner.businessRulePassed
-                                  ? "추천 가능"
-                                  : "기준 미충족"}
+                                  ? "\uCD94\uCC9C \uAC00\uB2A5"
+                                  : "\uAE30\uC900 \uBBF8\uCDA9\uC871"}
                           </Badge>
                         </td>
                         <td>
@@ -900,23 +951,6 @@ export default function PartnerMatchingPage({
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            <div className="blacklist-card neutral">
-              <h3>주의 공급사 요약</h3>
-              <p>
-                총 {cautionPartners.length}개 공급사는 검토가 필요한 이력이 있어요. 견적 요청 전에
-                사유를 확인하고 담당자가 최종 판단해 주세요.
-              </p>
-              {cautionPartners.length === 0 ? (
-                <span>현재 주의 공급사는 없어요.</span>
-              ) : (
-                cautionPartners.map((partner) => (
-                  <span key={partner.id}>
-                    {partner.name}: {partner.reason}
-                  </span>
-                ))
               )}
             </div>
           </aside>
