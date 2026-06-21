@@ -1,14 +1,12 @@
-const DEFAULT_SKELETON_COUNT = 3;
+const DEFAULT_SKELETON_COUNT = 6;
 
 function ProjectListSkeletonCard() {
   return (
     <article className="history-card project-skeleton-card" aria-hidden="true">
       <div className="history-card-top">
-        <div className="history-card-title-row">
+        <span className="skeleton-bone skeleton-badge" />
+        <div className="history-card-top-right">
           <span className="skeleton-bone skeleton-id" />
-        </div>
-        <div className="history-card-actions">
-          <span className="skeleton-bone skeleton-badge" />
           <span className="skeleton-bone skeleton-menu" />
         </div>
       </div>

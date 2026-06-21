@@ -197,7 +197,7 @@ export default function ProjectRequirementsPage({
             <div className="requirements-section-title">
               <div>
                 <h2>요구사항 작성</h2>
-                <p>발주사 기본 정보와 디스플레이 요구사항을 기준에 맞춰 정리해요.</p>
+                <p>발주사 기본 정보와 디스플레이 요구사항을 입력해요.</p>
               </div>
             </div>
 
@@ -426,7 +426,13 @@ export default function ProjectRequirementsPage({
             <div className="matching-check-list">
               {checks.map((check) => (
                 <article className={`matching-check ${check.level}`} key={check.title}>
-                  <span>{check.level === "ok" ? "✓" : "!"}</span>
+                  <span aria-hidden="true">
+                    {check.level === "ok" ? (
+                      <i className="fa-solid fa-check" />
+                    ) : (
+                      <i className="fa-solid fa-exclamation" />
+                    )}
+                  </span>
                   <div>
                     <strong>{check.title}</strong>
                     <p>{check.message}</p>
