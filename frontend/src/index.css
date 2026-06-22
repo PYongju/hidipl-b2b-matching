@@ -89,7 +89,7 @@ button {
 .brand-home {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 4px;
   padding: 0;
   border: 0;
   background: none;
@@ -110,24 +110,10 @@ button {
 }
 
 .brand-mark {
-  display: grid;
+  flex-shrink: 0;
   width: 28px;
   height: 28px;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
-}
-
-.brand-mark span {
-  border-radius: 4px;
-  background: #2563eb;
-}
-
-.brand-mark span:nth-child(2) {
-  background: #60a5fa;
-}
-
-.brand-mark span:nth-child(3) {
-  background: #93c5fd;
+  object-fit: contain;
 }
 
 .brand-title {
@@ -3385,52 +3371,29 @@ textarea {
 }
 
 .login-logo {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
 }
 
-.login-logo-text-wrap {
-  display: grid;
-  gap: 8px;
+.login-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -4px;
 }
 
 .login-logo-icon {
-  display: grid;
   flex-shrink: 0;
-  grid-template-columns: repeat(2, 11px);
-  grid-template-rows: repeat(2, 11px);
-  gap: 3px;
-  margin-top: 2px;
-}
-
-.login-logo-icon span {
-  width: 11px;
-  height: 11px;
-  border-radius: 2.5px;
-}
-
-.login-logo-icon span:nth-child(1) {
-  background: #4f8ef7;
-}
-
-.login-logo-icon span:nth-child(2) {
-  background: #7ab3fa;
-}
-
-.login-logo-icon span:nth-child(3) {
-  background: #a8ccfc;
-}
-
-.login-logo-icon span:nth-child(4) {
-  background: #c5defe;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .login-logo-text {
   color: #111827;
   font-size: 16px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .login-copy-main {
@@ -3443,6 +3406,7 @@ textarea {
 }
 
 .login-logo-tagline {
+  margin: 0;
   color: #64748b;
   font-size: 13px;
   font-weight: 400;
