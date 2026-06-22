@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Badge from '../components/Badge';
 import FlowTopbar from '../components/FlowTopbar';
 import { formatNumberInput } from '../utils/formatters';
@@ -11,6 +11,8 @@ export default function ProjectCreatePage({
   onGoHome,
 }) {
   const [step, setStep] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
   const uploadedFiles = projectData.quoteFiles ?? [];
   const steps = [
     ["기본 정보", "회사명, 위치, 일정"],
@@ -23,8 +25,8 @@ export default function ProjectCreatePage({
     left.lastModified === right.lastModified &&
     left.size === right.size;
 
-  const handleFiles = (event) => {
-    const newFiles = Array.from(event.target.files || []);
+  const appendFiles = (fileList) => {
+    const newFiles = Array.from(fileList || []);
     if (newFiles.length === 0) {
       return;
     }
@@ -44,8 +46,38 @@ export default function ProjectCreatePage({
         quoteFiles: mergedFiles,
       };
     });
+  };
 
+  const handleFiles = (event) => {
+    appendFiles(event.target.files);
     event.target.value = "";
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    appendFiles(event.dataTransfer.files);
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   const removeFile = (fileToRemove) => {
@@ -227,16 +259,32 @@ export default function ProjectCreatePage({
             <div className="wizard-content">
               <h2>견적서 업로드</h2>
               <p>공급사별 견적서를 한 번에 또는 하나씩 첨부할 수 있어요. 선택한 파일은 아래 목록에 쌓여요.</p>
-              <label className="drop-zone upload-drop-zone">
+              <div
+                className={`drop-zone upload-drop-zone${isDragging ? " is-dragging" : ""}`}
+                onClick={openFilePicker}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openFilePicker();
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
                 <input
                   accept=".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp"
                   multiple
                   onChange={handleFiles}
+                  ref={fileInputRef}
                   type="file"
                 />
                 <b>파일을 드래그하거나 클릭하여 업로드</b>
                 <span>PDF, Excel, 이미지 파일 지원 · 여러 개 또는 하나씩 선택 가능</span>
-              </label>
+              </div>
               <div className="uploaded-list">
                 {uploadedFiles.length === 0 ? (
                   <div className="empty-file-row">아직 업로드된 견적서가 없어요.</div>
@@ -252,7 +300,7 @@ export default function ProjectCreatePage({
                           onClick={() => removeFile(file)}
                           type="button"
                         >
-                          ×
+                          <i aria-hidden="true" className="fa-solid fa-xmark" />
                         </button>
                       </div>
                     </div>

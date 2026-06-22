@@ -197,7 +197,7 @@ export default function ProjectRequirementsPage({
             <div className="requirements-section-title">
               <div>
                 <h2>요구사항 작성</h2>
-                <p>발주사 기본 정보와 디스플레이 요구사항을 기준에 맞춰 정리해요.</p>
+                <p>발주사 기본 정보와 디스플레이 요구사항을 입력해요.</p>
               </div>
             </div>
 
@@ -330,7 +330,7 @@ export default function ProjectRequirementsPage({
                   </select>
                 </label>
                 <label className="requirements-solution-field">
-                  <span>솔루션</span>
+                  <span>솔루션 *</span>
                   <SolutionTagPicker
                     onChange={(solutions) => updateField("solutions", solutions)}
                     showChips={false}
@@ -426,7 +426,13 @@ export default function ProjectRequirementsPage({
             <div className="matching-check-list">
               {checks.map((check) => (
                 <article className={`matching-check ${check.level}`} key={check.title}>
-                  <span>{check.level === "ok" ? "✓" : "!"}</span>
+                  <span aria-hidden="true">
+                    {check.level === "ok" ? (
+                      <i className="fa-solid fa-check" />
+                    ) : (
+                      <i className="fa-solid fa-exclamation" />
+                    )}
+                  </span>
                   <div>
                     <strong>{check.title}</strong>
                     <p>{check.message}</p>
@@ -495,7 +501,8 @@ function isRequiredRequirementsFilled(data) {
       data.location?.trim() &&
       data.usage?.trim() &&
       data.projectName?.trim() &&
-      data.projectDate?.trim(),
+      data.projectDate?.trim() &&
+      normalizeProjectSolutions(data).length > 0,
   );
 }
 
@@ -506,6 +513,7 @@ function getMatchingChecks(data) {
   const hasUsage = Boolean(data.usage?.trim());
   const hasProjectName = Boolean(data.projectName?.trim());
   const hasProjectDate = Boolean(data.projectDate?.trim());
+  const hasSolutions = normalizeProjectSolutions(data).length > 0;
 
   const requiredFilledCount = [
     hasCompany,
@@ -513,17 +521,18 @@ function getMatchingChecks(data) {
     hasUsage,
     hasProjectName,
     hasProjectDate,
+    hasSolutions,
   ].filter(Boolean).length;
 
   return [
     {
       title: "필수값 충족",
       weight: 24,
-      level: requiredFilledCount === 5 ? "ok" : "warn",
+      level: requiredFilledCount === 6 ? "ok" : "warn",
       message:
-        requiredFilledCount === 5
-          ? "회사명, 설치 위치, 프로젝트명, 프로젝트 일정, 활용 목적이 입력됐어요."
-          : `필수 항목 중 ${requiredFilledCount}/5개가 입력됐어요.`,
+        requiredFilledCount === 6
+          ? "회사명, 설치 위치, 프로젝트명, 프로젝트 일정, 활용 목적, 솔루션이 입력됐어요."
+          : `필수 항목 중 ${requiredFilledCount}/6개가 입력됐어요.`,
     },
     {
       title: "정보 탐색 단계 확인 필요",

@@ -174,7 +174,13 @@ export default function PartnerMatchingLoadingPage({
                   className={`${isDone ? "done" : ""} ${isActive ? "active" : ""}`}
                   key={step.title}
                 >
-                  <span>{isDone ? "✓" : index + 1}</span>
+                  <span>
+                    {isDone ? (
+                      <i className="fa-solid fa-check" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
                   <div>
                     <b>{step.title}</b>
                     <small>{step.detail}</small>

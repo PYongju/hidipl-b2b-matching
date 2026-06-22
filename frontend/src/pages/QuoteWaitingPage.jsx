@@ -6,10 +6,21 @@ import ProjectDetailHeader from "../components/ProjectDetailHeader";
 import ProjectStepTabs from "../components/ProjectStepTabs";
 import { fetchProjectMatches } from "../api/apiClient";
 import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
+import {
+  clearQuoteDraftFiles,
+  loadQuoteDraftFiles,
+  resolveQuoteDraftStorageKey,
+  saveQuoteDraftFiles,
+} from "../utils/quoteDraftFilesStorage";
+import {
+  hydrateRequestTargets,
+  shouldHydrateRequestTargets,
+} from "../utils/requestTargetHydration";
 import { buildProjectInfoSummary } from "../utils/projectRequestText";
 import { getUserDisplayName, USER } from "../constants/uiText";
 
 const ACCEPTED_QUOTE_FILES = ".pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp";
+const ACCEPTED_QUOTE_EXTENSIONS = [".pdf", ".xlsx", ".xls", ".png", ".jpg", ".jpeg", ".webp"];
 const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
 
 function shouldRestoreMatchData(projectData) {
@@ -42,8 +53,11 @@ export default function QuoteWaitingPage({
     projectData.quoteFiles ?? [],
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
+  const draftFilesHydratedRef = useRef(false);
+  const fileInputRef = useRef(null);
   const hasUploadedQuotes = (projectData.quoteIds?.length ?? 0) > 0;
   const canCompare = selectedFiles.length > 0;
   const receivedCount = selectedFiles.length;
@@ -110,6 +124,78 @@ export default function QuoteWaitingPage({
     projectData.quoteIds,
   ]);
 
+  useEffect(() => {
+    if (!shouldHydrateRequestTargets(projectData)) return undefined;
+
+    let cancelled = false;
+
+    hydrateRequestTargets(projectData.projectApiId, (updater) => {
+      if (!cancelled) {
+        onProjectDataChange(updater);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onProjectDataChange, projectData.projectApiId]);
+
+  useEffect(() => {
+    if (draftFilesHydratedRef.current) return undefined;
+
+    const storageKey = resolveQuoteDraftStorageKey(projectData);
+    if (!storageKey) return undefined;
+
+    if (hasUploadedQuotes) {
+      clearQuoteDraftFiles(storageKey);
+      draftFilesHydratedRef.current = true;
+      return undefined;
+    }
+
+    let ignore = false;
+
+    (async () => {
+      const draftFiles = await loadQuoteDraftFiles(storageKey);
+      if (ignore) return;
+
+      draftFilesHydratedRef.current = true;
+
+      if (!draftFiles.length || (projectData.quoteFiles ?? []).length > 0) {
+        return;
+      }
+
+      setSelectedFiles(draftFiles);
+      onProjectDataChange((current) => ({
+        ...current,
+        quoteFiles: draftFiles,
+      }));
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    hasUploadedQuotes,
+    onProjectDataChange,
+    projectData.projectApiId,
+    projectData.projectId,
+    projectData.quoteFiles,
+  ]);
+
+  useEffect(() => {
+    const storageKey = resolveQuoteDraftStorageKey(projectData);
+    if (!storageKey || hasUploadedQuotes || !draftFilesHydratedRef.current) {
+      return;
+    }
+
+    saveQuoteDraftFiles(storageKey, selectedFiles);
+  }, [
+    hasUploadedQuotes,
+    projectData.projectApiId,
+    projectData.projectId,
+    selectedFiles,
+  ]);
+
   useEffect(
     () => () => {
       if (autoSaveStatusTimerRef.current) {
@@ -154,12 +240,43 @@ export default function QuoteWaitingPage({
     }));
   };
 
-  const handleFiles = (event) => {
-    const nextFiles = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  const appendFiles = (fileList) => {
+    const nextFiles = filterAcceptedQuoteFiles(fileList);
     if (!nextFiles.length) return;
     updateFiles(mergeFiles(selectedFiles, nextFiles));
     setErrorMessage("");
+  };
+
+  const handleFiles = (event) => {
+    appendFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragging(false);
+    appendFiles(event.dataTransfer.files);
+  };
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   const removeFile = (fileToRemove) => {
@@ -227,37 +344,58 @@ export default function QuoteWaitingPage({
 
         <section className="quote-waiting-layout">
           <div className="quote-board-panel">
-            <div className="quote-panel-title with-progress">
+            <div className="requirements-section-title partner-section-header">
               <div>
-                <h2>견적서 업로드</h2>
+                <div className="partner-section-header-row">
+                  <h2>견적서 업로드</h2>
+                  <Badge tone="blue">{selectedFiles.length}개 선택</Badge>
+                </div>
                 <p>
                   공급사별 견적서를 한 번에 첨부해요. 선택한 파일은 프로젝트
                   단위로 업로드돼요.
                 </p>
               </div>
-              <div className="quote-progress">
-                <span>{selectedFiles.length}개 선택</span>
-                <div>
-                  <i style={{ width: selectedFiles.length ? "100%" : "0%" }} />
-                </div>
-              </div>
             </div>
 
-            <label className="drop-zone upload-drop-zone quote-bulk-drop-zone">
+            <div
+              className={`drop-zone upload-drop-zone quote-bulk-drop-zone${
+                isDragging ? " is-dragging" : ""
+              }`}
+              onClick={openFilePicker}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openFilePicker();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
               <input
                 accept={ACCEPTED_QUOTE_FILES}
                 multiple
                 onChange={handleFiles}
+                ref={fileInputRef}
                 type="file"
               />
-              <b>파일을 드래그하거나 클릭하여 업로드</b>
-              <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
-            </label>
+              <div className="quote-drop-zone-content">
+                <span aria-hidden="true" className="quote-drop-zone-icon">
+                  <i className="fa-solid fa-file-arrow-up" />
+                </span>
+                <b>파일을 드래그하거나 클릭하여 업로드</b>
+                <span>PDF, Excel, 이미지 파일 지원 · 여러 개 선택 가능</span>
+              </div>
+            </div>
 
             <div className="uploaded-list quote-uploaded-list">
               {selectedFiles.length === 0 ? (
-                <div className="empty-file-row">
+                <div className="request-empty quote-upload-empty">
                   아직 업로드한 견적서가 없어요.
+                  <span>위 영역에 파일을 드래그하거나 클릭해서 추가해 주세요.</span>
                 </div>
               ) : (
                 selectedFiles.map((file) => (
@@ -277,7 +415,7 @@ export default function QuoteWaitingPage({
                         onClick={() => removeFile(file)}
                         type="button"
                       >
-                        ×
+                        <i aria-hidden="true" className="fa-solid fa-xmark" />
                       </button>
                     </div>
                   </div>
@@ -290,23 +428,24 @@ export default function QuoteWaitingPage({
             ) : null}
           </div>
 
-          <aside className="quote-ops-panel panel-sticky">
-            <div className="quote-panel-title quote-ops-panel-title">
-              <div>
-                <h2>견적 요청 발송 대상</h2>
-                <p>이전 단계에서 선택한 공급사를 다시 확인해요.</p>
+          <aside className="request-panel panel-static">
+            <div className="request-card">
+              <div className="request-card-head">
+                <div className="requirements-section-title">
+                  <div>
+                    <div className="request-card-title-row">
+                      <h2>견적 요청 발송 대상</h2>
+                      {requestTargets.length > 0 ? (
+                        <Badge tone="blue">{requestTargets.length}개 대상</Badge>
+                      ) : null}
+                    </div>
+                    <p>이전 단계에서 선택한 공급사를 다시 확인해요.</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <section>
-              <h3>
-                견적 요청 발송 대상
-                {requestTargets.length > 0 ? (
-                  <Badge tone="blue">{requestTargets.length}</Badge>
-                ) : null}
-              </h3>
               {requestTargets.length === 0 ? (
-                <div className="quote-request-empty">
+                <div className="request-empty">
                   파트너 매칭 단계에서 선택한 견적 요청 대상이 없어요.
                   <span>이전 단계에서 발송 대상 공급사를 선택해 주세요.</span>
                 </div>
@@ -323,9 +462,6 @@ export default function QuoteWaitingPage({
                           {partner.score != null
                             ? `AI 추천 점수 ${partner.score}`
                             : "점수 미확인"}
-                          {partner.response
-                            ? ` · 응답 ${partner.response}`
-                            : ""}
                         </small>
                       </span>
                       {partner.caution ? (
@@ -335,7 +471,7 @@ export default function QuoteWaitingPage({
                   ))}
                 </div>
               )}
-            </section>
+            </div>
           </aside>
         </section>
       </main>
@@ -403,10 +539,6 @@ function resolveRequestTargets(projectData) {
               ? Math.round(raw.semantic_similarity_score * 100)
               : Math.round(raw.semantic_similarity_score)
             : null,
-        response:
-          typeof raw.response_speed === "number"
-            ? `${raw.response_speed}시간`
-            : (raw.response_speed ?? "미확인"),
         caution: (raw.filter_reasons ?? []).some(
           (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
         ),
@@ -421,6 +553,13 @@ function mergeFiles(existingFiles, nextFiles) {
     fileMap.set(`${file.name}-${file.lastModified}-${file.size}`, file);
   });
   return Array.from(fileMap.values());
+}
+
+function filterAcceptedQuoteFiles(fileList) {
+  return Array.from(fileList ?? []).filter((file) => {
+    const name = file.name.toLowerCase();
+    return ACCEPTED_QUOTE_EXTENSIONS.some((extension) => name.endsWith(extension));
+  });
 }
 
 function formatFileSize(size) {

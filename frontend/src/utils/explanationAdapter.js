@@ -21,37 +21,66 @@ function isExplanationFallback(response) {
 }
 
 function createExplanationViewModel(response, suppliers = []) {
-  const supplierByName = new Map(
-    suppliers.map((supplier) => [supplier.name, supplier]),
-  );
+  const rawExplanations = response?.supplier_explanations ?? [];
+  const explanationsByQuoteId = new Map();
+  const explanationsByVendorName = new Map();
 
-  const supplierExplanations = (response?.supplier_explanations ?? [])
-    .slice(0, MAX_EXPLANATION_SUPPLIERS)
-    .map((item, index) => {
-      const supplier =
-        supplierByName.get(item.vendor_name) ?? suppliers[index] ?? {};
+  rawExplanations.forEach((item) => {
+    if (item.quote_id) {
+      explanationsByQuoteId.set(item.quote_id, item);
+    }
+    if (item.vendor_name && !explanationsByVendorName.has(item.vendor_name)) {
+      explanationsByVendorName.set(item.vendor_name, item);
+    }
+  });
 
-      return {
-        cardSummary: item.card_summary ?? "",
-        checkRequired: item.check_required ?? [],
-        logo: supplier.logo ?? getLogo(item.vendor_name, index),
-        logoClass: supplier.logoClass ?? getLogoClass(index),
-        quoteId: item.quote_id ?? supplier.id,
-        rank: item.rank ?? supplier.rank ?? index + 1,
-        strengthItems: ensureArray(item.strengths, supplier.strengths),
-        strengths: formatList(item.strengths, supplier.strengths),
-        vendorName:
-          item.vendor_name ?? supplier.name ?? `공급사 ${index + 1}`,
-        weaknessItems: ensureArray(
-          item.weaknesses,
-          supplier.weakness ?? "특이 약점 없음",
-        ),
-        weaknesses: formatList(
-          item.weaknesses,
-          supplier.weakness ?? "특이 약점 없음",
-        ),
-      };
-    });
+  const rankedSuppliers = suppliers.length
+    ? suppliers.slice(0, MAX_EXPLANATION_SUPPLIERS)
+    : [...rawExplanations]
+        .sort((left, right) => (left.rank ?? 999) - (right.rank ?? 999))
+        .slice(0, MAX_EXPLANATION_SUPPLIERS)
+        .map((item, index) => ({
+          id: item.quote_id,
+          name: item.vendor_name,
+          rank: item.rank ?? index + 1,
+          recommended: (item.rank ?? index + 1) === 1,
+          strengths: [],
+          vendorName: item.vendor_name,
+          weakness: "특이 약점 없음",
+        }));
+
+  const supplierExplanations = rankedSuppliers.map((supplier, index) => {
+    const item =
+      explanationsByQuoteId.get(supplier.id) ??
+      explanationsByVendorName.get(supplier.vendorName) ??
+      explanationsByVendorName.get(supplier.name) ??
+      {};
+
+    const rank = supplier.rank ?? index + 1;
+
+    return {
+      cardSummary: item.card_summary ?? "",
+      checkRequired: item.check_required ?? [],
+      displayName:
+        supplier.name ?? item.vendor_name ?? supplier.vendorName ?? `공급사 ${rank}`,
+      logo: supplier.logo ?? getLogo(supplier.vendorName ?? supplier.name, index),
+      logoClass: supplier.logoClass ?? getLogoClass(index),
+      quoteId: item.quote_id ?? supplier.id,
+      rank,
+      recommended: Boolean(supplier.recommended),
+      strengthItems: ensureArray(item.strengths, supplier.strengths),
+      strengths: formatList(item.strengths, supplier.strengths),
+      vendorName: supplier.vendorName ?? item.vendor_name ?? supplier.name,
+      weaknessItems: ensureArray(
+        item.weaknesses,
+        supplier.weakness ?? "특이 약점 없음",
+      ),
+      weaknesses: formatList(
+        item.weaknesses,
+        supplier.weakness ?? "특이 약점 없음",
+      ),
+    };
+  });
 
   return {
     isFallback: isExplanationFallback(response),

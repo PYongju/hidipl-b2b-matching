@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import AutoSaveStatus from "../components/AutoSaveStatus";
 import Badge from "../components/Badge";
-import BrandHomeButton from "../components/BrandHomeButton";
+import FlowTopbar from "../components/FlowTopbar";
 import useCompareResult from "../hooks/useCompareResult";
 import useExplanationResult from "../hooks/useExplanationResult";
 import { confirmAdminProject, saveInternalNotes, updateProject } from "../api/apiClient";
@@ -37,6 +37,28 @@ function isSelectionFinalizedStatus(workflowStatus) {
 
 function isAdminSelectionComplete(workflowStatus) {
   return workflowStatus === "완료" || workflowStatus === "확정 완료";
+}
+
+/** 최종 선정 라디오와 동일한 견적서 업체 표시명 (회사명 + N안) */
+function resolveSelectedSupplierLabel(supplier, fallbackVendor = "") {
+  return (
+    supplier?.name?.trim() ||
+    supplier?.vendorName?.trim() ||
+    fallbackVendor.trim() ||
+    ""
+  );
+}
+
+function buildFinalSelectionConfirmMessage(supplier, fallbackVendor = "") {
+  const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
+  if (!vendorLabel) return FINAL_SELECTION.dialogMessage;
+  return `${withObjectParticle(vendorLabel)} 최종 선정 업체로 확정하시겠습니까?`;
+}
+
+function buildReviewCompleteConfirmMessage(supplier, fallbackVendor = "") {
+  const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
+  if (!vendorLabel) return REVIEW_COMPLETE.dialogMessage;
+  return `${withObjectParticle(vendorLabel)} 최종 선정하여 결재를 요청할까요?`;
 }
 
 /** 미기재로 간주하는 셀 표시값 */
@@ -121,7 +143,7 @@ function SupplierPager({
         onClick={onPrev}
         type="button"
       >
-        ‹
+        <i aria-hidden="true" className="fa-solid fa-angle-left" />
       </button>
       <span className="supplier-pager-count">
         {startIndex + 1}–{visibleEnd} / {total}
@@ -133,7 +155,7 @@ function SupplierPager({
         onClick={onNext}
         type="button"
       >
-        ›
+        <i aria-hidden="true" className="fa-solid fa-angle-right" />
       </button>
     </div>
   );
@@ -166,6 +188,10 @@ export default function DashboardPage({
     overallSummary,
     supplierExplanations,
   } = useExplanationResult(projectData, suppliers);
+  const explanationByQuote = useMemo(
+    () => new Map(supplierExplanations.map((item) => [item.quoteId, item])),
+    [supplierExplanations],
+  );
   const explanationByVendor = useMemo(
     () => new Map(supplierExplanations.map((item) => [item.vendorName, item])),
     [supplierExplanations],
@@ -183,6 +209,7 @@ export default function DashboardPage({
   );
   const [openSections, setOpenSections] = useState(defaultOpenSections);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [backConfirmOpen, setBackConfirmOpen] = useState(false);
   const [permissionDeniedOpen, setPermissionDeniedOpen] = useState(false);
   const [successFeedback, setSuccessFeedback] = useState(FINAL_SELECTION);
   const [confirmInProgress, setConfirmInProgress] = useState(false);
@@ -198,11 +225,6 @@ export default function DashboardPage({
   const [isMemoEditing, setIsMemoEditing] = useState(false);
   const [isMemoSaving, setIsMemoSaving] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
-  const [isProjectNameEditing, setIsProjectNameEditing] = useState(false);
-  const [draftProjectName, setDraftProjectName] = useState(
-    projectData.projectName ?? "",
-  );
-  const [isProjectNameSaving, setIsProjectNameSaving] = useState(false);
   const autoSaveStatusTimerRef = useRef(null);
   const [supplierStartIndex, setSupplierStartIndex] = useState(0);
   const [compareCellOverrides, setCompareCellOverrides] = useState(() =>
@@ -281,12 +303,6 @@ export default function DashboardPage({
   }, [projectId, projectData.reviewMemo]);
 
   useEffect(() => {
-    setDraftProjectName(projectData.projectName ?? "");
-    setIsProjectNameEditing(false);
-    setIsProjectNameSaving(false);
-  }, [projectId, projectData.projectName]);
-
-  useEffect(() => {
     setCompareCellOverrides(resolveCompareCellOverrides(projectData));
   }, [projectData.projectApiId, projectData.projectId]);
 
@@ -327,8 +343,10 @@ export default function DashboardPage({
     }
 
     return (
+      explanationByQuote.get(supplier.id)?.cardSummary ??
       explanationByVendor.get(supplier.vendorName ?? supplier.name)
-        ?.cardSummary ?? ""
+        ?.cardSummary ??
+      ""
     );
   };
 
@@ -534,56 +552,6 @@ export default function DashboardPage({
     }
   };
 
-  const startProjectNameEdit = () => {
-    if (isProjectNameSaving) return;
-    setDraftProjectName(projectData.projectName ?? "");
-    setIsProjectNameEditing(true);
-  };
-
-  const cancelProjectNameEdit = () => {
-    setDraftProjectName(projectData.projectName ?? "");
-    setIsProjectNameEditing(false);
-  };
-
-  const saveProjectName = async () => {
-    if (isProjectNameSaving) return;
-
-    const trimmed = draftProjectName.trim();
-    if (!trimmed) {
-      cancelProjectNameEdit();
-      return;
-    }
-
-    const previousName = projectData.projectName ?? "";
-    const apiProjectId = projectData.projectApiId ?? projectData.projectId;
-
-    setIsProjectNameSaving(true);
-    showAutoSaveStatus("saving");
-    onProjectDataChange?.((current) => ({
-      ...current,
-      projectName: trimmed,
-      lastScreen: "dashboard",
-    }));
-
-    try {
-      if (apiProjectId) {
-        await updateProject(apiProjectId, { project_name: trimmed });
-      }
-      setIsProjectNameEditing(false);
-      showAutoSaveStatus("saved");
-    } catch (error) {
-      console.error("프로젝트명 저장 실패:", error);
-      onProjectDataChange?.((current) => ({
-        ...current,
-        projectName: previousName,
-      }));
-      setDraftProjectName(previousName);
-      showAutoSaveStatus("error");
-    } finally {
-      setIsProjectNameSaving(false);
-    }
-  };
-
   const memoValue = isMemoEditing ? draftMemo : reviewMemo;
 
   const canExportReport = explanationState === "ready";
@@ -594,11 +562,14 @@ export default function DashboardPage({
   const isAdminSelectionDone = isAdminSelectionComplete(workflowStatus);
   const confirmCopy =
     confirmAction === "review-complete" ? REVIEW_COMPLETE : FINAL_SELECTION;
-  const finalSelectionConfirmMessage = (() => {
-    const vendorName = selectedSupplier?.name?.trim();
-    if (!vendorName) return FINAL_SELECTION.dialogMessage;
-    return `${withObjectParticle(vendorName)} 최종 선정 업체로 확정하시겠습니까?`;
-  })();
+  const finalSelectionConfirmMessage = buildFinalSelectionConfirmMessage(
+    selectedSupplier,
+    projectData.selectedVendor,
+  );
+  const reviewCompleteConfirmMessage = buildReviewCompleteConfirmMessage(
+    selectedSupplier,
+    projectData.selectedVendor,
+  );
 
   const submitApprovalRequest = async () => {
     const apiProjectId = projectData.projectApiId ?? projectData.projectId;
@@ -692,136 +663,76 @@ export default function DashboardPage({
   };
 
   return (
-    <div className="app-shell">
-      <header className="topbar flow-topbar">
-        <div className="brand-zone">
-          <BrandHomeButton onClick={onGoProjects} />
-          <Badge tone="gray">v1.3.2</Badge>
-          <div className="top-divider" />
-          <span className="dashboard-breadcrumb-live">프로젝트 목록</span>
-          <span className="dashboard-breadcrumb-live-arrow">›</span>
-          <span className="dashboard-breadcrumb-live-current">
-            프로젝트 <b>{projectTitle}</b>
-          </span>
-          <span className="breadcrumb-muted">프로젝트 목록</span>
-          <span className="breadcrumb-arrow">›</span>
-          <span className="breadcrumb-current">
-            프로젝트 <b>{projectId}</b>
-          </span>
-        </div>
-        <div className="user-zone">
-          <div className="topbar-actions">
-            <button
-              className="button action-secondary"
-              onClick={onGoProjects}
-              type="button"
-            >
-              프로젝트 목록
-            </button>
-            <button
-              className="button action-secondary"
-              disabled
-              title="상태는 화면 진행에 따라 자동으로 반영돼요."
-              type="button"
-            >
-              {isAdminSelectionDone
-                ? "선정 완료"
-                : selectionFinalized
-                  ? "검토 완료"
-                  : "검토 진행 중"}
-            </button>
-          </div>
-          <AutoSaveStatus status={autoSaveStatus} />
-          <div className="avatar" />
-          <div className="user-name">
-            <b>{getUserDisplayName(userRole)}</b>
-            <small>{USER.team}</small>
-          </div>
-        </div>
-      </header>
+    <div className="flow-page dashboard-page">
+      <FlowTopbar
+        onHome={onGoProjects}
+        trail={`프로젝트 목록 > 프로젝트 ${projectTitle}`}
+        action={
+          <>
+            <div className="topbar-actions">
+              <button
+                className="button action-secondary"
+                onClick={onGoProjects}
+                type="button"
+              >
+                프로젝트 목록
+              </button>
+              <button
+                className="button action-secondary"
+                disabled
+                title="상태는 화면 진행에 따라 자동으로 반영돼요."
+                type="button"
+              >
+                {isAdminSelectionDone
+                  ? "확정 완료"
+                  : selectionFinalized
+                    ? "검토 완료"
+                    : "검토 진행 중"}
+              </button>
+            </div>
+            <AutoSaveStatus status={autoSaveStatus} />
+            <div className="avatar" />
+            <div className="user-name">
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
+            </div>
+          </>
+        }
+      />
 
       <main className="dashboard">
         <section className="project-head">
           <div className="project-title">
             <div className="project-title-edit-shell">
-              {isProjectNameEditing ? (
-                <div className="project-title-edit">
-                  <input
-                    className="project-title-input"
-                    disabled={isProjectNameSaving}
-                    onChange={(event) => setDraftProjectName(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void saveProjectName();
-                      }
-                      if (event.key === "Escape") {
-                        event.preventDefault();
-                        cancelProjectNameEdit();
-                      }
-                    }}
-                    type="text"
-                    value={draftProjectName}
-                  />
-                  <button
-                    className="button button-small"
-                    disabled={isProjectNameSaving}
-                    onClick={() => {
-                      void saveProjectName();
-                    }}
-                    type="button"
-                  >
-                    저장
-                  </button>
-                </div>
-              ) : (
-                <div className="project-title-display">
-                  <h1 className="project-title-with-meta">
-                    <span className="project-title-name">
-                      {projectData.projectName || `프로젝트 ${projectId}`}
-                    </span>
-                    {projectInfoSummary ? (
-                      <>
-                        <span
-                          aria-hidden="true"
-                          className="project-title-inline-divider"
-                        >
-                          {" "}
-                          ·{" "}
-                        </span>
-                        <span className="project-title-inline-meta">
-                          {projectInfoSummary}
-                        </span>
-                      </>
-                    ) : null}
-                  </h1>
-                  <button
-                    className="icon-button project-title-edit-button"
-                    onClick={startProjectNameEdit}
-                    title="프로젝트 이름 수정"
-                    type="button"
-                  >
-                    ✎
-                  </button>
-                </div>
-              )}
+              <div className="project-title-display">
+                <h1 className="project-title-with-meta">
+                  <span className="project-title-name">
+                    {projectData.projectName || `프로젝트 ${projectId}`}
+                  </span>
+                  {projectInfoSummary ? (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="project-title-inline-divider"
+                      >
+                        {" "}
+                        ·{" "}
+                      </span>
+                      <span className="project-title-inline-meta">
+                        {projectInfoSummary}
+                      </span>
+                    </>
+                  ) : null}
+                </h1>
+                <Badge className="project-title-status-badge">
+                  {isAdminSelectionDone
+                    ? "확정 완료"
+                    : selectionFinalized
+                      ? "검토 완료"
+                      : "견적 검토"}
+                </Badge>
+              </div>
             </div>
-            <h1>{projectData.projectName || `프로젝트 ${projectId}`}</h1>
-            <button
-              className="icon-button"
-              disabled
-              title="프로젝트명 수정은 아직 사용할 수 없어요."
-              type="button"
-            >
-              ✎
-            </button>
-            <Badge>
-              {isAdminSelectionDone
-                ? "선정 완료"
-                : selectionFinalized
-                  ? "검토 완료"
-                  : "견적 검토"}
-            </Badge>
           </div>
         </section>
 
@@ -839,11 +750,20 @@ export default function DashboardPage({
           <div className="content-grid">
             <div className="main-column">
               <section className="panel supplier-panel">
-                <div className="panel-title-row">
-                  <div className="panel-title">
-                    공급사 매칭 현황 ({supplierCount}/{supplierCount})
+                <div className="requirements-section-title partner-section-header">
+                  <div>
+                    <div className="partner-section-header-row">
+                      <div className="partner-section-title-with-badge">
+                        <h2>공급사 매칭 현황</h2>
+                        <span className="partner-section-count">
+                          {supplierCount}/{supplierCount}
+                        </span>
+                      </div>
+                      <div className="dashboard-section-header-actions">
+                        <SupplierPager {...supplierPagerProps} />
+                      </div>
+                    </div>
                   </div>
-                  <SupplierPager {...supplierPagerProps} />
                 </div>
                 <div className="supplier-grid">
                   {visibleSuppliers.map((supplier) => {
@@ -953,12 +873,15 @@ export default function DashboardPage({
                         type="button"
                       >
                         <span>{section.title}</span>
-                        <b>
-                          {(openSections[section.id] ??
-                          defaultOpenSections[section.id])
-                            ? "⌃"
-                            : "›"}
-                        </b>
+                        <i
+                          aria-hidden="true"
+                          className={`fa-solid ${
+                            (openSections[section.id] ??
+                            defaultOpenSections[section.id])
+                              ? "fa-angle-down"
+                              : "fa-angle-right"
+                          }`}
+                        />
                       </button>
 
                       {(openSections[section.id] ??
@@ -988,11 +911,14 @@ export default function DashboardPage({
                       type="button"
                     >
                       <span>합계 행</span>
-                      <b>
-                        {(openSections.total ?? defaultOpenSections.total)
-                          ? "⌃"
-                          : "›"}
-                      </b>
+                      <i
+                        aria-hidden="true"
+                        className={`fa-solid ${
+                          (openSections.total ?? defaultOpenSections.total)
+                            ? "fa-angle-down"
+                            : "fa-angle-right"
+                        }`}
+                      />
                     </button>
 
                     {(openSections.total ?? defaultOpenSections.total) && (
@@ -1023,9 +949,13 @@ export default function DashboardPage({
               </section>
             </div>
 
-            <aside className="side-column">
+            <aside className="side-column panel-static">
               <section className="panel ai-panel">
-                <h2>AI 근거 요약</h2>
+                <div className="requirements-section-title">
+                  <div>
+                    <h2>AI 근거 요약</h2>
+                  </div>
+                </div>
                 {explanationIsFallback && (
                   <div className="fallback-notice">{AI_FALLBACK_NOTICE}</div>
                 )}
@@ -1036,26 +966,32 @@ export default function DashboardPage({
                   type="button"
                 >
                   <span>공급사 장단점</span>
-                  <b>{prosOpen ? "⌃" : "›"}</b>
+                  <i
+                    aria-hidden="true"
+                    className={`fa-solid ${prosOpen ? "fa-angle-down" : "fa-angle-right"}`}
+                  />
                 </button>
                 {prosOpen && (
                   <div className="pros-list">
                     {supplierExplanations.map((supplier) => (
                       <div
-                        className="pros-item"
-                        key={supplier.quoteId ?? supplier.vendorName}
+                        className={`pros-item${
+                          supplier.recommended ? " recommended" : ""
+                        }`}
+                        key={supplier.quoteId ?? supplier.displayName}
                       >
                         <div className="pros-brand">
-                          <b>{supplier.vendorName}</b>
+                          <span className="rank">{supplier.rank}</span>
+                          <b>{supplier.displayName ?? supplier.vendorName}</b>
                         </div>
                         <div className="pros-detail">
                           <ProsConsGroup
+                            items={supplier.strengthItems}
                             label="장점"
-                            value={supplier.strengths}
                           />
                           <ProsConsGroup
+                            items={supplier.weaknessItems}
                             label="단점"
-                            value={supplier.weaknesses}
                           />
                         </div>
                       </div>
@@ -1065,9 +1001,13 @@ export default function DashboardPage({
               </section>
 
               <section className="panel compact-panel memo-panel-full">
-                <h3>
-                  검토 메모 <small>(내부용)</small>
-                </h3>
+                <div className="requirements-section-title">
+                  <div>
+                    <h2>
+                      검토 메모 <small>(내부용)</small>
+                    </h2>
+                  </div>
+                </div>
                 <div className="compact-panel-body">
                   <textarea
                     className={isMemoEditing ? "memo-editing" : "memo-readonly"}
@@ -1107,9 +1047,13 @@ export default function DashboardPage({
               </section>
 
               <section className="panel final-panel">
-                <h3>
-                  최종 선정 <small>(담당자 선택)</small>
-                </h3>
+                <div className="requirements-section-title">
+                  <div>
+                    <h2>
+                      최종 선정 <small>(담당자 선택)</small>
+                    </h2>
+                  </div>
+                </div>
                 <div className="choice-grid">
                   {selectableSuppliers.map((supplier) => (
                     <label
@@ -1141,14 +1085,22 @@ export default function DashboardPage({
       </main>
 
       {compareState === "ready" && (
-        <footer className="bottom-actions">
-          <button
-            className="button action-secondary"
-            onClick={onBack ?? onGoProjects}
-            type="button"
-          >
-            이전
-          </button>
+        <footer className="dashboard-bottom-actions">
+          <span>
+            {isAdminSelectionDone
+              ? "상태: 확정 완료"
+              : selectionFinalized
+                ? "상태: 검토 완료 · 결재 대기"
+                : "상태: 견적 검토 진행 중"}
+          </span>
+          <div>
+            <button
+              className="button action-secondary"
+              onClick={() => setBackConfirmOpen(true)}
+              type="button"
+            >
+              이전
+            </button>
           <button
             className="button action-secondary"
             disabled
@@ -1210,10 +1162,43 @@ export default function DashboardPage({
               }
               type="button"
             >
-              {isAdminSelectionDone ? "선정 완료" : "최종 선정 확정"}
+              {isAdminSelectionDone ? "확정 완료" : "최종 선정 확정"}
             </button>
           )}
+          </div>
         </footer>
+      )}
+      {backConfirmOpen && (
+        <div className="confirm-layer" role="presentation">
+          <div
+            className="confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dashboard-back-confirm-title"
+          >
+            <h2 id="dashboard-back-confirm-title">이전 단계로 이동할까요?</h2>
+            <p>작성 중인 내용이 저장되지 않을 수 있어요.</p>
+            <div className="confirm-actions">
+              <button
+                className="button"
+                onClick={() => setBackConfirmOpen(false)}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                className="button action-primary"
+                onClick={() => {
+                  setBackConfirmOpen(false);
+                  (onBack ?? onGoProjects)?.();
+                }}
+                type="button"
+              >
+                이동
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {permissionDeniedOpen && (
         <div className="confirm-layer" role="presentation">
@@ -1248,7 +1233,7 @@ export default function DashboardPage({
             <h2>{confirmCopy.dialogTitle}</h2>
             <p>
               {confirmAction === "review-complete"
-                ? confirmCopy.dialogMessage
+                ? reviewCompleteConfirmMessage
                 : finalSelectionConfirmMessage}
             </p>
             {confirmAction === "review-complete" && (
@@ -1270,7 +1255,7 @@ export default function DashboardPage({
                 type="button"
               >
                 {confirmAction === "review-complete"
-                  ? "완료"
+                  ? "결재 요청"
                   : confirmAction === "admin-approve"
                     ? "확정"
                     : "확정"}
@@ -1287,12 +1272,12 @@ export default function DashboardPage({
       {selectionFinalized && followupVisible && (
         <div className="selection-followup">
           <button
-            aria-label="선정 완료 안내 닫기"
+            aria-label="확정 완료 안내 닫기"
             className="selection-followup-close"
             onClick={() => setFollowupVisible(false)}
             type="button"
           >
-            ×
+            <i aria-hidden="true" className="fa-solid fa-xmark" />
           </button>
           <b>{successFeedback.doneEmotion}</b>
           <span>{successFeedback.statusChanged}</span>
@@ -1400,34 +1385,6 @@ function formatWrappedTextForExcel(value, maxWidth = 52) {
     .join("\n");
 }
 
-function ComparePencilIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      className="compare-inline-edit-icon"
-      fill="none"
-      height="12"
-      viewBox="0 0 24 24"
-      width="12"
-    >
-      <path
-        d="M4 20h4l10.5-10.5a1.4 1.4 0 0 0 0-2L16.5 5.5a1.4 1.4 0 0 0-2 0L4 16v4Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.75"
-      />
-      <path
-        d="m13.5 6.5 4 4"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.75"
-      />
-    </svg>
-  );
-}
-
 function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
   const displayValue = getCompareCellDisplayValue(cell, rowLabel);
   const isMissing =
@@ -1530,7 +1487,7 @@ function EditableCompareCell({ cell, rowLabel, onSave, statusBadge }) {
         onClick={startEditing}
         type="button"
       >
-        <ComparePencilIcon />
+        <i aria-hidden="true" className="fa-solid fa-pencil compare-inline-edit-icon" />
       </button>
     </div>
   );
@@ -2007,18 +1964,18 @@ function splitProsConsItems(value) {
     .filter(Boolean);
 }
 
-function ProsConsGroup({ label, value }) {
-  const items = splitProsConsItems(value);
-  const hasMultiple = items.length > 1;
+function ProsConsGroup({ label, items = [] }) {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  const hasMultiple = list.length > 1;
 
   return (
     <div className="pros-detail-group">
       <span className="pros-detail-label">{label}</span>
-      {items.length === 0 ? (
+      {list.length === 0 ? (
         <span className="pros-detail-empty">-</span>
       ) : hasMultiple ? (
         <ul className="pros-detail-list">
-          {items.map((item) => (
+          {list.map((item) => (
             <li key={`${label}-${item}`}>
               <span className="pros-detail-marker">•</span>
               <span className="pros-detail-text">{item}</span>
@@ -2026,7 +1983,7 @@ function ProsConsGroup({ label, value }) {
           ))}
         </ul>
       ) : (
-        <span>{items[0]}</span>
+        <span>{list[0]}</span>
       )}
     </div>
   );

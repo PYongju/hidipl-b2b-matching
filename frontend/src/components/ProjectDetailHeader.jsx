@@ -8,12 +8,12 @@ export default function ProjectDetailHeader({
     <section className="requirements-header">
       <div>
         <button
+          aria-label={backLabel}
           className="partner-back"
           onClick={onBack}
           type="button"
-          aria-label={backLabel}
         >
-          ‹
+          <i aria-hidden="true" className="fa-solid fa-angle-left" />
         </button>
         <div className="requirements-header-body">
           <p>프로젝트 상세</p>

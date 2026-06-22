@@ -22,7 +22,7 @@ export function SolutionTagChipList({ value = [], onChange }) {
             onClick={() => removeSolution(tag)}
             type="button"
           >
-            ×
+            <i aria-hidden="true" className="fa-solid fa-xmark" />
           </button>
         </span>
       ))}
