@@ -42,8 +42,7 @@
       "warranty_months": 12,
       "line_item_count": 51,
       "check_required": [
-        "요구 납기 정규화 필요",
-        "총 공급가(부가세 포함) 미기재 — 견적서 확인 필요"
+        "요구 납기 정규화 필요"
       ],
       "score_breakdown": {
         "spec_score": 83.64,
