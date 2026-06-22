@@ -395,7 +395,7 @@ export default function QuoteWaitingPage({
               {selectedFiles.length === 0 ? (
                 <div className="request-empty quote-upload-empty">
                   아직 업로드한 견적서가 없어요.
-                  <span>위 영역에 파일을 드래그하거나 클릭해서 추가해 주세요.</span>
+                  <span>위 영역에 파일을 드래그하거나 클릭해서 추가해요.</span>
                 </div>
               ) : (
                 selectedFiles.map((file) => (
@@ -464,9 +464,6 @@ export default function QuoteWaitingPage({
                             : "점수 미확인"}
                         </small>
                       </span>
-                      {partner.caution ? (
-                        <Badge tone="orange">주의</Badge>
-                      ) : null}
                     </div>
                   ))}
                 </div>

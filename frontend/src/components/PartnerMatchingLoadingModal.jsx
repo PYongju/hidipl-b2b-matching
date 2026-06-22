@@ -1,6 +1,6 @@
 export const PARTNER_MATCHING_LOADING_STEPS = {
   "creating-project": "요구사항을 분석하고 있어요",
-  "fetching-candidates": "조건에 맞는 공급사를 찾고 있어요",
+  "fetching-candidates": "우리 프로젝트와 딱 맞는 파트너를 찾고 있어요.",
   finishing: "AI 추천 결과를 정리하고 있어요",
 };
 

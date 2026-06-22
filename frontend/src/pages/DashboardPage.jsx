@@ -52,7 +52,10 @@ function resolveSelectedSupplierLabel(supplier, fallbackVendor = "") {
 function buildFinalSelectionConfirmMessage(supplier, fallbackVendor = "") {
   const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
   if (!vendorLabel) return FINAL_SELECTION.dialogMessage;
-  return `${withObjectParticle(vendorLabel)} 최종 선정 업체로 확정하시겠습니까?`;
+  return `[선택한 업체명]을 최종 선정 업체로 확정할까요?`.replace(
+    "[선택한 업체명]",
+    vendorLabel,
+  );
 }
 
 function buildReviewCompleteConfirmMessage(supplier, fallbackVendor = "") {
@@ -635,7 +638,7 @@ export default function DashboardPage({
       );
       window.setTimeout(() => setToastVisible(false), 3200);
     } catch (error) {
-      console.error("최종 선정 확정 실패:", error);
+      console.error("최종 선정 실패:", error);
     } finally {
       setConfirmInProgress(false);
     }
@@ -1017,7 +1020,7 @@ export default function DashboardPage({
                       setDraftMemo(event.target.value.slice(0, maxMemoLength))
                     }
                     onClick={!isMemoEditing ? startMemoEdit : undefined}
-                    placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
+                    placeholder="팀 내부에서 공유되는 메모예요."
                     readOnly={!isMemoEditing}
                     value={memoValue}
                   />
@@ -1130,7 +1133,7 @@ export default function DashboardPage({
                 onClick={() => setPermissionDeniedOpen(true)}
                 type="button"
               >
-                최종 선정 확정
+                최종 선정
               </button>
               <button
                 className={
@@ -1163,7 +1166,7 @@ export default function DashboardPage({
               }
               type="button"
             >
-              {isAdminSelectionDone ? "확정 완료" : "최종 선정 확정"}
+              {isAdminSelectionDone ? "확정 완료" : "최종 선정"}
             </button>
           )}
           </div>
@@ -1258,8 +1261,8 @@ export default function DashboardPage({
                 {confirmAction === "review-complete"
                   ? "결재 요청"
                   : confirmAction === "admin-approve"
-                    ? "확정"
-                    : "확정"}
+                    ? "최종 선정하기"
+                    : "최종 선정하기"}
               </button>
             </div>
           </div>
@@ -1281,7 +1284,7 @@ export default function DashboardPage({
             <i aria-hidden="true" className="fa-solid fa-xmark" />
           </button>
           <b>{successFeedback.doneEmotion}</b>
-          <span>{successFeedback.statusChanged}</span>
+          {successFeedback.statusChanged ? <span>{successFeedback.statusChanged}</span> : null}
           <div>
             <button className="button" onClick={onGoProjects} type="button">
               프로젝트 목록으로 이동

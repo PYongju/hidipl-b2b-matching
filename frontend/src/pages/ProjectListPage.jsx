@@ -349,7 +349,7 @@ export default function ProjectListPage({
                   type="button"
                 >
                   <h2>{readable(project.name, "이름 없는 프로젝트")}</h2>
-                  <p>{readable(project.desc, "요구사항을 정리 중입니다.")}</p>
+                  <p>{readable(project.desc, "요구사항을 정리 중이에요.")}</p>
                 </button>
                 <div className="history-meta">
                   {project.meta.map((item) => (
@@ -388,11 +388,17 @@ export default function ProjectListPage({
             className="confirm-dialog"
             role="dialog"
           >
-            <h2 id="delete-projects-title">
-              선택한 {selectedIds.length}개 프로젝트를 삭제할까요?
-            </h2>
-            <p id="delete-projects-description">
-              삭제 후에는 되돌릴 수 없습니다.
+            <div className="confirm-modal-header">
+              <p>삭제 확인</p>
+              <h2 id="delete-projects-title">
+                선택한 {selectedIds.length}개 프로젝트를 삭제할까요?
+              </h2>
+            </div>
+            <p
+              className="confirm-modal-description"
+              id="delete-projects-description"
+            >
+              삭제 후에는 되돌릴 수 없어요.
             </p>
             <div className="confirm-actions">
               <button

@@ -112,7 +112,7 @@ export default function ProjectCreatePage({
       <main className="wizard-layout">
         <aside className="wizard-nav">
           <h1>새 프로젝트 생성</h1>
-          <p>3단계로 AI 견적 비교를 시작해요.</p>
+          <p>3단계만 거치면 AI가 견적 비교를 도와드려요.</p>
           {steps.map(([title, desc], index) => {
             const current = index + 1;
             return (
@@ -134,7 +134,7 @@ export default function ProjectCreatePage({
           {step === 1 && (
             <div className="wizard-content">
               <h2>프로젝트 기본 정보</h2>
-              <p>발주사와 프로젝트 일정을 입력해요.</p>
+              <p>어떤 프로젝트인가요? 발주사와 일정을 알려주세요.</p>
               <div className="form-grid">
                 <label>
                   <span>회사명 *</span>
@@ -158,7 +158,7 @@ export default function ProjectCreatePage({
                   />
                 </label>
                 <label>
-                  <span>활용 용도 및 디스플레이 요구사항</span>
+                  <span>어디에, 어떻게 사용하실 예정인가요?</span>
                   <input
                     onChange={(event) => updateProject("usage", event.target.value)}
                     value={projectData.usage}
