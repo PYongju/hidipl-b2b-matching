@@ -49,6 +49,8 @@ CRITICAL_KEYWORDS = (
     "범위 밖",      # success_rate 등 범위 외
     "미매칭",       # 프리미엄·파트너 부조화
     "산정 불일치",  # 점수 가중합 불일치
+    "순위 산정",       
+    "rank 불일치",
 )
 
 # ============================================================
@@ -71,8 +73,13 @@ def _sup_text(sup: dict) -> str:
     parts = [sup.get("card_summary", "")]
     parts.extend(sup.get("strengths", []) or [])
     parts.extend(sup.get("weaknesses", []) or [])
+    # comparison_risks 추가 (문자열/리스트 둘 다)
+    cr = sup.get("comparison_risks")
+    if isinstance(cr, list):
+        parts.extend(cr)
+    elif isinstance(cr, str):
+        parts.append(cr)
     return " ".join(str(p) for p in parts if p)
-
 
 # ============================================================
 # 카테고리별 검사 함수들
@@ -83,7 +90,14 @@ def _check_banned(text: str) -> list[tuple]:
 
 
 def _check_required_missing(items: list[dict], suppliers: list[dict]) -> list[tuple]:
-    """카테고리 2: check_required 항목이 weaknesses 에 반영됐는가."""
+    """카테고리 2: check_required 항목이 weaknesses 에 반영됐는가.
+
+    정책 (정밀화):
+      - critical 항목 (CRITICAL_KEYWORDS 매칭) → 반드시 weaknesses 또는 comparison_risks 에 반영.
+        critical 키워드 자체 (미기재/비정상/범위 밖/미매칭/산정 불일치/필터 사유/순위 산정) 가
+        weakness 텍스트에 등장해야 통과. 단순 도메인 단어 (예: '총 공급가') 만 있어선 안 됨.
+      - 일반 안내 항목 → 누락 허용. 검사 안 함.
+    """
     out = []
     for it in items:
         cr_list = it.get("check_required") or []
@@ -92,72 +106,129 @@ def _check_required_missing(items: list[dict], suppliers: list[dict]) -> list[tu
         if not sup or not cr_list:
             continue
         weak_text = "\n".join(sup.get("weaknesses", []) or [])
+        # comparison_risks 는 문자열일 수도 리스트일 수도 있음 — 둘 다 처리
+        cr = sup.get("comparison_risks") or ""
+        if isinstance(cr, list):
+            cr = "\n".join(str(x) for x in cr)
+        weak_text += "\n" + cr
+        
         for cr in cr_list:
             is_critical = any(kw in cr for kw in CRITICAL_KEYWORDS)
             if not is_critical:
-                continue
-            # 키워드 일부 매칭 (간략, 너무 엄격하게 잡지 않게)
+                continue  # 일반 안내성 — 검사 안 함
+            
+            # critical 키워드 자체 (미기재 등) 가 weakness 에 직접 등장해야 통과
+            critical_keyword_found = any(kw in weak_text for kw in CRITICAL_KEYWORDS)
+            
+            # 그리고 어떤 영역인지도 매칭 — "총 공급가 미기재" critical 이면 "총 공급가" 도 필요
             keywords = [w for w in re.findall(r"[가-힣A-Za-z0-9]+", cr) if len(w) >= 2]
             if not keywords:
                 continue
-            # 앞 3개 키워드 중 하나라도 weaknesses 에 있으면 OK 로 간주
-            if not any(k in weak_text for k in keywords[:3]):
+            domain_found = any(k in weak_text for k in keywords[:3])
+            
+            # critical 키워드 + 도메인 키워드 둘 다 있어야 통과
+            if not (critical_keyword_found and domain_found):
                 out.append(("check_required_missing", qid, cr))
     return out
 
-
 def _check_vendor_guess(items: list[dict], suppliers: list[dict]) -> list[tuple]:
-    """카테고리 3: 입력의 빈 vendor_name/partner_name 을 LLM 이 채워넣었는가."""
     out = []
+    # 같은 시나리오의 다른 아이템 업체명 목록 (유추 출처가 되는 이름들)
+    all_vendor_names = {
+        it.get("vendor_name") for it in items 
+        if it.get("vendor_name")  # 비지 않은 것만
+    }
     for it in items:
         qid = it.get("quote_id")
         sup = next((s for s in suppliers if s.get("quote_id") == qid), None)
         if not sup:
             continue
-        # vendor_name 빈 값인데 LLM 이 채움
-        if it.get("vendor_name") in (None, "") and sup.get("vendor_name"):
-            if sup.get("vendor_name") not in ("", "미상", "불명", "확인 필요"):
+        if it.get("vendor_name") in (None, ""):
+            if sup.get("vendor_name") and sup.get("vendor_name") not in ("", "미상", "불명", "업체 미확인", "확인 필요"):
                 out.append(("vendor_guess", qid, sup.get("vendor_name")))
-        # partner_name 빈 값인데 LLM 텍스트에 등장 (보수적)
-        if it.get("partner_name") in (None, ""):
+                continue
+        # 텍스트에서도 다른 아이템의 업체명이 언급됐는지
             sup_text = _sup_text(sup)
-            # 다른 아이템에 있는 partner_name 이 이 sup 텍스트에 등장하면 추측 의심
-            for other in items:
-                if other is it:
-                    continue
-                pn = other.get("partner_name")
-                if pn and pn in sup_text and len(pn) >= 2:
-                    out.append(("partner_guess", qid, pn))
+            for other_name in all_vendor_names:
+                if other_name and len(other_name) >= 2 and other_name in sup_text:
+                    out.append(("vendor_guess_from_context", qid, other_name))
                     break
     return out
 
 
-def _check_rank_score_mismatch(items: list[dict], all_text: str) -> list[tuple]:
-    """카테고리 4: rank 1 의 final_score 가 max 가 아닌데 LLM 이 명시 안 함."""
+def _check_rank_score_mismatch(items, all_text):
     scores = [it.get("final_score") for it in items if it.get("final_score") is not None]
     if len(scores) < 2:
         return []
-    if scores[0] < max(scores):
-        # rank-score 모순 있음. LLM 이 모순을 짚어야 함.
-        mentions = ("순위", "rank", "점수 기준", "점수가 가장 높지 않", "점수와 순위", "추천 순위")
-        if not any(m in all_text for m in mentions):
-            return [("rank_score_mismatch", scores)]
-    return []
+    if scores[0] >= max(scores):
+        return []
+    
+    # rank-score 모순 명시 정확히 확인 — "순위"와 "점수"가 같은 문맥에서 함께
+    # 또는 명확한 불일치 표현
+    clear_mention_patterns = [
+        ("순위", "점수", "불일치"),          # "순위와 점수 불일치"
+        ("순위", "점수", "낮"),               # "순위 1위이나 점수가 낮음"
+        ("순위", "점수", "높"),               # "순위 N위이나 점수는 높음"
+        ("rank", "score", "mismatch"),
+        ("산정 기준 확인",),                  # critical 메시지 그대로
+        ("순위와 점수",),                     # 명확한 표현
+    ]
+    
+    for patterns in clear_mention_patterns:
+        if all(p in all_text for p in patterns):
+            return []  # 명확히 명시함 → 통과
+    
+    return [("rank_score_mismatch", scores)]
 
 
 def _check_score_gap(items: list[dict], all_text: str) -> list[tuple]:
-    """카테고리 5: 점수 격차가 50+ 인데 '우수' 표현으로 뭉뚱그림."""
+    """카테고리 5: 점수 격차가 50+ 인데 묶음 표현으로 가림.
+    
+    새 프롬프트 정책:
+      - 묶음 표현 ('둘 다 우수', '모두 우수') → 위반
+      - 분리 표현 ('가장 우수' vs '낮은 편') 또는 격차 명시 → OK
+    """
     scores = [it.get("final_score") for it in items if it.get("final_score") is not None]
     if len(scores) < 2:
         return []
     gap = max(scores) - min(scores)
-    if gap > 50 and "우수" in all_text:
+    if gap <= 50:
+        return []
+    
+    # 묶음 표현 — 위반 신호
+    bad_patterns = (
+        "모두 우수", "둘 다 우수", "함께 우수", "공통적으로 우수",
+        "모두 양호", "둘 다 양호",
+        "상위 두 후보 모두",
+    )
+    # 분리 표현 또는 격차 인지 — OK 신호
+    good_patterns = (
+        "가장 우수", "최상위", "상위", 
+        "낮은 편", "열세", "다소 낮", "상대적으로 낮",
+        "큰 차이", "두드러진", "상당한", "격차",
+    )
+    
+    has_bad = any(p in all_text for p in bad_patterns)
+    has_good = any(p in all_text for p in good_patterns)
+    
+    if has_bad:
+        return [("score_gap_ignored", round(gap, 1))]
+    # 묶음 표현 없고 분리/격차 표현이 있으면 OK
+    if has_good:
+        return []
+    # 둘 다 없는데 "우수"가 있으면 의심 (보수적으로 위반)
+    if "우수" in all_text:
         return [("score_gap_ignored", round(gap, 1))]
     return []
 
 
 def _check_empty_value_quoting(items: list[dict], suppliers: list[dict]) -> list[tuple]:
-    """카테고리 6: warranty/total_with_vat/delivery_weeks 가 None 인데 LLM 이 구체 숫자 인용."""
+    """카테고리 6: warranty/total_with_vat/delivery_weeks 가 None 인데 LLM 이 구체 숫자 인용.
+    
+    정밀화:
+      - total_with_vat 가 None 이어도 total_supply_price 정확 인용은 OK.
+        LLM 이 다른 가격 숫자를 '계산해서' 만들어 인용하면 환각.
+    """
     out = []
     for it in items:
         qid = it.get("quote_id")
@@ -165,20 +236,45 @@ def _check_empty_value_quoting(items: list[dict], suppliers: list[dict]) -> list
         if not sup:
             continue
         sup_text = _sup_text(sup)
+        
         # 보증 None 인데 구체 개월수 인용
         if it.get("warranty_months") is None:
             m = re.search(r"보증.{0,5}(\d+)\s*(개월|년)", sup_text)
             if m:
                 out.append(("warranty_guess", qid, m.group()))
-        # 금액 None 인데 구체 금액 인용
+        
+        # 금액 None 인데 LLM 이 다른 가격 숫자를 "계산해서" 인용 = 환각
+        # total_supply_price 정확한 인용은 OK.
         if it.get("total_with_vat") is None:
-            if re.search(r"\d{1,3}[,\d]*\s*원", sup_text) or re.search(r"\d+만원", sup_text):
-                out.append(("price_guess", qid))
+            legit = it.get("total_supply_price")
+            found_prices = re.findall(r"(\d[\d,]*)\s*(?:만원|원)", sup_text)
+            for p_str in found_prices:
+                p_num = int(p_str.replace(",", ""))
+                if legit:
+                    legit_man = legit // 10000
+                    legit_won = legit
+                    if p_num == legit_man or p_num == legit_won:
+                        continue
+                out.append(("price_guess", qid, p_str))
+                break
+        
         # 납기 None 인데 구체 주수 인용
         if it.get("delivery_weeks") is None:
             m = re.search(r"납기.{0,5}(\d+)\s*(주|일)", sup_text)
             if m:
                 out.append(("delivery_guess", qid, m.group()))
+    return out
+
+def _check_weakness_count(suppliers: list[dict], max_count: int = 2) -> list[tuple]:
+    """카테고리 7: weaknesses 가 정확히 2개를 초과하면 위반.
+    
+    새 프롬프트 정책: weaknesses 정확히 2개. 3개 이상 절대 금지.
+    """
+    out = []
+    for sup in suppliers:
+        ws = sup.get("weaknesses", []) or []
+        if len(ws) > max_count:
+            out.append(("weakness_too_many", sup.get("quote_id"), len(ws)))
     return out
 
 
@@ -233,6 +329,7 @@ def is_violation_v2(raw_llm_output: str, rec=None) -> tuple[bool, list]:
     violations.extend(_check_rank_score_mismatch(items, all_text))
     violations.extend(_check_score_gap(items, all_text))
     violations.extend(_check_empty_value_quoting(items, suppliers))
+    violations.extend(_check_weakness_count(suppliers))
 
     return (len(violations) > 0, violations)
 
