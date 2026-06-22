@@ -1078,6 +1078,21 @@ class RuleBasedQuoteParser(ParserProvider):
         normalized = text.lower()
 
         if any(
+            keyword in normalized
+            for keyword in ["비디오월", "video wall", "패널", "panel", "did"]
+        ):
+            return LineItemCategory.DISPLAY
+        if any(
+            keyword in normalized
+            for keyword in ["브라켓", "bracket", "마운트", "거치"]
+        ):
+            return LineItemCategory.MOUNT
+        if any(keyword in normalized for keyword in ["케이블", "잡자재", "cable"]):
+            return LineItemCategory.CABLE
+        if any(keyword in normalized for keyword in ["설치", "시운전", "install"]):
+            return LineItemCategory.INSTALL
+
+        if any(
             keyword.lower() in normalized
             for keyword in ["LED", "전광판", "비디오월", "DLED", "LCD", "Display"]
         ):
@@ -2704,6 +2719,11 @@ class RuleBasedQuoteParser(ParserProvider):
         joined_text = " ".join([item_name, spec, unit, note]).strip()
         compact_name = item_name.replace(" ", "").strip()
 
+        if self._is_spec_only_item_name(item_name) and (
+            item.amount is None or item.amount < 100_000
+        ):
+            return True
+
         if compact_name.lower() in {
             "소계",
             "합계",
@@ -2769,6 +2789,26 @@ class RuleBasedQuoteParser(ParserProvider):
             return True
 
         return False
+
+    def _is_spec_only_item_name(self, item_name: str | None) -> bool:
+        compact = re.sub(r"\s+", "", str(item_name or "").lower())
+        if not compact:
+            return False
+        spec_labels = {
+            "밝기",
+            "해상도",
+            "패널해상도",
+            "전체해상도",
+            "전체크기",
+            "화면크기",
+            "스크린크기",
+            "screensize",
+            "displaysize",
+            "resolution",
+            "pixelpitch",
+            "refreshrate",
+        }
+        return compact in spec_labels
 
     def _infer_installation_fee_from_items(
         self,
