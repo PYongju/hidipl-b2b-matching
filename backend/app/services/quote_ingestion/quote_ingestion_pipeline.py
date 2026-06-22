@@ -219,6 +219,11 @@ class QuoteIngestionPipeline:
         try:
             quote_document = self.excel_parser_provider.parse(path)
             text_preview = self.excel_parser_provider.extract_text_preview(path)
+            vendor_debug = self._resolve_vendor_name(
+                quote_document=quote_document,
+                source_text=text_preview,
+                path=path,
+            )
         except Exception as e:
             raise RuntimeError(f"Excel 견적서 Parser 처리 실패: {path} - {e}") from e
 
@@ -255,7 +260,10 @@ class QuoteIngestionPipeline:
             embedding_dim=embedding_dim,
             ocr_text_preview=text_preview[:1000],
             parser_warnings=[],
-            parser_raw_matches={"source_type": "excel"},
+            parser_raw_matches={
+                "source_type": "excel",
+                **({"vendor_name_debug": vendor_debug} if vendor_debug else {}),
+            },
             ingestion_warnings=ingestion_warnings,
             metadata={
                 "file_name": path.name,
@@ -264,6 +272,12 @@ class QuoteIngestionPipeline:
                 "source_file_hash_short": short_hash,
                 "ocr_provider": None,
                 "parser_provider": self.excel_parser_provider.__class__.__name__,
+                "vendor_name_source": (
+                    vendor_debug.get("vendor_name_source") if vendor_debug else None
+                ),
+                "vendor_name_confidence": (
+                    vendor_debug.get("confidence") if vendor_debug else None
+                ),
                 "vendor_snapshot": vendor_snapshot_debug,
                 "embedding_provider": (
                     self.embedding_provider.__class__.__name__

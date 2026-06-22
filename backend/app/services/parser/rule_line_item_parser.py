@@ -62,7 +62,25 @@ def reconstruct_quote_items_from_tables(tables: list[OCRTable]) -> tuple[list[Qu
     evidence: list[dict[str, Any]] = []
     for table_index, table in enumerate(tables):
         blocks = reconstruct_item_blocks(table)
-        for block in blocks:
+        if blocks:
+            for block in blocks:
+                items.append(
+                    QuoteItem(
+                        item_name=block.item_name,
+                        spec=_clean_spec_text(" ".join(block.spec_lines)) or None,
+                        quantity=block.quantity,
+                        unit=block.unit,
+                        unit_price=block.unit_price,
+                        supply_amount=block.supply_amount,
+                        tax_amount=block.tax_amount,
+                        amount=block.supply_amount or block.total_price,
+                    )
+                )
+                evidence.append({"table_index": table_index, **block.evidence})
+            continue
+
+        headerless_blocks = reconstruct_headerless_priced_item_blocks(table)
+        for block in headerless_blocks:
             items.append(
                 QuoteItem(
                     item_name=block.item_name,
@@ -77,6 +95,62 @@ def reconstruct_quote_items_from_tables(tables: list[OCRTable]) -> tuple[list[Qu
             )
             evidence.append({"table_index": table_index, **block.evidence})
     return items, evidence
+
+
+def reconstruct_headerless_priced_item_blocks(table: OCRTable) -> list[RuleItemBlock]:
+    rows = [[str(cell or "").strip() for cell in row] for row in table.cells]
+    blocks: list[RuleItemBlock] = []
+    for row_index, row in enumerate(rows):
+        nonempty = [cell for cell in row if cell]
+        if len(nonempty) < 3:
+            continue
+        row_text = " ".join(nonempty)
+        if _is_summary_text(row_text):
+            continue
+
+        amount_cell = next(
+            (cell for cell in reversed(nonempty) if _parse_amount(cell) is not None),
+            "",
+        )
+        supply_amount = _parse_amount(amount_cell)
+        if supply_amount is None:
+            continue
+
+        item_name = nonempty[0].strip()
+        if not item_name or _looks_like_amount_only(item_name):
+            continue
+        if not _looks_like_itemized_priced_row(row_text, item_name):
+            continue
+
+        spec_cells = [
+            cell
+            for cell in nonempty[1:]
+            if cell != amount_cell and _parse_amount(cell) is None
+        ]
+        quantity, unit = _parse_quantity_unit(" ".join(spec_cells))
+        spec_lines = [
+            cell
+            for cell in spec_cells
+            if cell.strip() and not re.fullmatch(r"\d+(?:\.\d+)?\s*\S{0,4}", cell.strip())
+        ]
+        blocks.append(
+            RuleItemBlock(
+                item_name=item_name,
+                spec_lines=spec_lines,
+                quantity=quantity,
+                unit=unit,
+                supply_amount=supply_amount,
+                total_price=supply_amount,
+                raw_lines=[row_text],
+                evidence={
+                    "source": "ocr_headerless_priced_table",
+                    "row_indexes": [row_index],
+                },
+            )
+        )
+    if len(blocks) < 2:
+        return []
+    return blocks
 
 
 def reconstruct_item_blocks(table: OCRTable) -> list[RuleItemBlock]:
@@ -298,6 +372,54 @@ def _parse_amount(value: str) -> int | None:
 def _parse_number(value: str) -> float | None:
     match = re.search(r"\d+(?:\.\d+)?", value or "")
     return float(match.group(0)) if match else None
+
+
+def _parse_quantity_unit(value: str) -> tuple[float | None, str | None]:
+    match = re.search(
+        r"(\d+(?:\.\d+)?)\s*(EA|SET|SETS|식|개|대|조|매|unit|units)?",
+        value or "",
+        flags=re.IGNORECASE,
+    )
+    unit_match = re.search(
+        r"(\d+(?:\.\d+)?)\s+(EA|SET|SETS|식|개|대|조|매|unit|units)\b",
+        value or "",
+        flags=re.IGNORECASE,
+    )
+    if unit_match:
+        match = unit_match
+    if not match:
+        return None, None
+    quantity = float(match.group(1))
+    unit = match.group(2) or None
+    return quantity, unit
+
+
+def _looks_like_itemized_priced_row(row_text: str, item_name: str) -> bool:
+    normalized = (row_text or "").lower()
+    item_normalized = (item_name or "").lower()
+    item_keywords = [
+        "비디오월",
+        "video wall",
+        "패널",
+        "panel",
+        "브라켓",
+        "bracket",
+        "설치",
+        "시운전",
+        "install",
+        "잡자재",
+        "케이블",
+        "cable",
+        "기타",
+        "led",
+        "display",
+        "did",
+    ]
+    if any(keyword in normalized for keyword in item_keywords):
+        return True
+    if re.search(r"\b(?:EA|SET|식|개|대)\b", row_text, flags=re.IGNORECASE):
+        return True
+    return len(item_normalized.strip()) >= 2
 
 
 def _looks_like_amount_only(value: str) -> bool:

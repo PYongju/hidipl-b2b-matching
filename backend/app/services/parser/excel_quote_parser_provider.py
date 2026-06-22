@@ -406,7 +406,10 @@ class ExcelQuoteParserProvider:
         for rows in sheets:
             display_spec_raw = self._extract_display_spec_raw(rows)
             sheet_context = collect_hardware_spec_context(
-                " ".join(self._clean_text(cell) for row in rows for cell in row)
+                "\n".join(
+                    " ".join(self._clean_text(cell) for cell in row if self._clean_text(cell))
+                    for row in rows
+                )
             )
             for row in rows:
                 item = self._row_to_line_item(row)
@@ -436,7 +439,10 @@ class ExcelQuoteParserProvider:
             if header_index is None:
                 continue
             sheet_context = collect_hardware_spec_context(
-                " ".join(self._clean_text(cell) for row in rows for cell in row)
+                "\n".join(
+                    " ".join(self._clean_text(cell) for cell in row if self._clean_text(cell))
+                    for row in rows
+                )
             )
             table_items: list[LineItem] = []
             for row in rows[header_index + 1 :]:

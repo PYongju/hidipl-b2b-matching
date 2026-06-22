@@ -673,9 +673,7 @@ def _build_compare_row(
         project_install_location=project_install_location,
     )
     product_groups = resolve_quote_product_groups(result)
-    product_group = (
-        sorted(product_groups)[0] if product_groups else UNCATEGORIZED_PRODUCT_GROUP
-    )
+    product_group = _primary_compare_product_group(product_groups)
 
     row = {
         "quote_id": result.quote_id,
@@ -736,6 +734,16 @@ def _build_compare_row(
     return row
 
 
+def _primary_compare_product_group(product_groups: set[str]) -> str:
+    if not product_groups:
+        return UNCATEGORIZED_PRODUCT_GROUP
+    preferred_order = ["비디오월", "LED전광판", "디스플레이"]
+    for group in preferred_order:
+        if group in product_groups:
+            return group
+    return sorted(product_groups)[0]
+
+
 def _build_company_info(snapshot) -> dict[str, Any]:
     return {
         "company_age_years": getattr(snapshot, "company_age_years", None),
@@ -751,7 +759,10 @@ def _build_company_info(snapshot) -> dict[str, Any]:
 
 
 def _build_hardware_section(quote, *, product_group: str | None = None) -> dict[str, Any]:
-    item = _select_representative_hardware_item(quote.line_items)
+    item = _select_representative_hardware_item(
+        quote.line_items,
+        product_group=product_group,
+    )
     item_spec_raw = getattr(item, "spec_raw", "") if item else ""
     preview_source = _find_spec_preview_source(quote, item, product_group=product_group)
     group_preview_source = select_hardware_spec_context_text(
@@ -922,7 +933,24 @@ def _clean_spec_preview(value: str | None) -> str | None:
     preview = " ".join(lines)
     preview = re.sub(r"\s*\|\s*(?:\|\s*)+", " | ", preview)
     preview = re.sub(r"\s+", " ", preview).strip(" |")
+    preview = _prioritize_screen_size_preview_segment(preview)
     return preview[:300] if preview else None
+
+
+def _prioritize_screen_size_preview_segment(preview: str) -> str:
+    if not preview:
+        return preview
+    dimension = (
+        r"(?:\d{1,3}(?:,\d{3})+|\d{3,5})\s*[xX×횞]\s*"
+        r"(?:\d{1,3}(?:,\d{3})+|\d{3,5})\s*(?:mm)?"
+    )
+    label = r"(?:전체\s*크기|화면\s*크기|스크린\s*크기|screen\s*size|display\s*size)"
+    match = re.search(rf"{label}[^|;]{{0,80}}?{dimension}", preview, re.IGNORECASE)
+    if not match or match.start() == 0:
+        return preview
+    segment = match.group(0).strip()
+    remainder = (preview[: match.start()] + " " + preview[match.end() :]).strip()
+    return re.sub(r"\s+", " ", f"{segment} {remainder}").strip()
 
 
 def _find_spec_preview_source(quote, representative_item, *, product_group: str | None = None) -> str | None:
@@ -1044,7 +1072,7 @@ def _as_float(value: Any) -> float | None:
         return None
 
 
-def _select_representative_hardware_item(line_items):
+def _select_representative_hardware_item(line_items, *, product_group: str | None = None):
     if not line_items:
         return None
     non_residual_items = [
@@ -1086,6 +1114,12 @@ def _select_representative_hardware_item(line_items):
             item for item in display_items if not _is_bad_hardware_candidate(item)
         ]
         if filtered:
+            group_filtered = _filter_hardware_items_by_product_group(
+                filtered,
+                product_group=product_group,
+            )
+            if group_filtered:
+                filtered = group_filtered
             return max(filtered, key=_hardware_candidate_score)
         return None
     hardware_keywords = [
@@ -1108,8 +1142,36 @@ def _select_representative_hardware_item(line_items):
             item for item in hardware_items if not _is_bad_hardware_candidate(item)
         ]
         if filtered:
+            group_filtered = _filter_hardware_items_by_product_group(
+                filtered,
+                product_group=product_group,
+            )
+            if group_filtered:
+                filtered = group_filtered
             return max(filtered, key=_hardware_candidate_score)
     return None
+
+
+def _filter_hardware_items_by_product_group(line_items, *, product_group: str | None):
+    if not product_group:
+        return []
+    hint = str(product_group).lower()
+    if "비디오월" in hint:
+        tokens = ["비디오월", "video wall", "did", "멀티비전", "베젤", "bezel", "46", "49", "55", "fhd"]
+    elif "led" in hint or "전광판" in hint:
+        tokens = ["led", "전광판", "pixel pitch", "pitch", "p1.", "p2.", "p3.", "cob", "smd"]
+    else:
+        return []
+    name_matched = []
+    spec_matched = []
+    for item in line_items:
+        name = str(getattr(item, "name", "") or "").lower()
+        text = f"{name} {getattr(item, 'spec_raw', '')}".lower()
+        if any(token in name for token in tokens):
+            name_matched.append(item)
+        elif any(token in text for token in tokens):
+            spec_matched.append(item)
+    return name_matched or spec_matched
 
 
 def _is_bad_hardware_candidate(item) -> bool:
@@ -1199,7 +1261,9 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
             bucket["status"] = CellStatus.INCLUDED.value
         elif name in {"etc", "software", "content"}:
             bucket["status"] = CellStatus.MISSING.value
-        if _bucket_marked_separate(name, context):
+        if _bucket_marked_separate(name, context) and not (
+            bucket["source_items"] or (bucket["amount"] and bucket["amount"] > 0)
+        ):
             bucket["status"] = CellStatus.SEPARATE.value
     return breakdown
 
@@ -1214,6 +1278,10 @@ def _empty_cost_bucket(
 def _cost_bucket_name(item) -> str:
     text = f"{item.name} {item.spec_raw}".lower()
     name_text = (item.name or "").lower()
+    if any(keyword in name_text for keyword in ["설치", "설치비", "시운전"]):
+        return "installation"
+    if any(keyword in name_text for keyword in ["브라켓", "잡자재", "케이블", "마운트"]):
+        return "materials"
     normalized_cost_type = str(
         (item.spec_parsed or {}).get("normalized_cost_type") or ""
     ).upper()
@@ -1290,6 +1358,10 @@ def _cost_bucket_name(item) -> str:
 
 def _functional_cost_bucket_from_item_name(name_text: str) -> str | None:
     compact = re.sub(r"\s+", "", name_text)
+    if any(token in compact for token in ["설치", "설치비", "시운전"]):
+        return "installation"
+    if any(token in compact for token in ["브라켓", "잡자재", "케이블", "마운트"]):
+        return "materials"
     if any(
         token in compact
         for token in [
