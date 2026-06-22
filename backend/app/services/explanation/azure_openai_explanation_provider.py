@@ -127,7 +127,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
             try:
                 response = self.client.chat.completions.create(
                     model=self.deployment,
-                    temperature=0,
+                    temperature=0.2,
                     max_tokens=self.max_tokens,
                     response_format={"type": "json_object"},
                     messages=[
@@ -408,18 +408,20 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
             "-total_with_vat / total_supply_price 금액, vendor_name 업체명)은 "
             "-입력된 값을 그대로 구체 숫자로 인용하세요. 예: '보증 24개월', '납기 9주', "
             "-'총 공급가 1,791만원'. 입력에 없거나 None 인 값은 '미기재' 또는 '확인 필요' 로만 표시하세요.\n"
-            "- vendor_name 이 비어있거나 null 인 아이템은 업체명을 절대 추측하지 마세요. "
+            "- vendor_name 이 비어있거나 null 인 아이템은 업체명을 절대 추측하지 마세요.\n "
+            "값이 비어있더나 null인 경우 반드시 weaknesses로 명시해주세요\n"
             "같은 응답의 다른 후보에 동일 업체가 있어도 이 아이템에 그 이름을 쓰지 마세요. "
             "반드시 vendor_name 을 '업체 미확인' 으로만 표시하세요.\n"
-            "- 같은 영역(가격/납기/보증/사양/설치)에 대한 여러 사실은 한 줄에 묶어 하나의 weakness 로 작성하세요. "
-            "-예: '가격 경쟁력 낮고 최저가 대비 5% 초과' → 하나의 weakness. "
+            "- 같은 영역(가격/납기/보증/사양/설치)에 대한 여러 사실은 한 줄에 묶어 하나의 weaknesses 로 작성하세요. "
+            "-예: '가격 경쟁력 낮고 최저가 대비 5% 초과' → 하나의 weaknesses. "
             "-'가격 낮음'과 '가격 5% 초과'를 별도 줄로 쪼개지 마세요.\n"
             "- rank(순위)와 final_score(종합점수)가 일관되지 않으면 (예: rank 1 의 final_score 가 rank 2 보다 낮은 경우) 이 사실을 weaknesses에 명시하고, 점수 기준으로 순위를 재해석하지 마세요.\n"
             "- rank 1 의 final_score 가 다른 후보보다 낮은 경우, 반드시 다음 형식 중 하나로 "
             "해당 후보의 weaknesses 또는 comparison_risks 에 명시하세요:\n"
             "  · '순위 1위이나 종합점수는 N위보다 낮아 순위와 점수 간 불일치 존재'\n"
             "  · '추천 순위(rank 1)와 종합점수 1위 후보가 일치하지 않음 — 산정 기준 확인 필요'\n"
-            "이 명시를 생략하면 안 됩니다. 다른 weakness 보다 우선 작성하세요.\n"
+            "이 weaknesses를 다른 weaknesses 보다 우선 작성하세요.\n"
+            "rank(순위)와 rinal_score(종합점수)가 일관되면 weaknesses와 strengths에 모두 명시하지 않습니다.\n"
             "- check_required는 견적서 자체의 확인 필요 항목입니다.\n"
             "- comparison_risks는 후보 간 상대 비교에서 생긴 리스크입니다.\n"
             "- parser_quality_notes는 설명에 사용하지 마세요.\n"
@@ -430,6 +432,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
             "- comparison_risks는 weaknesses 후보로 사용할 수 있습니다.\n"
             "- check_required 에 '비정상', '미기재', '범위 밖', '미매칭', '산정 불일치', '순위 산정', '필터 사유' 키워드가 있으면\n" "반드시 그 항목들을 weaknesses[0] 에 묶어서 작성하세요. weaknesses[1] 에 일반 약점.\n"
             "- overall_summary는 2~3문장으로 간결하게 작성하세요.\n"
+            "- overall_summary는 weaknesses와 strengths 기반 주요 항목 위주로 작성하세요.\n"
             "- card_summary는 1문장으로 작성하세요.\n"
             "- strengths는 2개, weaknesses는 2개로 작성하세요.\n"
             "- 사용자가 한눈에 비교할 수 있도록 가격, 사양, 납기, 보증, 설치 조건 중심으로 작성하세요.\n"
@@ -440,6 +443,7 @@ class AzureOpenAIExplanationProvider(ExplanationProvider):
             "-상대 위치를 명확히 구분해 표현하세요. "
             "-'상위 두 후보 모두 우수' 같은 묶음 표현 금지.\n"
             "-'우수'·'양호' 같은 형용사로 격차를 가리지 마세요.\n"
+            "- filter_reasons가 존재하면 반드시 사유를 weaknesses로 기재하세요"
             "- JSON만 반환하세요.\n"
             "출력 스키마: "
             '{"overall_summary":"...","supplier_explanations":[{"quote_id":"...",'
