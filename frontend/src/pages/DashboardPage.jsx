@@ -52,7 +52,10 @@ function resolveSelectedSupplierLabel(supplier, fallbackVendor = "") {
 function buildFinalSelectionConfirmMessage(supplier, fallbackVendor = "") {
   const vendorLabel = resolveSelectedSupplierLabel(supplier, fallbackVendor);
   if (!vendorLabel) return FINAL_SELECTION.dialogMessage;
-  return `${withObjectParticle(vendorLabel)} 최종 선정 업체로 확정하시겠습니까?`;
+  return `[선택한 업체명]을 최종 선정 업체로 확정할까요?`.replace(
+    "[선택한 업체명]",
+    vendorLabel,
+  );
 }
 
 function buildReviewCompleteConfirmMessage(supplier, fallbackVendor = "") {
@@ -1258,8 +1261,8 @@ export default function DashboardPage({
                 {confirmAction === "review-complete"
                   ? "결재 요청"
                   : confirmAction === "admin-approve"
-                    ? "확정"
-                    : "확정"}
+                    ? "최종 선정하기"
+                    : "최종 선정하기"}
               </button>
             </div>
           </div>
@@ -1281,7 +1284,7 @@ export default function DashboardPage({
             <i aria-hidden="true" className="fa-solid fa-xmark" />
           </button>
           <b>{successFeedback.doneEmotion}</b>
-          <span>{successFeedback.statusChanged}</span>
+          {successFeedback.statusChanged ? <span>{successFeedback.statusChanged}</span> : null}
           <div>
             <button className="button" onClick={onGoProjects} type="button">
               프로젝트 목록으로 이동

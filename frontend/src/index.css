@@ -4779,6 +4779,113 @@ textarea {
   line-height: 1.55;
 }
 
+.caution-confirm-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 71;
+  width: min(480px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+}
+
+.caution-confirm-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.caution-confirm-subtext {
+  margin-top: 4px !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+}
+
+.caution-confirm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.caution-confirm-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px 16px 14px 14px;
+}
+
+.caution-confirm-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.caution-confirm-item-title i {
+  color: #f59e0b;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.caution-confirm-item b {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.caution-confirm-item p {
+  color: #64748b;
+  word-break: keep-all;
+}
+
+.caution-confirm-question {
+  margin-top: 16px !important;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+
+.caution-confirm-actions {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.caution-confirm-actions .button:first-child {
+  margin-right: auto;
+}
+
+.caution-confirm-exclude-button {
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: none;
+}
+
+.caution-confirm-exclude-button:hover:not(:disabled),
+.caution-confirm-exclude-button:focus-visible:not(:disabled) {
+  border-color: #818cf8;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.caution-confirm-exclude-button:disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+  .caution-confirm-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .caution-confirm-actions .button:first-child {
+    margin-right: 0;
+  }
+
+  .caution-confirm-actions .button {
+    width: 100%;
+  }
+}
+
 .confirm-actions {
   display: flex;
   justify-content: flex-end;

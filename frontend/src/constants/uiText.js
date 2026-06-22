@@ -46,7 +46,7 @@ export const FINAL_SELECTION = {
   dialogMessage: "이 업체를 최종 선정 업체로 확정할까요?",
   toast: "최종 선정이 확정됐어요.",
   doneEmotion: "최종 선정을 마쳤어요. 수고하셨어요.",
-  statusChanged: "프로젝트 상태가 확정 완료로 바뀌었어요.",
+  statusChanged: "",
   noPermission: "최종 선정 권한이 없어요.",
   noPermissionTitle: "권한 없음",
 };

@@ -249,6 +249,7 @@ export default function PartnerMatchingPage({
   userRole = "member",
 }) {
   const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
+  const [cautionConfirmOpen, setCautionConfirmOpen] = useState(false);
   const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
   const [expandedPartnerList, setExpandedPartnerList] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
@@ -263,6 +264,9 @@ export default function PartnerMatchingPage({
   const [sortKey, setSortKey] = useState("ai");
   const autoSaveStatusTimerRef = useRef(null);
   const copyFeedbackTimerRef = useRef(null);
+  const cautionDialogRef = useRef(null);
+  const cautionCancelButtonRef = useRef(null);
+  const cautionExcludeButtonRef = useRef(null);
 
   const showAutoSaveStatus = (status) => {
     if (autoSaveStatusTimerRef.current) {
@@ -473,6 +477,11 @@ export default function PartnerMatchingPage({
     () => partners.filter((partner) => targetIds.includes(partner.id)),
     [partners, targetIds],
   );
+  const selectedCautionPartners = useMemo(
+    () => targetPartners.filter((partner) => partner.caution),
+    [targetPartners],
+  );
+  const nonFlaggedTargetCount = targetPartners.length - selectedCautionPartners.length;
   const activeMessagePartner =
     targetPartners.find((partner) => partner.id === activePartnerId) ??
     targetPartners[0] ??
@@ -637,14 +646,95 @@ export default function PartnerMatchingPage({
     }
   };
 
-  const handleGoQuoteWaiting = () => {
+  const proceedToQuoteWaiting = () => {
     persistRequestTargets(targetIds);
     onGoDashboard();
+  };
+
+  const handleGoQuoteWaiting = () => {
+    if (selectedCautionPartners.length > 0) {
+      setCautionConfirmOpen(true);
+      return;
+    }
+
+    proceedToQuoteWaiting();
   };
 
   const handleGoBack = () => {
     persistRequestTargets(targetIds);
     onBack();
+  };
+
+  useEffect(() => {
+    if (!cautionConfirmOpen) return undefined;
+
+    const focusablesSelector =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const focusInitial = () => {
+      (cautionExcludeButtonRef.current ?? cautionCancelButtonRef.current)?.focus();
+    };
+
+    focusInitial();
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCautionConfirmOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const dialogNode = cautionDialogRef.current;
+      if (!dialogNode) return;
+
+      const focusableElements = Array.from(
+        dialogNode.querySelectorAll(focusablesSelector),
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (!focusableElements.length) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !dialogNode.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+        return;
+      }
+
+      if (activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cautionConfirmOpen]);
+
+  const closeCautionConfirm = () => {
+    setCautionConfirmOpen(false);
+  };
+
+  const handleProceedWithoutFlagged = () => {
+    const flaggedPartnerIds = new Set(selectedCautionPartners.map((partner) => partner.id));
+    const nextTargetIds = targetIds.filter((id) => !flaggedPartnerIds.has(id));
+
+    if (activePartnerId && flaggedPartnerIds.has(activePartnerId)) {
+      setActivePartnerId("");
+    }
+
+    setTargetIds(nextTargetIds);
+    closeCautionConfirm();
+    persistRequestTargets(nextTargetIds);
+    onGoDashboard();
   };
 
   const projectInfoSummary = buildProjectInfoSummary(projectData, {
@@ -1066,6 +1156,74 @@ export default function PartnerMatchingPage({
                   복사
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {cautionConfirmOpen ? (
+        <div className="request-copy-modal-layer" role="presentation">
+          <button
+            aria-label="주의 업체 확인 모달 닫기"
+            className="request-copy-backdrop caution-confirm-backdrop"
+            onClick={closeCautionConfirm}
+            type="button"
+          />
+          <div
+            aria-labelledby="caution-confirm-title"
+            aria-modal="true"
+            className="confirm-dialog caution-confirm-dialog"
+            ref={cautionDialogRef}
+            role="dialog"
+          >
+            <h2 id="caution-confirm-title">주의 이력이 있는 업체가 포함됐어요</h2>
+            <p className="caution-confirm-subtext">
+              발송 대상 {targetPartners.length}개 중 {selectedCautionPartners.length}개 업체에
+              주의 이력이 있어요.
+            </p>
+            <div className="caution-confirm-list">
+              {selectedCautionPartners.map((partner) => (
+                <div className="caution-confirm-item" key={partner.id}>
+                  <div className="caution-confirm-item-title">
+                    <i
+                      aria-hidden="true"
+                      className="fa-solid fa-triangle-exclamation"
+                    />
+                    <b>{partner.name}</b>
+                  </div>
+                  <p>{partner.reason}</p>
+                </div>
+              ))}
+            </div>
+            <p className="caution-confirm-question">그래도 견적을 요청할까요?</p>
+            <div className="confirm-actions caution-confirm-actions">
+              <button
+                className="button"
+                onClick={closeCautionConfirm}
+                ref={cautionCancelButtonRef}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                className="button caution-confirm-exclude-button"
+                disabled={nonFlaggedTargetCount === 0}
+                onClick={handleProceedWithoutFlagged}
+                ref={cautionExcludeButtonRef}
+                type="button"
+              >
+                주의 업체 제외하고 요청
+              </button>
+              <button
+                className="button action-primary"
+                onClick={() => {
+                  closeCautionConfirm();
+                  proceedToQuoteWaiting();
+                }}
+                type="button"
+              >
+                그래도 전체 요청
+              </button>
             </div>
           </div>
         </div>
