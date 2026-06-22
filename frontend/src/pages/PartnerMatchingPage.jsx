@@ -168,7 +168,7 @@ function buildRequestMessage(partner, projectData) {
     usage,
     ...(extra ? ["", "[추가 요청사항]", extra] : []),
     "",
-    "가능하신 경우 아래 항목 기준으로 회신 부탁드립니다.",
+    "가능하시면 아래 내용으로 회신 부탁드립니다.",
     "- 진행 가능 여부",
     "- 예상 금액",
     "- 납기 일정",
@@ -705,7 +705,7 @@ export default function PartnerMatchingPage({
                     <Badge tone="orange">주의 {cautionCount}</Badge>
                   </div>
                 </div>
-                <p>AI 추천 공급사를 확인한 뒤, 실제로 보낼 공급사만 체크하거나 추가해 주세요.</p>
+                <p>AI가 추천한 공급사를 검토하고, 견적을 요청할 업체를 선택해요.</p>
               </div>
             </div>
 
@@ -916,7 +916,7 @@ export default function PartnerMatchingPage({
                 <div className="request-empty">
                   아직 요청 발송 대상이 없어요.
                   <span>
-                    AI 추천 대상을 한 번에 추가하거나, 목록에서 개별 공급사를 선택해 주세요.
+                    추천된 공급사를 전체 추가하거나, 원하는 업체만 골라서 추가할 수 있어요.
                   </span>
                 </div>
               ) : (
@@ -995,7 +995,7 @@ export default function PartnerMatchingPage({
             <div className="request-copy-header">
               <div>
                 <p>카톡 견적 요청</p>
-                <h2 id="request-copy-title">복사해서 업체에 보내세요</h2>
+                <h2 id="request-copy-title">복사해서 업체에 보내요</h2>
               </div>
               <button
                 aria-label="복사 모달 닫기"
@@ -1008,7 +1008,7 @@ export default function PartnerMatchingPage({
             </div>
 
             <div className="request-copy-summary">
-              <div className="request-copy-summary-title">발송 요청 대상을 선택하세요</div>
+              <div className="request-copy-summary-title">견적을 보낼 업체를 선택해요</div>
               <div className="request-copy-summary-tags">
                 {targetPartners.map((partner) => (
                   <button
@@ -1035,7 +1035,7 @@ export default function PartnerMatchingPage({
             <p className="request-copy-help">
               {isMessageEditing
                 ? "문구를 직접 수정한 뒤 저장해 주세요. 업체를 바꾸면 각 업체별 문구가 따로 유지돼요."
-                : "업체명은 선택한 공급사 이름으로 자동 반영됩니다. 복사 후 카카오톡이나 메일에 바로 붙여 넣어 사용해 주세요."}
+                : "업체명은 선택한 공급사 이름으로 자동으로 바뀌어요. 복사 후 카카오톡이나 메일에 바로 붙여 넣어요."}
             </p>
 
             <div className="request-copy-actions">

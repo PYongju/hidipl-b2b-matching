@@ -10,7 +10,9 @@ import {
   normalizeProjectSolutions,
 } from "../utils/projectRequestText";
 import { getUserDisplayName, USER } from "../constants/uiText";
-import SolutionTagPicker, { SolutionTagChipList } from "../components/SolutionTagPicker";
+import SolutionTagPicker, {
+  SolutionTagChipList,
+} from "../components/SolutionTagPicker";
 
 const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
 
@@ -45,10 +47,13 @@ export default function ProjectRequirementsPage({
     setAutoSaveStatus(status);
 
     if (status === "saved" || status === "error") {
-      autoSaveStatusTimerRef.current = setTimeout(() => {
-        setAutoSaveStatus("idle");
-        autoSaveStatusTimerRef.current = null;
-      }, status === "saved" ? 1800 : 3000);
+      autoSaveStatusTimerRef.current = setTimeout(
+        () => {
+          setAutoSaveStatus("idle");
+          autoSaveStatusTimerRef.current = null;
+        },
+        status === "saved" ? 1800 : 3000,
+      );
     }
   };
 
@@ -115,7 +120,8 @@ export default function ProjectRequirementsPage({
   const readiness = getReadinessScore(projectData, checks);
   const readinessMessage = getReadinessMessage(readiness, checks);
   const canProceedToPartnerMatching = isRequiredRequirementsFilled(projectData);
-  const displayUnit = projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
+  const displayUnit =
+    projectData.displayUnit || inferDisplayUnit(projectData.displaySize);
   const isDisplayInch = displayUnit === "inch";
   const displayWidthValue =
     projectData.displayWidth ??
@@ -169,7 +175,11 @@ export default function ProjectRequirementsPage({
         action={
           <>
             <AutoSaveStatus status={autoSaveStatus} />
-            <button className="button action-secondary" onClick={onBack} type="button">
+            <button
+              className="button action-secondary"
+              onClick={onBack}
+              type="button"
+            >
               목록
             </button>
             <div className="avatar" />
@@ -206,14 +216,18 @@ export default function ProjectRequirementsPage({
                 <span>1</span>
                 <div>
                   <b>발주사 및 기본 정보</b>
-                  <small>회사명, 설치 위치, 프로젝트명과 활용 목적을 입력해요.</small>
+                  <small>
+                    회사명, 설치 위치, 프로젝트명, 일정과 활용 목적을 입력해요.
+                  </small>
                 </div>
               </div>
               <div className="requirements-form-grid">
                 <label>
                   <span>회사명 *</span>
                   <input
-                    onChange={(event) => updateField("companyName", event.target.value)}
+                    onChange={(event) =>
+                      updateField("companyName", event.target.value)
+                    }
                     placeholder="예: Microsoft"
                     value={projectData.companyName || ""}
                   />
@@ -221,7 +235,9 @@ export default function ProjectRequirementsPage({
                 <label>
                   <span>설치 위치 *</span>
                   <input
-                    onChange={(event) => updateField("location", event.target.value)}
+                    onChange={(event) =>
+                      updateField("location", event.target.value)
+                    }
                     placeholder="예: 수원사업장 본관 로비"
                     value={projectData.location || ""}
                   />
@@ -229,7 +245,9 @@ export default function ProjectRequirementsPage({
                 <label>
                   <span>프로젝트명 *</span>
                   <input
-                    onChange={(event) => updateField("projectName", event.target.value)}
+                    onChange={(event) =>
+                      updateField("projectName", event.target.value)
+                    }
                     placeholder="예: 본사 로비 사이니지 구축"
                     required
                     value={projectData.projectName || ""}
@@ -238,7 +256,9 @@ export default function ProjectRequirementsPage({
                 <label>
                   <span>프로젝트 일정 *</span>
                   <input
-                    onChange={(event) => updateField("projectDate", event.target.value)}
+                    onChange={(event) =>
+                      updateField("projectDate", event.target.value)
+                    }
                     required
                     type="date"
                     value={projectData.projectDate || ""}
@@ -246,10 +266,10 @@ export default function ProjectRequirementsPage({
                 </label>
               </div>
               <label>
-                <span>어디에, 어떻게 사용하실 예정인가요? *</span>
+                <span>활용 용도 및 디스플레이 요구사항 *</span>
                 <textarea
                   onChange={(event) => updateField("usage", event.target.value)}
-                  placeholder="예: 사내 브리핑/방문객 안내용 디스플레이, 설치 환경, 화면 밝기, 운영 조건 등을 입력해주세요."
+                  placeholder="예: 본관 로비 방문객 안내용이에요. 야외 설치라 밝기가 중요하고, 24시간 켜둬야 해요."
                   value={projectData.usage || ""}
                 />
               </label>
@@ -260,17 +280,27 @@ export default function ProjectRequirementsPage({
                 <span>2</span>
                 <div>
                   <b>디스플레이 스펙</b>
-                  <small>화면 크기, 수량, 운영 조건과 카테고리를 입력해요.</small>
+                  <small>화면 크기, 수량, 운영 시간과 솔루션을 입력해요.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
                 <label className="display-size-field">
                   <span>디스플레이 크기</span>
-                  <div className={isDisplayInch ? "display-size-control inch" : "display-size-control dimension"}>
+                  <div
+                    className={
+                      isDisplayInch
+                        ? "display-size-control inch"
+                        : "display-size-control dimension"
+                    }
+                  >
                     {isDisplayInch ? (
                       <input
                         inputMode="decimal"
-                        onChange={(event) => updateDisplaySize({ displayInch: event.target.value.trim() })}
+                        onChange={(event) =>
+                          updateDisplaySize({
+                            displayInch: event.target.value.trim(),
+                          })
+                        }
                         placeholder="예: 55"
                         value={displayInchValue}
                       />
@@ -278,7 +308,11 @@ export default function ProjectRequirementsPage({
                       <>
                         <input
                           inputMode="decimal"
-                          onChange={(event) => updateDisplaySize({ displayWidth: event.target.value.trim() })}
+                          onChange={(event) =>
+                            updateDisplaySize({
+                              displayWidth: event.target.value.trim(),
+                            })
+                          }
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
                               event.preventDefault();
@@ -290,7 +324,11 @@ export default function ProjectRequirementsPage({
                         />
                         <input
                           inputMode="decimal"
-                          onChange={(event) => updateDisplaySize({ displayHeight: event.target.value.trim() })}
+                          onChange={(event) =>
+                            updateDisplaySize({
+                              displayHeight: event.target.value.trim(),
+                            })
+                          }
                           placeholder="H 3000"
                           value={displayHeightValue}
                         />
@@ -298,7 +336,9 @@ export default function ProjectRequirementsPage({
                     )}
                     <select
                       aria-label="display size unit"
-                      onChange={(event) => updateDisplaySize({ displayUnit: event.target.value })}
+                      onChange={(event) =>
+                        updateDisplaySize({ displayUnit: event.target.value })
+                      }
                       value={displayUnit}
                     >
                       <option value="mm">mm</option>
@@ -312,7 +352,9 @@ export default function ProjectRequirementsPage({
                   <span>수량</span>
                   <input
                     inputMode="numeric"
-                    onChange={(event) => updateField("quantity", event.target.value)}
+                    onChange={(event) =>
+                      updateField("quantity", event.target.value)
+                    }
                     placeholder="예: 10"
                     value={projectData.quantity || ""}
                   />
@@ -320,7 +362,9 @@ export default function ProjectRequirementsPage({
                 <label>
                   <span>운영 시간</span>
                   <select
-                    onChange={(event) => updateField("operationTime", event.target.value)}
+                    onChange={(event) =>
+                      updateField("operationTime", event.target.value)
+                    }
                     value={projectData.operationTime || "24/7"}
                   >
                     <option>업무 시간</option>
@@ -332,17 +376,24 @@ export default function ProjectRequirementsPage({
                 <label className="requirements-solution-field">
                   <span>솔루션 *</span>
                   <SolutionTagPicker
-                    onChange={(solutions) => updateField("solutions", solutions)}
+                    onChange={(solutions) =>
+                      updateField("solutions", solutions)
+                    }
                     showChips={false}
                     value={selectedSolutions}
                   />
                 </label>
                 {selectedSolutions.length > 0 && (
                   <>
-                    <div aria-hidden="true" className="requirements-form-grid-spacer" />
+                    <div
+                      aria-hidden="true"
+                      className="requirements-form-grid-spacer"
+                    />
                     <div className="requirements-solution-chips">
                       <SolutionTagChipList
-                        onChange={(solutions) => updateField("solutions", solutions)}
+                        onChange={(solutions) =>
+                          updateField("solutions", solutions)
+                        }
                         value={selectedSolutions}
                       />
                     </div>
@@ -356,7 +407,7 @@ export default function ProjectRequirementsPage({
                 <span>3</span>
                 <div>
                   <b>예산과 검토 기준</b>
-                  <small>매칭 우선순위와 요청 가능 범위를 판단해요.</small>
+                  <small>예산 상한과 매칭 우선순위를 입력해요.</small>
                 </div>
               </div>
               <div className="requirements-form-grid">
@@ -366,7 +417,10 @@ export default function ProjectRequirementsPage({
                     <input
                       inputMode="numeric"
                       onChange={(event) =>
-                        updateField("budgetAmount", formatNumberInput(event.target.value))
+                        updateField(
+                          "budgetAmount",
+                          formatNumberInput(event.target.value),
+                        )
                       }
                       placeholder="예: 120,000,000"
                       value={projectData.budgetAmount || ""}
@@ -380,7 +434,10 @@ export default function ProjectRequirementsPage({
                     {priorityOptions.map((option) => (
                       <button
                         className={
-                          isReviewPresetSelected(projectData.reviewPreset, option)
+                          isReviewPresetSelected(
+                            projectData.reviewPreset,
+                            option,
+                          )
                             ? "priority-chip active"
                             : "priority-chip"
                         }
@@ -401,14 +458,18 @@ export default function ProjectRequirementsPage({
                 <span>4</span>
                 <div>
                   <b>추가 메모</b>
-                  <small>A/S, 납기, 설치 제한, 첨부 자료에 대한 메모를 남겨요.</small>
+                  <small>
+                    파트너에게 전달할 특이사항이나 요청사항을 남겨요.
+                  </small>
                 </div>
               </div>
               <label>
-                <span>파트너에게 꼭 전달하고 싶은 내용이 있나요?</span>
+                <span>추가 요청사항</span>
                 <textarea
-                  onChange={(event) => updateField("otherConditions", event.target.value)}
-                  placeholder="A/S, 납기, 설치 제한, 현장 실측 필요 여부 등을 적어주세요."
+                  onChange={(event) =>
+                    updateField("otherConditions", event.target.value)
+                  }
+                  placeholder="예: 납기 3월 말, A/S 1년 이상 필수, 천장 직부 설치 불가해요."
                   value={projectData.otherConditions || ""}
                 />
               </label>
@@ -425,7 +486,10 @@ export default function ProjectRequirementsPage({
 
             <div className="matching-check-list">
               {checks.map((check) => (
-                <article className={`matching-check ${check.level}`} key={check.title}>
+                <article
+                  className={`matching-check ${check.level}`}
+                  key={check.title}
+                >
                   <span aria-hidden="true">
                     {check.level === "ok" ? (
                       <i className="fa-solid fa-check" />
@@ -455,8 +519,8 @@ export default function ProjectRequirementsPage({
             <div className="matching-next-guide refined">
               <b>다음 단계 안내</b>
               <p>
-                파트너 매칭 화면에서 AI 추천 순위와 적합도 점수를 확인하고, 견적 요청을
-                보낼 공급사를 선택할 수 있어요.
+                파트너 매칭 화면에서 AI 추천 순위와 적합도 점수를 확인하고, 견적
+                요청을 보낼 공급사를 선택할 수 있어요.
               </p>
             </div>
           </aside>
@@ -470,7 +534,11 @@ export default function ProjectRequirementsPage({
             : "다음 단계로 가려면 필수 항목(*)을 모두 입력해 주세요."}
         </span>
         <div>
-          <button className="button action-secondary" onClick={onBack} type="button">
+          <button
+            className="button action-secondary"
+            onClick={onBack}
+            type="button"
+          >
             이전
           </button>
           <button
@@ -479,7 +547,9 @@ export default function ProjectRequirementsPage({
             onClick={onNext}
             type="button"
           >
-            {isPartnerMatchingLoading ? "파트너 매칭 준비 중..." : "다음: 파트너 매칭"}
+            {isPartnerMatchingLoading
+              ? "파트너 매칭 준비 중..."
+              : "다음: 파트너 매칭"}
           </button>
         </div>
       </footer>
@@ -490,19 +560,19 @@ export default function ProjectRequirementsPage({
 function hasDisplayDimension(data) {
   return Boolean(
     data.displaySize?.trim() ||
-      data.displayInch?.trim() ||
-      (data.displayWidth?.trim() && data.displayHeight?.trim()),
+    data.displayInch?.trim() ||
+    (data.displayWidth?.trim() && data.displayHeight?.trim()),
   );
 }
 
 function isRequiredRequirementsFilled(data) {
   return Boolean(
     data.companyName?.trim() &&
-      data.location?.trim() &&
-      data.usage?.trim() &&
-      data.projectName?.trim() &&
-      data.projectDate?.trim() &&
-      normalizeProjectSolutions(data).length > 0,
+    data.location?.trim() &&
+    data.usage?.trim() &&
+    data.projectName?.trim() &&
+    data.projectDate?.trim() &&
+    normalizeProjectSolutions(data).length > 0,
   );
 }
 
@@ -608,7 +678,7 @@ function getReadinessMessage(readiness, checks) {
     return "기본 조건은 갖춰졌어요. 남은 항목을 보완하면 추천 정확도가 더 높아져요.";
   }
   if (warnCount > 0) {
-    return "매칭 가능성 체크에서 확인이 필요한 항목이 있어요. 경고 항목을 먼저 보완해 주세요.";
+    return "항목들을 채우면 매칭 준비도가 높아져요.";
   }
   return "필수 정보와 스펙/예산을 입력하면 매칭 준비도가 올라가요.";
 }
