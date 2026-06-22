@@ -3221,80 +3221,6 @@ textarea {
   transform: scale(0.97);
 }
 
-.confirm-modal-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.confirm-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.48);
-  border: none;
-  cursor: pointer;
-}
-
-.confirm-modal {
-  position: relative;
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 32px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.confirm-modal-header p {
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.confirm-modal-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.4;
-}
-
-.confirm-modal-description {
-  font-size: 14px;
-  color: #64748b;
-}
-
-.confirm-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.confirm-modal-actions .button {
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid #d7dde8;
-  background: #ffffff;
-  color: #475569;
-}
-
-.confirm-modal-actions .button:hover {
-  background: #f1f5f9;
-}
-
 .new-project-card {
   display: grid;
   place-items: center;
@@ -8470,10 +8396,6 @@ textarea {
   .flow-hero .button,
   .flow-main .button,
   .project-tools .button,
-  .empty-project-result .button {
-    width: 100%;
-  }
-
   .requirements-bottom-actions,
   .partner-bottom-actions,
   .quote-waiting-bottom-actions,

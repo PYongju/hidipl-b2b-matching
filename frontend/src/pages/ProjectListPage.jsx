@@ -364,48 +364,37 @@ export default function ProjectListPage({
           )}
           {!isLoading && filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
-              <p>{EMPTY_PROJECTS.message}</p>
-              <span>{EMPTY_PROJECTS.hint}</span>
-              <button
-                className="button action-primary"
-                onClick={onCreate}
-                type="button"
-              >
-                {EMPTY_PROJECTS.cta}
-              </button>
+              <p>
+                {projects.length === 0
+                  ? EMPTY_PROJECTS.emptyMessage
+                  : EMPTY_PROJECTS.filterEmptyMessage}
+              </p>
+              <span>
+                {projects.length === 0
+                  ? EMPTY_PROJECTS.emptyHint
+                  : EMPTY_PROJECTS.filterEmptyHint}
+              </span>
             </div>
           )}
         </section>
       </main>
 
       {deleteConfirmOpen && (
-        <div className="confirm-modal-layer" role="presentation">
-          <button
-            aria-label="삭제 확인 닫기"
-            className="confirm-modal-backdrop"
-            onClick={() => setDeleteConfirmOpen(false)}
-            type="button"
-          />
+        <div className="confirm-layer" role="presentation">
           <div
             aria-describedby="delete-projects-description"
             aria-labelledby="delete-projects-title"
             aria-modal="true"
-            className="confirm-modal"
+            className="confirm-dialog"
             role="dialog"
           >
-            <div className="confirm-modal-header">
-              <p>삭제 확인</p>
-              <h2 id="delete-projects-title">
-                선택한 {selectedIds.length}개 프로젝트를 삭제할까요?
-              </h2>
-            </div>
-            <p
-              className="confirm-modal-description"
-              id="delete-projects-description"
-            >
+            <h2 id="delete-projects-title">
+              선택한 {selectedIds.length}개 프로젝트를 삭제할까요?
+            </h2>
+            <p id="delete-projects-description">
               삭제 후에는 되돌릴 수 없습니다.
             </p>
-            <div className="confirm-modal-actions">
+            <div className="confirm-actions">
               <button
                 className="button"
                 onClick={() => setDeleteConfirmOpen(false)}
