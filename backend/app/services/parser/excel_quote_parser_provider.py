@@ -2,6 +2,7 @@ import posixpath
 import re
 import zipfile
 from datetime import datetime, timedelta
+from math import ceil
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -382,12 +383,42 @@ class ExcelQuoteParserProvider:
         return ""
 
     def _extract_delivery(self, notes: str) -> tuple[int | None, str]:
+        normalized = re.sub(r"\s+", " ", notes or "").strip()
+        patterns = [
+            r"(?:납\s*기(?:\s*\([^)]*\))?|도입\s*가능일|delivery)\s*[:：]?\s*((?:발주|계약)\s*후\s*\d+\s*(?:일|주|개월|달)(?:\s*이내)?)",
+            r"((?:발주|계약)\s*후\s*\d+\s*(?:일|주|개월|달)(?:\s*이내)?)",
+            r"(?:delivery)\s*[:：]?\s*(\d+\s*days?)",
+            r"((?:발주|계약)\s*후\s*\d+\s*[~～\-]\s*\d+\s*주)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, normalized, flags=re.IGNORECASE)
+            if not match:
+                continue
+            raw = re.sub(r"\s+", " ", match.group(1)).strip()
+            return self._delivery_weeks_from_raw(raw), raw
+
         match = re.search(r"납기일은\s*기본\s*(\d+)\s*일", notes)
         if not match:
             return None, ""
 
         days = int(match.group(1))
-        return max(1, round(days / 7)), match.group(0)
+        return max(1, ceil(days / 7)), match.group(0)
+
+    def _delivery_weeks_from_raw(self, raw: str) -> int | None:
+        text = re.sub(r"\s+", " ", raw or "").strip().lower()
+        range_match = re.search(r"(\d+)\s*[~～\-]\s*(\d+)\s*주", text)
+        if range_match:
+            return int(range_match.group(2))
+        match = re.search(r"(\d+)\s*(?:일|days?)", text, flags=re.IGNORECASE)
+        if match:
+            return max(1, ceil(int(match.group(1)) / 7))
+        match = re.search(r"(\d+)\s*주", text)
+        if match:
+            return int(match.group(1))
+        match = re.search(r"(\d+)\s*(?:개월|달)", text)
+        if match:
+            return int(match.group(1)) * 4
+        return None
 
     def _extract_warranty_months(self, notes: str) -> int | None:
         match = re.search(r"(\d+)\s*년\s*무상보증", notes)
@@ -523,6 +554,26 @@ class ExcelQuoteParserProvider:
         if not name or self._is_summary_text(name):
             return None
         spec_parts = [self._clean_text(self._cell(row, roles.get("spec")))]
+        excluded_spec_roles = {
+            "item_name",
+            "quantity",
+            "unit",
+            "unit_price",
+            "amount",
+            "tax_amount",
+            "total_with_vat",
+        }
+        excluded_columns = {
+            column
+            for role, column in roles.items()
+            if role in excluded_spec_roles and isinstance(column, int)
+        }
+        for column, value in enumerate(row):
+            if column in excluded_columns:
+                continue
+            text_value = self._clean_text(value)
+            if self._looks_hardware_spec_fragment(text_value):
+                spec_parts.append(text_value)
         for role in ["tax_amount", "total_with_vat"]:
             value = self._clean_text(self._cell(row, roles.get(role)))
             if value and not self._looks_numeric(value):
@@ -579,6 +630,23 @@ class ExcelQuoteParserProvider:
             re.fullmatch(
                 r"[-+]?\d+(?:,\d{3})*(?:\.\d+)?",
                 self._clean_text(value),
+            )
+        )
+
+    def _looks_hardware_spec_fragment(self, value: str) -> bool:
+        text = self._clean_text(value)
+        if not text:
+            return False
+        if self._looks_numeric(text):
+            return False
+        lower = text.lower()
+        return bool(
+            re.search(
+                r"\bp\s*\d+(?:\.\d+)?\b|pixel\s*pitch|cd\s*/?\s*(?:㎡|m2)|nit|hz|"
+                r"\d{3,5}\s*[xX×*]\s*\d{3,5}\s*mm?|fhd|uhd|4k|smd\d+|cob|bezel|"
+                r"pitch|resolution|brightness",
+                lower,
+                flags=re.IGNORECASE,
             )
         )
 

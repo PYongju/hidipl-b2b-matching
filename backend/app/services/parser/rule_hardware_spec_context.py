@@ -18,6 +18,21 @@ class HardwareSpecContext:
 
 
 SPEC_KEYWORDS = [
+    "크기",
+    "화면 크기",
+    "스크린 크기",
+    "전체 크기",
+    "제안사이즈",
+    "구현",
+    "해상도",
+    "밝기",
+    "평균전력",
+    "소비전력",
+    "최대전력",
+    "전기용량",
+    "주사율",
+    "플랫 led",
+    "커브드 led",
     "화면 크기",
     "화면크기",
     "스크린 크기",
@@ -79,6 +94,8 @@ CONTROLLER_CONTEXT_TOKENS = [
     "mx40",
     "x16",
     "z6",
+    "brompton",
+    "tessera",
     "controller",
     "scaler",
     "컨트롤러",
@@ -135,6 +152,11 @@ def merge_hardware_spec_context(item: Any, context: HardwareSpecContext, *, sour
     before_parsed = dict(getattr(item, "spec_parsed", {}) or {})
     merged_parsed = dict(before_parsed)
     for key, value in (context.spec_parsed or {}).items():
+        if key in {"pixel_pitch", "pixel_pitch_mm", "pitch_mm", "pitch_max_mm"} and any(
+            before_parsed.get(existing_key)
+            for existing_key in ["pixel_pitch", "pixel_pitch_mm", "pitch_mm", "pitch_max_mm"]
+        ):
+            continue
         if value is not None and key not in merged_parsed:
             merged_parsed[key] = value
     if context.evidence:
@@ -146,8 +168,14 @@ def merge_hardware_spec_context(item: Any, context: HardwareSpecContext, *, sour
         not before_raw
         or before_raw == "summary amount reconciliation"
         or not _has_hardware_signal(before_raw)
+        or (
+            _has_core_display_context(context.spec_parsed)
+            and not _has_core_display_context(before_parsed)
+        )
     ):
-        item.spec_raw = context.spec_raw
+        item.spec_raw = " ".join(
+            dict.fromkeys([value for value in [before_raw, context.spec_raw] if value])
+        )
     item.spec_parsed = sanitize_display_spec_parsed(merged_parsed, spec_raw=item.spec_raw or "")
     item.spec_parsed["hardware_spec_source"] = source
     return before_raw != item.spec_raw or before_parsed != item.spec_parsed
@@ -156,6 +184,25 @@ def merge_hardware_spec_context(item: Any, context: HardwareSpecContext, *, sour
 def extract_screen_size_mm(text: str | None) -> str | None:
     if not text:
         return None
+    labeled = _labeled_dimension(
+        text,
+        [
+            "화면 크기",
+            "화면크기",
+            "스크린 크기",
+            "스크린크기",
+            "전체 크기",
+            "전체크기",
+            "제안사이즈",
+            "구현 크기",
+            "구현",
+            "크기",
+            "display size",
+            "screen size",
+        ],
+    )
+    if labeled:
+        return labeled
     labeled = _labeled_dimension(
         text,
         [
@@ -287,6 +334,7 @@ def clean_hardware_spec_preview(text: str | None) -> str | None:
         if not line:
             continue
         line = _strip_amount_tail(line)
+        line = _strip_module_cabinet_counts(line)
         if not line:
             continue
         if _looks_like_amount_line(line.lower()):
@@ -323,7 +371,20 @@ def _collect_candidate_lines(lines: list[str]) -> list[str]:
             candidates.append(line)
             if index + 1 < len(lines) and _looks_like_continuation(lines[index + 1]):
                 candidates.append(lines[index + 1])
-        elif has_size and any(token in lower for token in ["led", "display", "screen", "화면", "스크린"]):
+        elif has_size and any(
+            token in lower
+            for token in [
+                "led",
+                "display",
+                "screen",
+                "화면",
+                "스크린",
+                "크기",
+                "플랫",
+                "커브드",
+                "비디오월",
+            ]
+        ):
             candidates.append(line)
     return candidates
 
@@ -424,6 +485,20 @@ def _has_hardware_signal(value: str | None) -> bool:
     return any(keyword.lower() in lower for keyword in SPEC_KEYWORDS)
 
 
+def _has_core_display_context(spec_parsed: dict[str, Any] | None) -> bool:
+    spec = spec_parsed or {}
+    return any(
+        spec.get(key)
+        for key in [
+            "screen_size_mm",
+            "full_screen_size_mm",
+            "resolution",
+            "brightness_cd_m2",
+            "brightness_nit",
+        ]
+    )
+
+
 def _looks_like_continuation(value: str) -> bool:
     lower = value.lower()
     return bool(re.search(r"\d", lower)) and not _looks_like_amount_line(lower)
@@ -434,6 +509,8 @@ def _looks_like_amount_line(lower: str) -> bool:
     has_money = bool(re.search(r"\d{1,3}(?:,\d{3})+\s*(?:원|₩)?", lower))
     has_amount_sequence = bool(
         re.search(r"\b\d{1,4}\s+\d{1,3}(?:,\d{3})+\s+\d{1,3}(?:,\d{3})+\b", lower)
+        or re.search(r"\b\d+(?:\.\d+)?\s+sqm\s+\d{5,}\s+\d{6,}", lower)
+        or re.search(r"\b\d{5,}\s+\d{6,}\b", lower)
     )
     return (has_stop and (has_money or re.search(r"\d", lower))) or has_amount_sequence
 
@@ -562,6 +639,12 @@ def _cut_header_footer_tail(text: str) -> str:
 def _strip_amount_tail(text: str) -> str:
     if not text:
         return ""
+    text = re.split(
+        r"\s+\d+(?:\.\d+)?\s*(?:sqm|set|ea|식|개)\s+\d{5,}",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
     parts = re.split(
         r"\s+(?=(?:COST\s+BREAKDOWN|견적금액|공급가|합계|소계|VAT|₩|"
         r"\d{1,4}\s+\d{1,3}(?:,\d{3})+\s+\d{1,3}(?:,\d{3})+)\b)",
@@ -572,16 +655,34 @@ def _strip_amount_tail(text: str) -> str:
     return parts[0].strip(" :-\t")
 
 
+def _strip_module_cabinet_counts(text: str) -> str:
+    if not text:
+        return ""
+    cleaned = re.sub(
+        r"(?:\s*[·,/]\s*)?(?:모듈|캐비닛|module|cabinet)\s*\d+(?:\.\d+)?\s*(?:EA|대|개)\b",
+        " ",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(r"\s+", " ", cleaned).strip(" ·,/:-\t")
+
+
 def _remove_controller_spec_segments(text: str) -> str:
     if not text:
         return ""
     cleaned = text
     controller_model = (
         r"(?:S-?Box|Nova\s*Star|Novastar|Colorlight|VX\s*\d+\w*|MX\s*\d+\w*|"
-        r"X\s*\d+\w*|Z\s*\d+\w*|컨트롤러|스케일러|controller|scaler)"
+        r"Z\s*\d+\w*|컨트롤러|스케일러|controller|scaler)"
     )
     cleaned = re.sub(
         rf"{controller_model}(?:\s*[\w+/.-]+){{0,8}}\s*(?:\(?\s*4K\s*@\s*60\s*Hz\s*\)?)?",
+        " ",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"(?:Brompton|Tessera)(?:\s*[\w+/.-]+){0,8}\s*(?:\(?\s*4K\s*@\s*60\s*Hz\s*\)?)?",
         " ",
         cleaned,
         flags=re.IGNORECASE,
