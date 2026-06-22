@@ -1,21 +1,14 @@
-import { useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "../auth/msalConfig";
-import { msalReady } from "../auth/msalInstance";
 
 export default function LoginPage() {
   const { instance } = useMsal();
-  const [isSigningIn, setIsSigningIn] = useState(false);
 
   async function handleLogin() {
-    if (isSigningIn) return;
-    setIsSigningIn(true);
     try {
-      await msalReady;
       await instance.loginRedirect(loginRequest);
     } catch (e) {
       console.error("로그인 실패:", e);
-      setIsSigningIn(false);
     }
   }
 
@@ -70,9 +63,7 @@ export default function LoginPage() {
 
             <div className="login-auth-action">
               <button
-                aria-busy={isSigningIn}
                 className="login-ms-button"
-                disabled={isSigningIn}
                 onClick={handleLogin}
                 type="button"
               >
@@ -83,7 +74,7 @@ export default function LoginPage() {
                   src="/ms-logo.png"
                   width={20}
                 />
-                {isSigningIn ? "Microsoft로 연결 중..." : "Sign in with Microsoft"}
+                Sign in with Microsoft
               </button>
 
               <hr aria-hidden="true" className="login-auth-divider" />
