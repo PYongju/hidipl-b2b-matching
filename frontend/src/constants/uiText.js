@@ -61,9 +61,11 @@ export const REVIEW_COMPLETE = {
   statusChanged: "프로젝트 목록에서 결재 진행 상태를 확인할 수 있어요.",
 };
 
-// 빈 상태 + 첫 행동 CTA (가이드 §원칙5, #12)
+// 빈 상태 (가이드 §원칙5, #12) — CTA는 헤더 버튼만 사용
 export const EMPTY_PROJECTS = {
-  message: "조건에 맞는 프로젝트가 없어요.",
   cta: "+ 새 프로젝트",
-  hint: "‘+ 새 프로젝트’로 첫 검토를 시작해 보세요.",
+  emptyMessage: "아직 프로젝트가 없어요.",
+  emptyHint: "우측 상단 ‘+ 새 프로젝트’로 첫 검토를 시작해 보세요.",
+  filterEmptyMessage: "선택한 조건에 맞는 프로젝트가 없어요.",
+  filterEmptyHint: "필터나 검색어를 바꿔 다시 확인해 주세요.",
 };
