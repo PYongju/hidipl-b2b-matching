@@ -19,18 +19,20 @@ export default function LoginPage({ onLogin }) {
 
         <div className="login-copy-side">
           <div className="login-logo">
-            <div aria-hidden="true" className="login-logo-icon">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="login-logo-text-wrap">
+            <div className="login-logo-row">
+              <img
+                alt=""
+                aria-hidden="true"
+                className="login-logo-icon"
+                height={28}
+                src="/quopilot-logo.png"
+                width={28}
+              />
               <span className="login-logo-text">QuoPilot</span>
-              <span className="login-logo-tagline">
-                구매 검토팀을 위한 AI 견적 비교 워크스페이스
-              </span>
             </div>
+            <p className="login-logo-tagline">
+              구매 검토팀을 위한 AI 견적 비교 워크스페이스
+            </p>
           </div>
 
           <p className="login-version">v1.3.2</p>
