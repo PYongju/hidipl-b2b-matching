@@ -1,12 +1,14 @@
 export default function BrandHomeButton({ onClick }) {
   const content = (
     <>
-      <div className="brand-mark" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
-      </div>
+      <img
+        alt=""
+        aria-hidden="true"
+        className="brand-mark"
+        height={28}
+        src="/quopilot-logo.png"
+        width={28}
+      />
       <div className="brand-title">QuoPilot</div>
     </>
   );
