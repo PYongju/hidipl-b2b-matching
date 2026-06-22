@@ -5638,6 +5638,21 @@ textarea {
   gap: 3px;
 }
 
+.selected-partner-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.selected-partner-name-row b {
+  min-width: 0;
+}
+
+.selected-partner-name-row .badge {
+  flex: 0 0 auto;
+}
+
 .selected-partner-pill small {
   color: #64748b;
   font-size: 11px;

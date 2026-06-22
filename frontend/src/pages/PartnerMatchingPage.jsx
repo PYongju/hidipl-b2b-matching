@@ -33,7 +33,7 @@ const MOCK_CAUTION_PARTNERS = [
   },
   {
     id: "mock-caution-send-first",
-    name: "\uC8FC\uC2DD\uD68C\uC0AC \uC77C\uB2E8\uBCF4\uB0B4",
+    name: "\uC8FC\uC2DD\uD68C\uC0AC \uC77C\uB2E8\uBCF4\uB0B4 \uBBF8\uB514\uC5B4",
     specialty: "\uAC00\uC0C1 \uACF5\uAE09\uC0AC, \uC0AC\uC774\uB2C8\uC9C0",
     score: 16,
     cases: 1,
@@ -43,7 +43,7 @@ const MOCK_CAUTION_PARTNERS = [
     recommended: false,
     caution: true,
     reason:
-      "\uC81C\uC548 \uC870\uAC74 \uB204\uB77D \uC774\uB825\uC774 \uC788\uC5B4 \uC694\uCCAD \uC804 \uD655\uC778\uC774 \uD544\uC694\uD574\uC694.",
+      "\uACAC\uC801 \uD68C\uC2E0\uC774 \uC9C0\uC5F0\uB41C \uC774\uB825\uC774 \uC788\uC5B4 \uAC80\uD1A0\uAC00 \uD544\uC694\uD574\uC694.",
   },
 ];
 
@@ -238,6 +238,22 @@ function getCandidateEmptyMessage(status) {
     description:
       "검색 조건을 조금 완화하거나 요구사항을 보완한 뒤 다시 확인해 주세요.",
   };
+}
+
+function getPartnerStatusBadge(partner) {
+  if (partner.caution) {
+    return { tone: "orange", label: "주의", title: partner.reason };
+  }
+
+  if (partner.recommended) {
+    return { tone: "blue", label: "AI 추천" };
+  }
+
+  if (partner.businessRulePassed) {
+    return { tone: "gray", label: "추천 가능" };
+  }
+
+  return { tone: "gray", label: "직접 추가" };
 }
 
 export default function PartnerMatchingPage({
@@ -1012,33 +1028,44 @@ export default function PartnerMatchingPage({
               ) : (
                 <div className="selected-partner-list">
                   {targetPartners.map((partner) => (
-                    <button
-                      className={`selected-partner-pill request-target-card${
-                        activeMessagePartner?.id === partner.id ? " is-active" : ""
-                      }`}
-                      key={partner.id}
-                      onClick={() => setActivePartnerId(partner.id)}
-                      type="button"
-                    >
-                      <span>
-                        <b>{partner.name}</b>
-                        <small>AI 추천 점수 {partner.score}</small>
-                      </span>
-                      <button
-                        aria-label={`${partner.name} 제거`}
-                        className="selected-partner-remove"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removePartner(partner.id);
-                        }}
-                        type="button"
-                      >
-                        <i
-                          aria-hidden="true"
-                          className="fa-solid fa-xmark selected-partner-remove-icon"
-                        />
-                      </button>
-                    </button>
+                    (() => {
+                      const badge = getPartnerStatusBadge(partner);
+
+                      return (
+                        <button
+                          className={`selected-partner-pill request-target-card${
+                            activeMessagePartner?.id === partner.id ? " is-active" : ""
+                          }`}
+                          key={partner.id}
+                          onClick={() => setActivePartnerId(partner.id)}
+                          type="button"
+                        >
+                          <span>
+                            <span className="selected-partner-name-row">
+                              <b>{partner.name}</b>
+                              <Badge title={badge.title} tone={badge.tone}>
+                                {badge.label}
+                              </Badge>
+                            </span>
+                            <small>AI 추천 점수 {partner.score}</small>
+                          </span>
+                          <button
+                            aria-label={`${partner.name} 제거`}
+                            className="selected-partner-remove"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removePartner(partner.id);
+                            }}
+                            type="button"
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="fa-solid fa-xmark selected-partner-remove-icon"
+                            />
+                          </button>
+                        </button>
+                      );
+                    })()
                   ))}
                 </div>
               )}
