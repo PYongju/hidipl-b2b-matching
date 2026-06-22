@@ -782,8 +782,8 @@ def _build_hardware_section(quote, *, product_group: str | None = None) -> dict[
         product_group_hint=product_group,
     )
     spec_parsed = {
-        **(getattr(item, "spec_parsed", {}) if item else {}),
         **(context.spec_parsed or {}),
+        **(getattr(item, "spec_parsed", {}) if item else {}),
     }
     item_name = getattr(item, "name", None) if item else None
 
@@ -835,7 +835,28 @@ def _build_hardware_section(quote, *, product_group: str | None = None) -> dict[
             group_preview_source or context.spec_raw or preview_source
         ),
     }
+    if not raw_hardware["source_spec_raw_preview"]:
+        raw_hardware["source_spec_raw_preview"] = _fallback_hardware_spec_preview(
+            raw_hardware
+        )
     return _sanitize_hardware_section(raw_hardware, spec_parsed, spec_raw)
+
+
+def _fallback_hardware_spec_preview(hardware: dict[str, Any]) -> str | None:
+    parts = []
+    if hardware.get("screen_size_mm"):
+        parts.append(f"screen size {hardware['screen_size_mm']}mm")
+    if hardware.get("resolution"):
+        parts.append(f"resolution {hardware['resolution']}")
+    if hardware.get("pixel_pitch"):
+        parts.append(f"P{hardware['pixel_pitch']}")
+    if hardware.get("brightness_cd_m2"):
+        parts.append(f"{hardware['brightness_cd_m2']}cd/m2")
+    if hardware.get("refresh_rate"):
+        parts.append(f"{hardware['refresh_rate']}Hz")
+    if hardware.get("power_consumption_kw"):
+        parts.append(f"{hardware['power_consumption_kw']}kW")
+    return " · ".join(parts)[:300] if parts else None
 
 
 def _sanitize_hardware_section(
@@ -1265,6 +1286,22 @@ def _build_cost_breakdown(quote, check_required, rule_warnings) -> dict[str, Any
             bucket["source_items"] or (bucket["amount"] and bucket["amount"] > 0)
         ):
             bucket["status"] = CellStatus.SEPARATE.value
+    software_note = _extract_software_exclusion_note(context)
+    software_bucket = breakdown["software"]
+    if software_note and not (
+        software_bucket["source_items"]
+        or (software_bucket["amount"] and software_bucket["amount"] > 0)
+    ):
+        software_bucket["status"] = CellStatus.SEPARATE.value
+        software_bucket["amount"] = software_bucket["amount"] or 0
+        software_bucket["source_items"].append(
+            {
+                "name": "소프트웨어",
+                "category": "SOFTWARE",
+                "amount": 0,
+                "note": software_note,
+            }
+        )
     return breakdown
 
 
@@ -1427,7 +1464,16 @@ def _line_item_amount(item) -> int | None:
 
 
 def _bucket_marked_separate(bucket_name: str, context: str) -> bool:
-    if "별도" not in context:
+    separate_markers = [
+        "별도",
+        "미포함",
+        "제외",
+        "미지원",
+        "not included",
+        "excluded",
+        "separate",
+    ]
+    if not any(marker.lower() in context.lower() for marker in separate_markers):
         return False
     keyword_map = {
         "installation": ["설치", "시공"],
@@ -1445,6 +1491,24 @@ def _bucket_marked_separate(bucket_name: str, context: str) -> bool:
         "content": ["콘텐츠", "디자인", "영상"],
     }
     return any(keyword in context for keyword in keyword_map.get(bucket_name, []))
+
+
+def _extract_software_exclusion_note(context: str) -> str | None:
+    if not context:
+        return None
+    patterns = [
+        r"((?:소\s*프\s*트\s*웨\s*어|운영\s*PC|CMS|S/W|software)[^.\n|]{0,60}(?:미포함|별도\s*옵션|별도|제외|미지원|not included|excluded))",
+        r"((?:미포함|별도\s*옵션|별도|제외|미지원|not included|excluded)[^.\n|]{0,40}(?:소\s*프\s*트\s*웨\s*어|운영\s*PC|CMS|S/W|software))",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, context, flags=re.IGNORECASE)
+        if match:
+            return re.sub(r"\s+", " ", match.group(1)).strip(" :-")
+    return None
+
+
+def _is_software_exclusion_text(value: str) -> bool:
+    return _extract_software_exclusion_note(value) is not None
 
 
 def _build_conditions_section(
@@ -1469,8 +1533,16 @@ def _build_conditions_section(
 
     parser_raw_matches = parser_raw_matches or {}
     payment_terms = parser_raw_matches.get("payment_terms")
+    raw_special_notes = list(parser_raw_matches.get("special_notes") or [])
+    software_note = _extract_software_exclusion_note(quote.notes_raw or "")
+    if software_note and not any(
+        ("소프트웨어" in str(note) or "CMS" in str(note) or "software" in str(note).lower())
+        and any(marker in str(note).lower() for marker in ["미포함", "별도", "제외", "not included", "excluded"])
+        for note in raw_special_notes
+    ):
+        raw_special_notes.append(software_note)
     special_notes = clean_special_notes(
-        _filter_visible_special_notes(parser_raw_matches.get("special_notes") or []),
+        _filter_visible_special_notes(raw_special_notes),
         payment_terms=payment_terms,
     )
     return {
@@ -1564,15 +1636,13 @@ def _compact_notes(values: list[str]) -> list[str]:
 
 def _build_total_section(quote, check_required) -> dict[str, Any]:
     is_confirmed = bool(quote.total_with_vat)
-    if any("금액" in item or "가격" in item for item in check_required):
+    if any("\uae08\uc561" in item or "\uac00\uaca9" in item for item in check_required):
         is_confirmed = False
-    if quote.total_with_vat:
-        display_text = f"{quote.total_with_vat:,}원 (VAT 포함)"
-    elif quote.total_supply_price:
-        display_text = f"{quote.total_supply_price:,}원 (공급가)"
-        is_confirmed = False
+    display_amount = quote.total_supply_price or quote.total_with_vat
+    if display_amount:
+        display_text = f"{int(display_amount):,}\uc6d0"
     else:
-        display_text = "미확정"
+        display_text = "\ubbf8\ud655\uc815"
         is_confirmed = False
     return {
         "total_supply_price": quote.total_supply_price,
@@ -1580,7 +1650,6 @@ def _build_total_section(quote, check_required) -> dict[str, Any]:
         "is_confirmed": is_confirmed,
         "display_text": display_text,
     }
-
 
 def _build_scores_section(score_item) -> dict[str, Any]:
     return {

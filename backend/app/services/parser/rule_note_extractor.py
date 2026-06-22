@@ -145,6 +145,10 @@ def extract_rule_notes(text: str) -> RuleNoteExtractionResult:
                 _append_unique(result.special_notes, line)
             continue
 
+        if _is_software_exclusion_candidate(label, line):
+            _append_unique(result.special_notes, _clean_term_value(line))
+            continue
+
         if _is_special_candidate(candidate, line):
             _append_unique(result.special_notes, line)
 
@@ -152,6 +156,9 @@ def extract_rule_notes(text: str) -> RuleNoteExtractionResult:
         payment_candidates.sort(key=lambda item: item[0], reverse=True)
         result.payment_terms = payment_candidates[0][1]
         result.evidence["payment_terms_source"] = payment_candidates[0][2]
+
+    for note in _extract_software_exclusion_notes(text):
+        _append_unique(result.special_notes, note)
 
     result.special_notes = clean_special_notes(
         result.special_notes, payment_terms=result.payment_terms
@@ -178,6 +185,8 @@ def clean_special_notes(
         if line.count("|") >= 2:
             continue
         if _excluded_reason(line):
+            continue
+        if "소프트웨어" in line and "유효기간" in line:
             continue
         if payment_compact and _compact(_clean_term_value(line)) == payment_compact:
             continue
@@ -417,6 +426,37 @@ def _is_install_term(label: str, line: str) -> bool:
             and _compact(line) not in {"별도협의", "별도", "제외"}
         )
     )
+
+
+def _is_software_exclusion_candidate(label: str, line: str) -> bool:
+    text = f"{label} {line}".lower()
+    if "유효기간" in text:
+        return False
+    has_software = bool(
+        re.search(r"(소\s*프\s*트\s*웨\s*어|운영\s*pc|cms|s/w|software)", text, re.IGNORECASE)
+    )
+    has_exclusion = bool(
+        re.search(r"(미포함|별도\s*옵션|별도|제외|미지원|not included|excluded)", text, re.IGNORECASE)
+    )
+    return has_software and has_exclusion
+
+
+def _extract_software_exclusion_notes(text: str) -> list[str]:
+    lines = [_clean_candidate(line) for line in (text or "").splitlines()]
+    lines = [line for line in lines if line]
+    notes: list[str] = []
+    for index, line in enumerate(lines):
+        if not re.search(r"(소\s*프\s*트\s*웨\s*어|운영\s*pc|cms|s/w|software)", line, re.IGNORECASE):
+            continue
+        window = " ".join(lines[index : index + 4])
+        match = re.search(
+            r"(미포함|별도\s*옵션|별도|제외|미지원|not included|excluded)",
+            window,
+            re.IGNORECASE,
+        )
+        if match:
+            _append_unique(notes, f"{line}: {match.group(1)}")
+    return notes
 
 
 def _is_actionable_special(line: str) -> bool:

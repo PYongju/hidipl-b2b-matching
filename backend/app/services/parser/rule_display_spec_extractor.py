@@ -53,7 +53,7 @@ def parse_display_specs(text: str) -> tuple[dict[str, Any], dict[str, Any]]:
     if not text:
         return parsed, evidence
 
-    screen = _labeled_dimensions(text, ["전체화면 크기", "스크린 크기", "display size", "제안사이즈", "화면사이즈", "전체 크기"])
+    screen = _labeled_dimensions(text, ["전체화면 크기", "스크린 크기", "display size", "screen size", "제안사이즈", "화면사이즈", "전체 크기", "화면 크기", "크기"])
     resolution = _labeled_dimensions(text, ["전체화면 해상도", "제안해상도", "해상도", "resolution"])
     panel = _labeled_dimensions(text, ["규격(wxhxd)", "panel size", "패널 크기"])
     cabinet = _labeled_dimensions(text, ["cabinet size", "cabinet 크기"])
