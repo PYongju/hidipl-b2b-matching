@@ -77,6 +77,24 @@ function shouldRestoreProjectSession(savedScreen, savedProjectApiId) {
   );
 }
 
+function isOAuthRedirectInProgress() {
+  const { hash, search } = window.location;
+  return (
+    hash.includes("code=") ||
+    hash.includes("access_token") ||
+    hash.includes("id_token") ||
+    search.includes("code=")
+  );
+}
+
+function shouldBootstrapAuth(savedSession, shouldRestoreSession) {
+  const hasAccount = msalInstance.getAllAccounts().length > 0;
+  if (hasAccount && !shouldRestoreSession) {
+    return savedSession.screen !== "projects";
+  }
+  return !hasAccount && isOAuthRedirectInProgress();
+}
+
 function persistAppSession(screenName, projectApiId) {
   localStorage.setItem(SESSION_SCREEN_KEY, screenName);
   if (projectApiId && PROJECT_FLOW_SCREENS.has(screenName)) {
@@ -135,17 +153,36 @@ async function runPartnerMatchingStep(step, setStep, action) {
   return result;
 }
 
-async function detectUserRole() {
-  try {
-    await fetchAdminProjects();
-    return "admin";
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 403) {
-      return "member";
-    }
-    console.error("역할 확인 실패:", error);
-    return "member";
+async function resolveAuthContext() {
+  const [adminResult, projectsResult] = await Promise.allSettled([
+    fetchAdminProjects(),
+    fetchProjects(),
+  ]);
+
+  if (adminResult.status === "fulfilled") {
+    return {
+      role: "admin",
+      prefetchedList: adminResult.value,
+    };
   }
+
+  if (projectsResult.status === "fulfilled") {
+    return {
+      role: "member",
+      prefetchedList: projectsResult.value,
+    };
+  }
+
+  const projectsError = projectsResult.reason;
+  const adminError = adminResult.reason;
+
+  if (adminError instanceof ApiError && adminError.status === 403) {
+    console.error("프로젝트 목록 조회 실패:", projectsError);
+    throw projectsError;
+  }
+
+  console.error("역할 확인 실패:", adminError);
+  throw adminError ?? projectsError;
 }
 
 function resolveWorkflowStatusFromServer(item) {
@@ -167,10 +204,13 @@ export default function App() {
     savedSession.projectApiId,
   );
   const [restoring, setRestoring] = useState(shouldRestoreSession);
+  const [authBootstrapping, setAuthBootstrapping] = useState(() =>
+    shouldBootstrapAuth(savedSession, shouldRestoreSession),
+  );
   const [screen, setScreen] = useState(() => {
     if (!isAuthenticated) return "login";
     if (shouldRestoreSession) return savedSession.screen;
-    return savedSession.screen === "projects" ? "projects" : "login";
+    return "projects";
   });
   const [projects, setProjects] = useState([]);
   const [projectData, setProjectData] = useState(initialProjectData);
@@ -186,7 +226,7 @@ export default function App() {
   const [projectsLoadError, setProjectsLoadError] = useState("");
   const [userRole, setUserRole] = useState(null);
   const [projectsLoading, setProjectsLoading] = useState(
-    () => savedSession.screen === "projects",
+    () => isAuthenticated && savedSession.screen !== "login",
   );
   const [projectsHydrated, setProjectsHydrated] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
@@ -475,11 +515,13 @@ export default function App() {
   const loadProjects = async (options = {}) => {
     const role = options.role ?? userRole;
     const statusFilter = options.statusFilter ?? null;
+    const prefetchedList = options.prefetchedList;
     setProjectsLoading(true);
 
     try {
       if (role === "admin") {
-        const list = await fetchAdminProjects(statusFilter);
+        const list =
+          prefetchedList ?? (await fetchAdminProjects(statusFilter));
         const items = Array.isArray(list) ? list : [];
         const mappedProjects = items
           .map(buildAdminProjectListItem)
@@ -489,7 +531,7 @@ export default function App() {
         return mappedProjects;
       }
 
-      const list = await fetchProjects();
+      const list = prefetchedList ?? (await fetchProjects());
       const items = normalizeProjectsResponse(list);
 
       if (!items) {
@@ -696,7 +738,13 @@ export default function App() {
     (async () => {
       await msalReady;
 
-      if (msalInstance.getAllAccounts().length === 0) {
+      const hasAccount = msalInstance.getAllAccounts().length > 0;
+
+      if (!ignore) {
+        setAuthBootstrapping(false);
+      }
+
+      if (!hasAccount) {
         if (!ignore) {
           setUserRole(null);
           setRestoring(false);
@@ -704,7 +752,28 @@ export default function App() {
         return;
       }
 
-      const role = await detectUserRole();
+      if (!shouldRestoreSession && !ignore) {
+        setScreen("projects");
+        persistAppSession("projects");
+        setProjectsLoading(true);
+      }
+
+      let role;
+      let prefetchedList;
+
+      try {
+        ({ role, prefetchedList } = await resolveAuthContext());
+      } catch (error) {
+        if (!ignore) {
+          setUserRole("member");
+          setProjectsLoadError(
+            "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+          );
+          setRestoring(false);
+        }
+        return;
+      }
+
       if (ignore) return;
 
       setUserRole(role);
@@ -731,9 +800,7 @@ export default function App() {
         return;
       }
 
-      await loadProjects({ role });
-      setScreen("projects");
-      persistAppSession("projects");
+      await loadProjects({ role, prefetchedList });
       if (!ignore) {
         setRestoring(false);
       }
@@ -1106,10 +1173,22 @@ export default function App() {
     );
   }
 
+  if (authBootstrapping) {
+    return (
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="app-shell app-restoring"
+      >
+        <p>로그인 확인 중...</p>
+      </div>
+    );
+  }
+
   if (screen === "login") {
     return (
       <MsalProvider instance={msalInstance}>
-        <LoginPage onLogin={goToProjects} />
+        <LoginPage />
       </MsalProvider>
     );
   }
