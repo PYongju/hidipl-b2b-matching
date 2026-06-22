@@ -364,33 +364,28 @@ export default function ProjectListPage({
           )}
           {!isLoading && filteredProjects.length === 0 && !loadError && (
             <div className="empty-project-result">
-              <p>{EMPTY_PROJECTS.message}</p>
-              <span>{EMPTY_PROJECTS.hint}</span>
-              <button
-                className="button action-primary"
-                onClick={onCreate}
-                type="button"
-              >
-                {EMPTY_PROJECTS.cta}
-              </button>
+              <p>
+                {projects.length === 0
+                  ? EMPTY_PROJECTS.emptyMessage
+                  : EMPTY_PROJECTS.filterEmptyMessage}
+              </p>
+              <span>
+                {projects.length === 0
+                  ? EMPTY_PROJECTS.emptyHint
+                  : EMPTY_PROJECTS.filterEmptyHint}
+              </span>
             </div>
           )}
         </section>
       </main>
 
       {deleteConfirmOpen && (
-        <div className="confirm-modal-layer" role="presentation">
-          <button
-            aria-label="삭제 확인 닫기"
-            className="confirm-modal-backdrop"
-            onClick={() => setDeleteConfirmOpen(false)}
-            type="button"
-          />
+        <div className="confirm-layer" role="presentation">
           <div
             aria-describedby="delete-projects-description"
             aria-labelledby="delete-projects-title"
             aria-modal="true"
-            className="confirm-modal"
+            className="confirm-dialog"
             role="dialog"
           >
             <div className="confirm-modal-header">
@@ -405,7 +400,7 @@ export default function ProjectListPage({
             >
               삭제 후에는 되돌릴 수 없어요.
             </p>
-            <div className="confirm-modal-actions">
+            <div className="confirm-actions">
               <button
                 className="button"
                 onClick={() => setDeleteConfirmOpen(false)}

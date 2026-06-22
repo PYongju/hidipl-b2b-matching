@@ -1,4 +1,4 @@
-﻿﻿import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { MsalProvider } from "@azure/msal-react";
 import { msalInstance } from "./auth/msalInstance";
 import { msalReady } from "./auth/msalInstance";
@@ -188,6 +188,7 @@ export default function App() {
   const [projectsLoading, setProjectsLoading] = useState(
     () => savedSession.screen === "projects",
   );
+  const [projectsHydrated, setProjectsHydrated] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
   const autoSaveStatusTimerRef = useRef(null);
   const saveScopeRef = useRef(
@@ -200,6 +201,7 @@ export default function App() {
   });
   const partnerMatchingInFlightRef = useRef(false);
   const analysisInFlightRef = useRef(false);
+  const activeOpenProjectRef = useRef(null);
 
   const clearAutoSaveStatusTimer = () => {
     if (autoSaveStatusTimerRef.current) {
@@ -398,6 +400,52 @@ export default function App() {
     }
   };
 
+  const refreshOpenedProjectInBackground = async (
+    apiProjectId,
+    localProjectData,
+  ) => {
+    try {
+      const needsMatchHydration = shouldHydrateMatchData(localProjectData);
+      const [serverProject, matchesResponse] = await Promise.all([
+        fetchProject(apiProjectId),
+        needsMatchHydration
+          ? fetchProjectMatches(apiProjectId).catch((error) => {
+              console.error("매칭 결과 조회 실패:", error);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+
+      if (activeOpenProjectRef.current !== apiProjectId) return;
+
+      let nextProjectData = mergeServerProjectData(
+        localProjectData,
+        serverProject,
+      );
+
+      if (matchesResponse) {
+        nextProjectData = {
+          ...nextProjectData,
+          ...buildHydratedProjectFields(matchesResponse, nextProjectData),
+          matchHydrationAttempted: true,
+        };
+      } else if (needsMatchHydration) {
+        nextProjectData = {
+          ...nextProjectData,
+          matchHydrationAttempted: true,
+        };
+      }
+
+      const nextScreen = getScreenFromProject(nextProjectData);
+      setProjectData(nextProjectData);
+      upsertProjectInList(nextProjectData, apiProjectId);
+      setScreen(nextScreen);
+      persistAppSession(nextScreen, apiProjectId);
+    } catch (error) {
+      console.error("프로젝트 상태를 불러오지 못했어요:", error);
+    }
+  };
+
   const buildAdminProjectListItem = (item) => {
     const projectId = resolveServerProjectId(item);
     if (!projectId) return null;
@@ -557,6 +605,7 @@ export default function App() {
       return [];
     } finally {
       setProjectsLoading(false);
+      setProjectsHydrated(true);
     }
   };
 
@@ -622,6 +671,7 @@ export default function App() {
   };
 
   const goToProjects = async () => {
+    activeOpenProjectRef.current = null;
     await loadProjects({ role: userRole });
     setAutoSaveStatus("idle");
     setScreen("projects");
@@ -629,6 +679,7 @@ export default function App() {
   };
 
   const goHome = async () => {
+    activeOpenProjectRef.current = null;
     updateProjectData((current) => ({
       ...current,
       lastScreen: screen,
@@ -818,45 +869,33 @@ export default function App() {
     setScreen("requirements");
   };
 
-  const openProjectFromList = async (projectId) => {
+  const openProjectFromList = (projectId) => {
     resetSaveScope();
     const project = projects.find((item) => item.id === projectId);
-    if (project) {
-      const localProjectData = { ...initialProjectData, ...project.data };
-      setProjectData(localProjectData);
-      setActiveProjectId(project.id);
-      setEditingProjectId(project.id);
-
-      const apiProjectId =
-        localProjectData.projectApiId ?? localProjectData.project_id;
-      if (apiProjectId) {
-        try {
-          const serverProject = await fetchProject(apiProjectId);
-          const restoredProjectData = mergeServerProjectData(
-            localProjectData,
-            serverProject,
-          );
-          const nextProjectData = shouldHydrateMatchData(restoredProjectData)
-            ? await hydrateProjectMatchData(apiProjectId, restoredProjectData)
-            : restoredProjectData;
-          const nextScreen = getScreenFromProject(nextProjectData);
-          setProjectData(nextProjectData);
-          upsertProjectInList(nextProjectData, apiProjectId);
-          setScreen(nextScreen);
-          persistAppSession(nextScreen, apiProjectId);
-          return;
-        } catch (error) {
-          setAnalysisErrorMessage(
-            error.message ||
-              "프로젝트 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-          );
-        }
-      }
-
-      setScreen(getScreenFromProject(localProjectData));
+    if (!project) {
+      setScreen("requirements");
       return;
     }
-    setScreen("requirements");
+
+    const localProjectData = { ...initialProjectData, ...project.data };
+    const apiProjectId =
+      localProjectData.projectApiId ?? localProjectData.project_id;
+
+    setProjectData(localProjectData);
+    setActiveProjectId(project.id);
+    setEditingProjectId(project.id);
+
+    const targetScreen = getScreenFromProject(localProjectData);
+    setScreen(targetScreen);
+
+    if (apiProjectId) {
+      activeOpenProjectRef.current = apiProjectId;
+      persistAppSession(targetScreen, apiProjectId);
+      void refreshOpenedProjectInBackground(apiProjectId, localProjectData);
+      return;
+    }
+
+    activeOpenProjectRef.current = null;
   };
 
   const saveCurrentProjectScreen = (screenName, overrides = {}) => {
@@ -1077,7 +1116,7 @@ export default function App() {
 
   // 6/12 백엔드 작업 반영
   if (screen === "projects") {
-    const isListLoading = projectsLoading || rolePending;
+    const isListLoading = projectsLoading || rolePending || !projectsHydrated;
 
     if (userRole === "admin") {
       return (

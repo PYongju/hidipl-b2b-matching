@@ -6,7 +6,7 @@
     {
       "rank": 1,
       "quote_id": "M-15",
-      "partner_name": "",
+      "partner_name": "유어존",
       "partner_found": true,
       "is_premium": false,
       "success_rate": 0.04,
@@ -45,9 +45,7 @@
         "납기 정보 미기재",
         "1차 전기, 통신, 보강 공사는 별도",
         "출장실비 별도 조건 확인 필요",
-        "요구 납기 정규화 필요",
-        "납기 정보 미기재 — 견적서 확인 필요",
-        "공급사명 미기재 — 견적서 확인 필요"
+        "요구 납기 정규화 필요"
       ],
       "score_breakdown": {
         "spec_score": 82.22,

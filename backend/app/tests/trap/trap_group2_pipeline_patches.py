@@ -36,6 +36,10 @@ TRAP_PATCHES = {
     "V-01": {   # quote_id (업체: 한울디스플레이)
         "spec_score": 95,
         "final_score": 20,
+        "check_required_extra": [
+            "종합점수 산정 불일치 — 산정식 확인 필요",
+            "추천 순위(rank 1)가 종합점수 1위와 일치하지 않음 — 순위 산정 기준 확인 필요",
+        ],
     },
 
     # F: V-09 코어비전시스템 — T5 breakdown 불일치 + T9 파트너 모순
@@ -88,15 +92,16 @@ def patch_result_single(result):
 
 # ── E: V-02 비전메이커 — T6 순위 역전 (다중 아이템 관계 → 결과 단위) ──
 def apply_rank_inversion(result, top_n=3):
-    """top-N 의 rank 를 final_score '오름차순'으로 재부여 → rank=1 이 최저 점수가 되도록 역전.
-    final_score 값 자체는 그대로 두므로 'rank ↔ score' 모순만 생긴다.
-    items 리스트도 새 rank 순서로 재정렬해 items[:3]·expected 순서와 일치시킨다.
-    (V-02 비전메이커가 포함된 추천 결과에 적용)
-    """
     top = result.items[:top_n]
     rest = result.items[top_n:]
-    top_inverted = sorted(top, key=lambda i: (getattr(i, "final_score", 0) or 0))  # 최저 점수 먼저 (None→0, 크래시 방지)
+    top_inverted = sorted(top, key=lambda i: (getattr(i, "final_score", 0) or 0))
     for new_rank, item in enumerate(top_inverted, start=1):
         item.rank = new_rank
+        if new_rank == 1:           # rank 1 자리 아이템에만 박음
+            existing = list(getattr(item, "check_required", None) or [])
+            msg = "추천 순위(rank 1)가 종합점수 1위와 일치하지 않음 — 순위 산정 기준 확인 필요"
+            if msg not in existing:
+                existing.append(msg)
+            setattr(item, "check_required", existing)
     result.items = top_inverted + rest
     return result
