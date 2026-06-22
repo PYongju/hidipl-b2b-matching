@@ -4714,6 +4714,18 @@ textarea {
   transform: translate(-50%, -50%);
 }
 
+.caution-confirm-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.caution-confirm-title i {
+  color: #f59e0b;
+  font-size: 20px;
+  line-height: 1;
+}
+
 .caution-confirm-backdrop {
   background: rgba(0, 0, 0, 0.4);
 }

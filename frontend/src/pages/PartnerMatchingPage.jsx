@@ -1203,7 +1203,9 @@ export default function PartnerMatchingPage({
             ref={cautionDialogRef}
             role="dialog"
           >
-            <h2 id="caution-confirm-title">주의 이력이 있는 업체가 포함됐어요</h2>
+            <h2 className="caution-confirm-title" id="caution-confirm-title">
+              <span>주의 이력이 있는 업체가 포함됐어요</span>
+            </h2>
             <p className="caution-confirm-subtext">
               발송 대상 {targetPartners.length}개 중 {selectedCautionPartners.length}개 업체에
               주의 이력이 있어요.

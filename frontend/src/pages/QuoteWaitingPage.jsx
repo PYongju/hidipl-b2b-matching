@@ -464,9 +464,6 @@ export default function QuoteWaitingPage({
                             : "점수 미확인"}
                         </small>
                       </span>
-                      {partner.caution ? (
-                        <Badge tone="orange">주의</Badge>
-                      ) : null}
                     </div>
                   ))}
                 </div>
