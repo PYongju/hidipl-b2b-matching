@@ -769,7 +769,7 @@ export default function PartnerMatchingPage({
                     <th>공급사명</th>
                     <th>AI 추천 점수</th>
                     <th>프리미엄</th>
-                    <th>사례5+</th>
+                    <th>사례 5건 이상</th>
                     <th>구분</th>
                     <th>요청</th>
                   </tr>

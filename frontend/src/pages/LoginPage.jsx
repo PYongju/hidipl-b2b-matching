@@ -28,7 +28,7 @@ export default function LoginPage({ onLogin }) {
             <div className="login-logo-text-wrap">
               <span className="login-logo-text">QuoPilot</span>
               <span className="login-logo-tagline">
-                구매 검토팀을 위한 AI 견적 비교 워크스페이스
+                구매 검토팀의 견적 비교를 AI로 더 빠르게
               </span>
             </div>
           </div>
@@ -37,13 +37,13 @@ export default function LoginPage({ onLogin }) {
 
           <div className="login-copy-main">
             <h1 className="login-heading">
-              프로젝트별 견적 비교,
+              모든 견적 검토를 한곳에서,
               <br />
-              이제 한 화면에서 시작하세요
+              더 똑똑하게 시작해 보세요
             </h1>
             <p className="login-subtext">
-              이전 프로젝트를 확인하고, 새 견적서를 업로드한 뒤 AI 분석
-              결과를 대시보드로 검토해요.
+              이전 프로젝트 확인부터 AI 분석 대시보드까지, 복잡한 견적 검토 과정이
+              한눈에 정리돼요.
             </p>
           </div>
 
@@ -55,7 +55,7 @@ export default function LoginPage({ onLogin }) {
             <div className="login-auth-header">
               <h2 className="login-auth-title">로그인</h2>
               <p className="login-auth-sub">
-                회사 Microsoft 계정으로 계속하세요
+                회사 Microsoft 계정으로 계속해 보세요
               </p>
             </div>
 
@@ -81,10 +81,10 @@ export default function LoginPage({ onLogin }) {
             <div className="login-auth-main">
               <div className="login-auth-note">
                 <div className="login-auth-note-copy">
-                  <strong>Microsoft Entra ID를 통해 인증됩니다.</strong>
+                  <strong>Microsoft Entra ID를 통해 인증해요</strong>
                   <p>
-                    조직에서 발급한 회사 이메일로 로그인하세요. 안전한 SSO
-                    환경을 지원합니다.
+                    조직에서 발급한 회사 이메일로 로그인해 주세요. 안전하게 로그인할 수
+                    있어요.
                   </p>
                 </div>
               </div>

@@ -635,7 +635,7 @@ export default function DashboardPage({
       );
       window.setTimeout(() => setToastVisible(false), 3200);
     } catch (error) {
-      console.error("최종 선정 확정 실패:", error);
+      console.error("최종 선정 실패:", error);
     } finally {
       setConfirmInProgress(false);
     }
@@ -1016,7 +1016,7 @@ export default function DashboardPage({
                       setDraftMemo(event.target.value.slice(0, maxMemoLength))
                     }
                     onClick={!isMemoEditing ? startMemoEdit : undefined}
-                    placeholder="검토 메모를 입력해 주세요...&#10;(내부 공유용이에요.)"
+                    placeholder="팀 내부에서 공유되는 메모예요."
                     readOnly={!isMemoEditing}
                     value={memoValue}
                   />
@@ -1129,7 +1129,7 @@ export default function DashboardPage({
                 onClick={() => setPermissionDeniedOpen(true)}
                 type="button"
               >
-                최종 선정 확정
+                최종 선정
               </button>
               <button
                 className={
@@ -1162,7 +1162,7 @@ export default function DashboardPage({
               }
               type="button"
             >
-              {isAdminSelectionDone ? "확정 완료" : "최종 선정 확정"}
+              {isAdminSelectionDone ? "확정 완료" : "최종 선정"}
             </button>
           )}
           </div>

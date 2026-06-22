@@ -74,7 +74,7 @@ export default function AdminProjectListPage({
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 400) {
-          window.alert("이미 처리된 요청입니다.");
+          window.alert("이미 처리된 요청이에요. 목록을 새로고침해 주세요.");
           if (onReloadProjects) {
             await onReloadProjects({
               statusFilter:
@@ -84,7 +84,7 @@ export default function AdminProjectListPage({
             });
           }
         } else if (error.status === 404) {
-          window.alert("프로젝트를 찾을 수 없습니다.");
+          window.alert("프로젝트를 찾을 수 없어요.");
           if (onReloadProjects) {
             await onReloadProjects({
               statusFilter:

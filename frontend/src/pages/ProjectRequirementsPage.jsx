@@ -246,7 +246,7 @@ export default function ProjectRequirementsPage({
                 </label>
               </div>
               <label>
-                <span>활용 용도 및 디스플레이 요구사항 *</span>
+                <span>어디에, 어떻게 사용하실 예정인가요? *</span>
                 <textarea
                   onChange={(event) => updateField("usage", event.target.value)}
                   placeholder="예: 사내 브리핑/방문객 안내용 디스플레이, 설치 환경, 화면 밝기, 운영 조건 등을 입력해주세요."
@@ -405,7 +405,7 @@ export default function ProjectRequirementsPage({
                 </div>
               </div>
               <label>
-                <span>추가 요청사항</span>
+                <span>파트너에게 꼭 전달하고 싶은 내용이 있나요?</span>
                 <textarea
                   onChange={(event) => updateField("otherConditions", event.target.value)}
                   placeholder="A/S, 납기, 설치 제한, 현장 실측 필요 여부 등을 적어주세요."

@@ -5,7 +5,7 @@
 // 브랜드 (가이드 §4 — QuoPilot으로 통일, 한글 음차 미사용)
 export const BRAND = {
   name: "QuoPilot",
-  tagline: "구매 검토팀을 위한 AI 견적 비교 워크스페이스",
+  tagline: "구매 검토팀의 견적 비교를 AI로 더 빠르게",
 };
 
 // 사용자 호칭 (가이드 §1 — 구매검토팀으로 통일)
@@ -26,7 +26,7 @@ export const TERMS = {
 
 // AI 비교 유의 문구 (가이드 §원칙2 — 책임 환기를 위해 "반드시"는 유지, 강압적 어조만 완화)
 export const AI_COMPARE_NOTICE =
-  "이 비교는 AI가 추출한 정보를 바탕으로 해요. 최종 선정 전에 주요 항목을 반드시 확인하고, 필요하면 공급사에 문의해 보세요.";
+  "AI가 정리한 정보이니, 최종 결정 전 한 번 더 확인해 주시면 좋아요.";
 
 // AI 설명 폴백 안내 (가이드 §6 — "기본 요약" 표현 사용, 내부 용어 노출 금지)
 export const AI_FALLBACK_NOTICE =
@@ -42,12 +42,12 @@ export const PARSE_FAIL_NOTE =
 
 // 최종 선정 (가이드 §원칙4 — 되돌릴 수 없는 행위의 결과 안내)
 export const FINAL_SELECTION = {
-  dialogTitle: "최종 선정 확정",
-  dialogMessage: "업체를 최종 선정 업체로 확정하시겠습니까?",
+  dialogTitle: "최종 선정",
+  dialogMessage: "이 업체를 최종 선정 업체로 확정할까요?",
   toast: "최종 선정이 확정됐어요.",
   doneEmotion: "최종 선정을 마쳤어요. 수고하셨어요.",
   statusChanged: "프로젝트 상태가 확정 완료로 바뀌었어요.",
-  noPermission: "최종 선정 확정 권한이 없어요.",
+  noPermission: "최종 선정 권한이 없어요.",
   noPermissionTitle: "권한 없음",
 };
 
@@ -56,7 +56,7 @@ export const REVIEW_COMPLETE = {
   dialogMessage: "최종 선정하여 결재를 요청할까요?",
   dialogResult:
     "요청 후에는 관리자 승인 전까지 '결재 요청' 상태로 표시돼요.",
-  toast: "결재 요청이 완료되었습니다.",
+  toast: "결재 요청을 보냈어요.",
   doneEmotion: "결재 요청을 보냈어요.",
   statusChanged: "프로젝트 목록에서 결재 진행 상태를 확인할 수 있어요.",
 };

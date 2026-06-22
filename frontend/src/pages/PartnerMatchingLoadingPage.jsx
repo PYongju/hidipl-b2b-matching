@@ -152,8 +152,8 @@ export default function PartnerMatchingLoadingPage({
           </Badge>
           <h1>
             {isReady
-              ? "추천 공급사 검토 준비가 끝났어요"
-              : "프로젝트 조건에 맞는 공급사를 찾고 있어요"}
+              ? "준비 끝! AI 분석 결과를 확인해 보세요."
+              : "우리 프로젝트와 딱 맞는 파트너를 찾고 있어요."}
           </h1>
           <p>
             {projectData.projectName || projectData.companyName || "새 프로젝트"}
