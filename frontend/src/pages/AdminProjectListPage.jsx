@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { ApiError, confirmAdminProject } from "../api/apiClient";
 import Badge from "../components/Badge";
 import FlowTopbar from "../components/FlowTopbar";
-import { ApiError, confirmAdminProject } from "../api/apiClient";
 import { getUserDisplayName, USER } from "../constants/uiText";
 
 const FILTER_ALL = "전체";
@@ -33,19 +33,25 @@ export default function AdminProjectListPage({
 
     return projects.filter((project) => {
       const projectId = String(project.id ?? "");
-      const companyName = String(project.companyName ?? project.name ?? "");
+      const projectName = String(project.name ?? "");
+      const companyName = String(project.companyName ?? "");
       const matchesSearch =
         !normalizedSearch ||
-        projectId.toLowerCase().includes(normalizedSearch) ||
-        companyName.toLowerCase().includes(normalizedSearch);
+        projectName.toLowerCase().includes(normalizedSearch) ||
+        companyName.toLowerCase().includes(normalizedSearch) ||
+        projectId.toLowerCase().includes(normalizedSearch);
 
       if (!matchesSearch) return false;
       if (activeFilter === FILTER_ALL) return true;
+
       return (project.workflowStatus ?? "") === WORKFLOW_APPROVAL_REQUEST;
     });
   }, [projects, searchTerm, activeFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ROWS_PER_PAGE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProjects.length / ROWS_PER_PAGE),
+  );
   const currentPage = Math.min(page, totalPages);
   const pageStart = (currentPage - 1) * ROWS_PER_PAGE;
   const pageEnd = Math.min(pageStart + ROWS_PER_PAGE, filteredProjects.length);
@@ -53,16 +59,21 @@ export default function AdminProjectListPage({
 
   const handleFilterChange = async (filter) => {
     setActiveFilter(filter);
+
     if (!onReloadProjects) return;
+
     await onReloadProjects({
-      statusFilter: filter === FILTER_APPROVAL_REQUEST ? WORKFLOW_APPROVAL_REQUEST : null,
+      statusFilter:
+        filter === FILTER_APPROVAL_REQUEST ? WORKFLOW_APPROVAL_REQUEST : null,
     });
   };
 
   const handleAdminConfirm = async (projectId) => {
     setConfirmingProjectId(projectId);
+
     try {
       await confirmAdminProject(projectId);
+
       if (onReloadProjects) {
         await onReloadProjects({
           statusFilter:
@@ -74,25 +85,22 @@ export default function AdminProjectListPage({
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 400) {
-          window.alert("이미 처리된 요청이에요. 목록을 새로고침해 주세요.");
-          if (onReloadProjects) {
-            await onReloadProjects({
-              statusFilter:
-                activeFilter === FILTER_APPROVAL_REQUEST
-                  ? WORKFLOW_APPROVAL_REQUEST
-                  : null,
-            });
-          }
+          window.alert(
+            "이미 처리된 요청이에요. 목록을 새로고침한 뒤 다시 확인해 주세요.",
+          );
         } else if (error.status === 404) {
           window.alert("프로젝트를 찾을 수 없어요.");
-          if (onReloadProjects) {
-            await onReloadProjects({
-              statusFilter:
-                activeFilter === FILTER_APPROVAL_REQUEST
-                  ? WORKFLOW_APPROVAL_REQUEST
-                  : null,
-            });
-          }
+        } else {
+          window.alert("승인 처리 중 문제가 생겼어요. 다시 시도해 주세요.");
+        }
+
+        if (onReloadProjects) {
+          await onReloadProjects({
+            statusFilter:
+              activeFilter === FILTER_APPROVAL_REQUEST
+                ? WORKFLOW_APPROVAL_REQUEST
+                : null,
+          });
         }
       } else {
         console.error("프로젝트 승인 실패:", error);
@@ -116,6 +124,7 @@ export default function AdminProjectListPage({
           </>
         }
       />
+
       <main className="flow-main">
         <section className="flow-hero admin-project-hero">
           <div>
@@ -150,11 +159,12 @@ export default function AdminProjectListPage({
               <input
                 aria-label="프로젝트 검색"
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="프로젝트 ID 또는 고객사 검색"
+                placeholder="프로젝트명 또는 고객사 검색"
                 type="search"
                 value={searchTerm}
               />
             </div>
+
             <div className="admin-table-filters">
               {filterOptions.map((filter) => (
                 <button
@@ -175,7 +185,7 @@ export default function AdminProjectListPage({
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>프로젝트 ID</th>
+                  <th>프로젝트명</th>
                   <th>고객사</th>
                   <th>진행 상태</th>
                   <th>승인 상태</th>
@@ -184,6 +194,7 @@ export default function AdminProjectListPage({
                   <th>승인</th>
                 </tr>
               </thead>
+
               <tbody>
                 {isLoading ? (
                   <tr>
@@ -216,12 +227,12 @@ export default function AdminProjectListPage({
                       >
                         <td>
                           <span className="admin-table-project-id">
-                            {project.id}
+                            {readable(project.name, project.id)}
                           </span>
                         </td>
                         <td>
                           <b className="admin-table-company-name">
-                            {readable(project.companyName ?? project.name, "—")}
+                            {readable(project.companyName, "-")}
                           </b>
                         </td>
                         <td>
@@ -235,11 +246,11 @@ export default function AdminProjectListPage({
                               {workflowBadge.label}
                             </Badge>
                           ) : (
-                            <span className="admin-table-muted">—</span>
+                            <span className="admin-table-muted">-</span>
                           )}
                         </td>
-                        <td>{readable(project.location, "—")}</td>
-                        <td>{readable(project.deadline, "—")}</td>
+                        <td>{readable(project.location, "-")}</td>
+                        <td>{readable(project.deadline, "-")}</td>
                         <td
                           onClick={(event) => event.stopPropagation()}
                           onKeyDown={(event) => event.stopPropagation()}
@@ -267,11 +278,8 @@ export default function AdminProjectListPage({
 
           {!isLoading && filteredProjects.length > 0 && (
             <div className="admin-table-footer">
-              <span>
-                {filteredProjects.length === 0
-                  ? "0건"
-                  : `${pageStart + 1}-${pageEnd} / ${filteredProjects.length}건`}
-              </span>
+              <span>{`${pageStart + 1}-${pageEnd} / ${filteredProjects.length}건`}</span>
+
               <div className="admin-table-pagination">
                 <label className="admin-table-rows">
                   <span>페이지당</span>
@@ -279,9 +287,11 @@ export default function AdminProjectListPage({
                     <option value={ROWS_PER_PAGE}>{ROWS_PER_PAGE}</option>
                   </select>
                 </label>
+
                 <span>
                   {currentPage} / {totalPages}
                 </span>
+
                 <button
                   aria-label="이전 페이지"
                   className="button button-small"
@@ -291,6 +301,7 @@ export default function AdminProjectListPage({
                 >
                   <i aria-hidden="true" className="fa-solid fa-angle-left" />
                 </button>
+
                 <button
                   aria-label="다음 페이지"
                   className="button button-small"
@@ -321,30 +332,30 @@ const STATUS_LABELS = {
 
 function getStatusLabel(status) {
   const value = String(status ?? "").trim();
-  if (!value) return "—";
+  if (!value) return "-";
   return STATUS_LABELS[value] ?? value;
 }
 
 function getWorkflowBadge(workflowStatus) {
   const value = String(workflowStatus ?? "").trim();
+
   if (!value) {
     return { label: "진행 중", tone: "blue" };
   }
+
   if (value === "컨펌 요청") {
     return { label: "결재 요청", tone: "rose" };
   }
-  if (
-    value === "확정 완료" ||
-    value === "승인 완료" ||
-    value === "completed"
-  ) {
+
+  if (value === "확정 완료" || value === "승인 완료" || value === "completed") {
     return { label: "확정 완료", tone: "green" };
   }
+
   return null;
 }
 
 function readable(value, fallback) {
   const text = String(value ?? "").trim();
-  if (!text || /[]/.test(text) || /[?]{2,}/.test(text)) return fallback;
+  if (!text || /[?]{2,}/.test(text)) return fallback;
   return text;
 }
