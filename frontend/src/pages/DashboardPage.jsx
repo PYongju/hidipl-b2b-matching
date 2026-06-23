@@ -367,6 +367,7 @@ export default function DashboardPage({
   const getStatusBadge = (status) => {
     const statusUi = getStatusUi(status);
     if (!statusUi) return null;
+    if (statusUi.badge === "포함") return null;
     // parseFail 등 원인 보조문구(note)가 있으면 배지 툴팁으로 노출 (가이드 §4 #2)
     return (
       <Badge tone={statusUi.tone} title={statusUi.note}>
@@ -383,13 +384,6 @@ export default function DashboardPage({
     const status = cell?.status;
     const value = cell?.value || "";
 
-    if (status === "included" || value.includes("포함")) {
-      return (
-        <Badge tone="green" key={key}>
-          {label} 포함
-        </Badge>
-      );
-    }
     if (status === "separate" || value.includes("별도")) {
       return (
         <Badge tone="gray" key={key}>
@@ -456,7 +450,7 @@ export default function DashboardPage({
 
     const cellClasses = [
       "compare-cell",
-      status ? `cell-${status}` : "",
+      status && status !== "included" ? `cell-${status}` : "",
       row.label === "출장비" &&
       displayValue === "확인 필요" &&
       overriddenValue === undefined
@@ -843,13 +837,6 @@ export default function DashboardPage({
                   <div className="compare-header-actions">
                     <SupplierPager {...supplierPagerProps} />
                   </div>
-                </div>
-                <div className="legend">
-                  <Badge>AI 추천</Badge>
-                  <Badge tone="green">최저가</Badge>
-                  <Badge tone="gray">검토 필요</Badge>
-                  <Badge tone="red">수정 필요</Badge>
-                  <Badge tone="orange">확인 필요</Badge>
                 </div>
                 <div className="table-wrap accordion-wrap">
                   <table className="compare-table">
