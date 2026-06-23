@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Badge from './Badge';
 
+const priorityOptions = ["균형 추천", "스펙", "가격", "납기", "보증·A/S"];
+
 export default function ReviewDrawer({ open, onClose }) {
   const [step, setStep] = useState(1);
   const stepLabels = ["요구사항", "견적 업로드", "AI 비교"];
@@ -62,7 +64,7 @@ export default function ReviewDrawer({ open, onClose }) {
               <div>
                 <div className="drawer-label">고객 우선순위</div>
                 <div className="priority-grid">
-                  {["최저가 우선", "납기 우선", "보증/A/S 우선", "스펙 우선", "균형 추천"].map(
+                  {priorityOptions.map(
                     (item) => (
                       <button
                         className={`priority-button ${item === "균형 추천" ? "selected" : ""}`}

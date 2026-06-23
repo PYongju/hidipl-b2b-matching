@@ -4,6 +4,18 @@ import FlowTopbar from "../components/FlowTopbar";
 import { fetchCandidateVendors } from "../api/apiClient";
 import { formatProjectSolutions } from "../utils/projectRequestText";
 
+function normalizeReviewPresetLabel(value) {
+  const normalized = String(value ?? "").replace(/ 우선$/, "").trim();
+
+  if (normalized === "최저가" || normalized === "가격") return "가격";
+  if (normalized === "보증/A/S" || normalized === "보증·A/S") return "보증·A/S";
+  if (normalized === "스펙") return "스펙";
+  if (normalized === "납기") return "납기";
+  if (normalized === "균형 추천") return "균형 추천";
+
+  return normalized;
+}
+
 const MATCHING_STEPS = [
   {
     title: "요구사항 분석",
@@ -193,8 +205,8 @@ export default function PartnerMatchingLoadingPage({
           <div className="matching-loading-summary">
             <article>
               <span>우선 기준</span>
-              <strong>{projectData.reviewPreset || "균형 추천"}</strong>
-            </article>
+                <strong>{normalizeReviewPresetLabel(projectData.reviewPreset) || "균형 추천"}</strong>
+              </article>
             <article>
               <span>카테고리</span>
               <strong>{formatProjectSolutions(projectData, "미선택")}</strong>

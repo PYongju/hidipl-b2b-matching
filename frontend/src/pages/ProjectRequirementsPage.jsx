@@ -14,13 +14,22 @@ import SolutionTagPicker, {
   SolutionTagChipList,
 } from "../components/SolutionTagPicker";
 
-const priorityOptions = ["최저가", "납기", "보증/A/S", "스펙", "균형 추천"];
+const priorityOptions = ["균형 추천", "스펙", "가격", "납기", "보증·A/S"];
+
+function normalizeReviewPresetLabel(value) {
+  const normalized = String(value ?? "").replace(/ 우선$/, "").trim();
+
+  if (normalized === "최저가" || normalized === "가격") return "가격";
+  if (normalized === "보증/A/S" || normalized === "보증·A/S") return "보증·A/S";
+  if (normalized === "스펙") return "스펙";
+  if (normalized === "납기") return "납기";
+  if (normalized === "균형 추천") return "균형 추천";
+
+  return normalized;
+}
 
 function isReviewPresetSelected(current, option) {
-  const normalized = String(current ?? "")
-    .replace(/ 우선$/, "")
-    .trim();
-  return normalized === option;
+  return normalizeReviewPresetLabel(current) === option;
 }
 
 export default function ProjectRequirementsPage({
@@ -577,7 +586,6 @@ function isRequiredRequirementsFilled(data) {
 }
 
 function getMatchingChecks(data) {
-  const stage = data.currentStage || "";
   const hasCompany = Boolean(data.companyName?.trim());
   const hasLocation = Boolean(data.location?.trim());
   const hasUsage = Boolean(data.usage?.trim());
@@ -603,14 +611,6 @@ function getMatchingChecks(data) {
         requiredFilledCount === 6
           ? "회사명, 설치 위치, 프로젝트명, 프로젝트 일정, 활용 목적, 솔루션이 입력됐어요."
           : `필수 항목 중 ${requiredFilledCount}/6개가 입력됐어요.`,
-    },
-    {
-      title: "정보 탐색 단계 확인 필요",
-      weight: 16,
-      level: stage.includes("정보 탐색") ? "warn" : "ok",
-      message: stage.includes("정보 탐색")
-        ? "정보 탐색 단계는 자동 매칭이 제한될 수 있어요."
-        : "현재 단계 기준으로 파트너 매칭 검토가 가능해요.",
     },
   ];
 }
