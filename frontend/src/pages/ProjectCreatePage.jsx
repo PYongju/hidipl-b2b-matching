@@ -3,6 +3,20 @@ import Badge from '../components/Badge';
 import FlowTopbar from '../components/FlowTopbar';
 import { formatNumberInput } from '../utils/formatters';
 
+const priorityOptions = ["균형 추천", "스펙", "가격", "납기", "보증·A/S"];
+
+function normalizeReviewPresetLabel(value) {
+  const normalized = String(value ?? "").replace(/ 우선$/, "").trim();
+
+  if (normalized === "최저가" || normalized === "가격") return "가격";
+  if (normalized === "보증/A/S" || normalized === "보증·A/S") return "보증·A/S";
+  if (normalized === "스펙") return "스펙";
+  if (normalized === "납기") return "납기";
+  if (normalized === "균형 추천") return "균형 추천";
+
+  return normalized;
+}
+
 export default function ProjectCreatePage({
   projectData,
   onProjectDataChange,
@@ -241,9 +255,9 @@ export default function ProjectCreatePage({
                 </label>
               </div>
               <div className="priority-row" aria-label="고객 우선순위">
-                {["최저가 우선", "납기 우선", "보증/A/S 우선", "스펙 우선", "균형 추천"].map((item) => (
+                {priorityOptions.map((item) => (
                   <button
-                    className={item === projectData.reviewPreset ? "chip active" : "chip"}
+                    className={item === normalizeReviewPresetLabel(projectData.reviewPreset) ? "chip active" : "chip"}
                     key={item}
                     onClick={() => updateProject("reviewPreset", item)}
                     type="button"

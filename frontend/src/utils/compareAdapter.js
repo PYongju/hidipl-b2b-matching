@@ -89,10 +89,14 @@ function createCompareViewModel(response, options = {}) {
       vendorName,
     });
   });
-  const sections = sectionDefs.map((section) => ({
-    ...section,
-    rows: section.rows.map((rowDef) => toComparisonRow(rowDef, rows)),
-  }));
+  const sections = sectionDefs
+    .map((section) => ({
+      ...section,
+      rows: section.rows
+        .map((rowDef) => toComparisonRow(rowDef, rows))
+        .filter(shouldDisplayComparisonRow),
+    }))
+    .filter((section) => section.rows.length > 0);
   const totalRows = [
     {
       label: "견적 총액",
@@ -161,6 +165,15 @@ function toComparisonRow(rowDef, rows) {
       return cells;
     }, {}),
   };
+}
+
+function shouldDisplayComparisonRow(row) {
+  if (row.label === "특이사항") return true;
+
+  const cells = Object.values(row.cells ?? {});
+  if (cells.length === 0) return false;
+
+  return cells.some((cell) => cell?.status !== "missing");
 }
 
 function getCostCell(row, costKey, rowLabel) {
