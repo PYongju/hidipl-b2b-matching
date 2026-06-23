@@ -162,7 +162,10 @@ export default function ProjectListPage({
         </header>
 
         {loadError && (
-          <div className="empty-project-result" role="alert">
+          <div
+            className="empty-project-result project-list-error-state"
+            role="alert"
+          >
             <p>{loadError}</p>
             {onReloadProjects && (
               <button
@@ -176,6 +179,8 @@ export default function ProjectListPage({
           </div>
         )}
 
+        {!loadError && (
+          <>
         <section className="filter-block">
           <div className="filter-block-row">
             <div className="filter-block-tabs" role="tablist">
@@ -362,7 +367,7 @@ export default function ProjectListPage({
               );
             })
           )}
-          {!isLoading && filteredProjects.length === 0 && !loadError && (
+          {!isLoading && filteredProjects.length === 0 && (
             <div className="empty-project-result">
               <p>
                 {projects.length === 0
@@ -377,6 +382,8 @@ export default function ProjectListPage({
             </div>
           )}
         </section>
+          </>
+        )}
       </main>
 
       {deleteConfirmOpen && (

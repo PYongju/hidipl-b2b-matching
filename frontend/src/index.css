@@ -2747,6 +2747,12 @@ textarea {
   color: #64748b;
 }
 
+.project-list-error-state {
+  margin-top: 56px;
+  padding-top: 88px;
+  padding-bottom: 40px;
+}
+
 .history-card {
   position: relative;
   min-width: 0;
