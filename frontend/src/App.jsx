@@ -489,10 +489,16 @@ export default function App() {
   const buildAdminProjectListItem = (item) => {
     const projectId = resolveServerProjectId(item);
     if (!projectId) return null;
+    const parsedFields = applyParsedRequestTextToProjectData(
+      {},
+      item.request_text ?? "",
+    );
+    const projectName =
+      parsedFields.projectName?.trim() || item.company_name || projectId;
 
     return {
       id: projectId,
-      name: item.company_name ?? "",
+      name: projectName,
       companyName: item.company_name ?? "",
       status: item.status ?? "",
       workflowStatus: item.workflow_status ?? "",
@@ -502,6 +508,7 @@ export default function App() {
       data: {
         projectApiId: projectId,
         projectId,
+        projectName,
         companyName: item.company_name ?? "",
         location: item.location ?? "",
         projectDate: item.deadline ?? "",
