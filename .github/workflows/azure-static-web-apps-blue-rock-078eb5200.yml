@@ -38,6 +38,7 @@ jobs:
           VITE_AZURE_CLIENT_ID: 7f8965c5-bf57-469a-871f-d8d24bad4ced
           VITE_AZURE_TENANT_ID: 5fb256f0-fbf2-40d2-81d5-bac1b32c419d
           VITE_REDIRECT_URI: https://blue-rock-078eb5200.7.azurestaticapps.net
+
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
