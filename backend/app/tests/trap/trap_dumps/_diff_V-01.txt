@@ -1,0 +1,14 @@
+=== V-01 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ final_score:
+      baseline = 94.73
+      함정     = 20
+  ▶ spec_score:
+      baseline = 82.45
+      함정     = 95
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

@@ -1,0 +1,14 @@
+=== M-02 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ warranty_months:
+      baseline = 24
+      함정     = None
+  ▶ warranty_score:
+      baseline = 100.0
+      함정     = 0
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

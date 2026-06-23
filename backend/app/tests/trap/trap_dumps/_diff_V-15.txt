@@ -1,0 +1,20 @@
+=== V-15 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ filter_reasons:
+      baseline = []
+      함정     = ['예산 상한 초과']
+  ▶ final_score:
+      baseline = 85.35
+      함정     = 100
+  ▶ spec_score:
+      baseline = 84.49
+      함정     = 100
+  ▶ success_rate:
+      baseline = 0.04
+      함정     = 1.0
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

@@ -1,0 +1,1262 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import AutoSaveStatus from "../components/AutoSaveStatus";
+import Badge from "../components/Badge";
+import FlowTopbar from "../components/FlowTopbar";
+import ProjectDetailHeader from "../components/ProjectDetailHeader";
+import ProjectStepTabs from "../components/ProjectStepTabs";
+import {
+  fetchProjectMatches,
+  getCandidateVendors,
+  updateProject,
+} from "../api/apiClient";
+import { buildHydratedProjectFields } from "../utils/projectMatchHydration";
+import {
+  buildProjectInfoSummary,
+  formatProjectSolutions,
+} from "../utils/projectRequestText";
+import { getUserDisplayName, USER } from "../constants/uiText";
+
+const MOCK_CAUTION_PARTNERS = [
+  {
+    id: "mock-caution-daechung-display",
+    name: "\uC8FC\uC2DD\uD68C\uC0AC \uB300\uCDA9\uB514\uC2A4\uD50C\uB808\uC774",
+    specialty: "\uAC00\uC0C1 \uACF5\uAE09\uC0AC, LED \uC804\uAD11\uD310",
+    score: 18,
+    cases: 2,
+    premium: false,
+    response: "\uBBF8\uD655\uC778",
+    businessRulePassed: false,
+    recommended: false,
+    caution: true,
+    reason:
+      "\uACAC\uC801 \uC0C1\uC138 \uC870\uAC74 \uB204\uB77D \uC774\uB825\uC774 \uC788\uC5B4 \uAC80\uD1A0\uAC00 \uD544\uC694\uD574\uC694.",
+  },
+  {
+    id: "mock-caution-send-first",
+    name: "\uC8FC\uC2DD\uD68C\uC0AC \uC77C\uB2E8\uBCF4\uB0B4 \uBBF8\uB514\uC5B4",
+    specialty: "\uAC00\uC0C1 \uACF5\uAE09\uC0AC, \uC0AC\uC774\uB2C8\uC9C0",
+    score: 16,
+    cases: 1,
+    premium: false,
+    response: "\uBBF8\uD655\uC778",
+    businessRulePassed: false,
+    recommended: false,
+    caution: true,
+    reason:
+      "\uACAC\uC801 \uD68C\uC2E0\uC774 \uC9C0\uC5F0\uB41C \uC774\uB825\uC774 \uC788\uC5B4 \uAC80\uD1A0\uAC00 \uD544\uC694\uD574\uC694.",
+  },
+];
+
+const MOCK_CAUTION_PARTNER_IDS = new Set(
+  MOCK_CAUTION_PARTNERS.map((partner) => partner.id),
+);
+
+const DEFAULT_VISIBLE_PARTNERS = 15;
+const REQUEST_PANEL_SCROLL_THRESHOLD = 6;
+const RANK_EXCLUSION_PATTERN = /^상위 \d+개 추천 후보 외$/;
+
+function shouldRestoreMatchData(projectData) {
+  if (!projectData?.projectApiId) return false;
+  if (projectData.matchHydrationAttempted) return false;
+
+  const serverStatus = projectData.serverStatus ?? projectData.status;
+  if (serverStatus !== "matched") return false;
+
+  const hasQuoteIds =
+    Array.isArray(projectData.quoteIds) && projectData.quoteIds.length > 0;
+  const hasExplanationSource = Boolean(
+    projectData.matchId ||
+      projectData.cachedExplanation ||
+      projectData.matchResult,
+  );
+
+  return !hasQuoteIds || !hasExplanationSource;
+}
+
+function normalizeSimilarityScore(value) {
+  if (typeof value !== "number") return 0;
+  return value <= 1 ? Math.round(value * 100) : Math.round(value);
+}
+
+function normalizeResponseSpeed(value) {
+  if (typeof value === "number") return `${value}시간`;
+  return value ?? "미확인";
+}
+
+function hasRealCaution(filterReasons) {
+  return filterReasons.some(
+    (reason) => !RANK_EXCLUSION_PATTERN.test(String(reason ?? "").trim()),
+  );
+}
+
+function normalizeCandidateVendor(raw, index) {
+  const filterReasons = raw.filter_reasons ?? [];
+  const checkRequired = raw.check_required ?? [];
+  const vendorName =
+    raw.vendor_name ?? raw.partner_name ?? raw.name ?? `공급사 ${index + 1}`;
+  const caseCount =
+    raw.installation_count ??
+    raw.case_count ??
+    raw.cases ??
+    raw.metadata?.installation_count ??
+    raw.metadata?.case_count ??
+    0;
+  const rank = raw.rank ?? index + 1;
+  const businessRulePassed =
+    raw.business_rule_passed === true && raw.is_excluded !== true;
+  const caution = Boolean(
+    raw.caution ?? (hasRealCaution(filterReasons) || checkRequired.length > 0),
+  );
+  const defaultReason =
+    checkRequired.join(", ") ||
+    filterReasons.join(", ") ||
+    (businessRulePassed
+      ? "요구사항 기준 추천 가능한 공급사예요."
+      : "추천 기준을 아직 충족하지 않았어요.");
+
+  return {
+    id:
+      raw.vendor_id ??
+      raw.vendor_name ??
+      raw.partner_id ??
+      raw.partner_name ??
+      `partner-${index}`,
+    name: vendorName,
+    rank,
+    score: normalizeSimilarityScore(raw.final_score),
+    specialty: Array.isArray(raw.specialty_tags)
+      ? raw.specialty_tags.join(", ")
+      : "전문 분야 미확인",
+    cases: caseCount,
+    premium: Boolean(raw.is_premium),
+    response: normalizeResponseSpeed(raw.response_speed),
+    businessRulePassed,
+    recommended: businessRulePassed && rank <= 10,
+    caution,
+    reason: caution ? "검토가 필요한 이력이 있어요." : defaultReason,
+  };
+}
+
+function buildRequestMessage(partner, projectData) {
+  const partnerName = partner?.name || "[업체명]";
+  const companyName = projectData.companyName || "고객사 미입력";
+  const projectName = projectData.projectName || "프로젝트 미입력";
+  const location = projectData.location || "미입력";
+  const schedule = projectData.projectDate || "일정 미정";
+  const solutionText = formatProjectSolutions(projectData, "미선택");
+  const displaySize = projectData.displaySize || "미입력";
+  const quantity = projectData.quantity || "미입력";
+  const budget = projectData.budgetAmount || "미입력";
+  const usage = projectData.usage || "상세 활용 용도는 요청사항 문서를 참고해 주세요.";
+  const extra = projectData.otherConditions?.trim();
+
+  return [
+    `안녕하세요 ${partnerName} 담당자님`,
+    "하이디플을 통해 견적 요청 드립니다.",
+    "",
+    "[프로젝트 개요]",
+    `- 고객사: ${companyName}`,
+    `- 프로젝트명: ${projectName}`,
+    `- 설치 위치: ${location}`,
+    `- 일정: ${schedule}`,
+    `- 솔루션: ${solutionText}`,
+    `- 디스플레이 크기: ${displaySize}`,
+    `- 수량: ${quantity}`,
+    `- 예산: ${budget}`,
+    "",
+    "[요청 내용]",
+    usage,
+    ...(extra ? ["", "[추가 요청사항]", extra] : []),
+    "",
+    "가능하시면 아래 내용으로 회신 부탁드립니다.",
+    "- 진행 가능 여부",
+    "- 예상 금액",
+    "- 납기 일정",
+    "- 설치 가능 일정",
+    "- A/S 및 대응 조건",
+    "",
+    "감사합니다.",
+  ].join("\n");
+}
+
+function normalizeLegacyRequestMessage(message = "", partnerName = "") {
+  const escapedName = String(partnerName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let text = String(message)
+    .replace(/하이디플레이를/g, "하이디플을")
+    .replace(/하이디플레이/g, "하이디플");
+
+  if (escapedName) {
+    text = text.replace(
+      new RegExp(`안녕하세요 ${escapedName}님`, "g"),
+      `안녕하세요 ${partnerName} 담당자님`,
+    );
+  }
+
+  return text.replace(
+    /안녕하세요 (.+?)님(?!(\s*담당자님|\n))/g,
+    "안녕하세요 $1 담당자님",
+  );
+}
+
+function resolveRequestMessage(partner, projectData, override) {
+  const defaultMessage = buildRequestMessage(partner, projectData);
+  if (!override) return defaultMessage;
+  return normalizeLegacyRequestMessage(override, partner?.name ?? "");
+}
+
+function PartnerSearchIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="partner-search-icon"
+      fill="none"
+      height="16"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M16 16l4.5 4.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function getCandidateEmptyMessage(status) {
+  if (status === "missing-project-api-id") {
+    return {
+      title: "프로젝트 저장 후 추천 공급사를 불러올 수 있어요.",
+      description: "요구사항을 먼저 저장하면 추천 공급사 목록이 준비돼요.",
+    };
+  }
+
+  return {
+    title: "추천 가능한 공급사가 아직 없어요.",
+    description:
+      "검색 조건을 조금 완화하거나 요구사항을 보완한 뒤 다시 확인해 주세요.",
+  };
+}
+
+function getPartnerStatusBadge(partner) {
+  if (partner.caution) {
+    return { tone: "orange", label: "주의", title: partner.reason };
+  }
+
+  if (partner.recommended) {
+    return { tone: "blue", label: "AI 추천" };
+  }
+
+  if (partner.businessRulePassed) {
+    return { tone: "gray", label: "추천 가능" };
+  }
+
+  return { tone: "gray", label: "직접 추가" };
+}
+
+export default function PartnerMatchingPage({
+  projectData,
+  onBack,
+  onGoDashboard,
+  onProjectDataChange,
+  onGoHome,
+  userRole = "member",
+}) {
+  const [targetIds, setTargetIds] = useState(projectData.requestTargetIds ?? []);
+  const [cautionConfirmOpen, setCautionConfirmOpen] = useState(false);
+  const [showRecommendedOnly, setShowRecommendedOnly] = useState(false);
+  const [expandedPartnerList, setExpandedPartnerList] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [activePartnerId, setActivePartnerId] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState("");
+  const [messageOverrides, setMessageOverrides] = useState({});
+  const [isMessageEditing, setIsMessageEditing] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [premiumFilter, setPremiumFilter] = useState("all");
+  const [sortKey, setSortKey] = useState("ai");
+  const autoSaveStatusTimerRef = useRef(null);
+  const copyFeedbackTimerRef = useRef(null);
+  const cautionDialogRef = useRef(null);
+  const cautionCancelButtonRef = useRef(null);
+  const cautionExcludeButtonRef = useRef(null);
+
+  const showAutoSaveStatus = (status) => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(() => {
+        setAutoSaveStatus("idle");
+        autoSaveStatusTimerRef.current = null;
+      }, status === "saved" ? 1800 : 3000);
+    }
+  };
+
+  useEffect(() => {
+    setTargetIds(projectData.requestTargetIds ?? []);
+  }, [projectData.requestTargetIds]);
+
+  useEffect(
+    () => () => {
+      if (autoSaveStatusTimerRef.current) {
+        window.clearTimeout(autoSaveStatusTimerRef.current);
+      }
+      if (copyFeedbackTimerRef.current) {
+        window.clearTimeout(copyFeedbackTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let ignore = false;
+    const apiProjectId = projectData.projectApiId;
+
+    if (!apiProjectId || !shouldRestoreMatchData(projectData)) {
+      return undefined;
+    }
+
+    fetchProjectMatches(apiProjectId)
+      .then((matchesResponse) => {
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          ...buildHydratedProjectFields(matchesResponse, current),
+          matchHydrationAttempted: true,
+        }));
+      })
+      .catch((error) => {
+        console.error("매칭 결과 조회 실패:", error);
+        if (ignore) return;
+        onProjectDataChange((current) => ({
+          ...current,
+          matchHydrationAttempted: true,
+        }));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    onProjectDataChange,
+    projectData.cachedExplanation,
+    projectData.matchHydrationAttempted,
+    projectData.matchId,
+    projectData.matchResult,
+    projectData.projectApiId,
+    projectData.quoteIds,
+  ]);
+
+  useEffect(() => {
+    const apiProjectId = projectData.projectApiId;
+    if (
+      !apiProjectId ||
+      (projectData.candidateVendors ?? []).length > 0 ||
+      projectData.candidateVendorsHydrationAttempted
+    ) {
+      return;
+    }
+
+    onProjectDataChange((current) => ({
+      ...current,
+      candidateVendorsHydrationAttempted: true,
+    }));
+
+    getCandidateVendors(apiProjectId)
+      .then((response) => {
+        const payload = response?.data?.data ?? response?.data ?? response;
+        const vendors =
+          payload?.candidate_vendors ??
+          response?.data?.data?.candidate_vendors ??
+          response?.data?.candidate_vendors ??
+          response?.candidate_vendors ??
+          [];
+        const requestedVendorIds =
+          payload?.requested_vendor_ids ??
+          response?.data?.data?.requested_vendor_ids ??
+          response?.data?.requested_vendor_ids ??
+          response?.requested_vendor_ids ??
+          [];
+
+        onProjectDataChange((current) => {
+          const next = { ...current };
+          let changed = false;
+
+          if (vendors.length > 0 && !(current.candidateVendors?.length > 0)) {
+            next.candidateVendors = vendors;
+            next.candidateVendorsLoaded = true;
+            changed = true;
+          }
+
+          const currentTargetIds = current.requestTargetIds ?? [];
+          if (requestedVendorIds.length > 0 && currentTargetIds.length === 0) {
+            const partnerList = (vendors.length > 0
+              ? vendors
+              : current.candidateVendors ?? []
+            ).map(normalizeCandidateVendor);
+            next.requestTargetIds = requestedVendorIds;
+            next.requestTargets = partnerList.filter((partner) =>
+              requestedVendorIds.includes(partner.id),
+            );
+            changed = true;
+          }
+
+          return changed ? next : current;
+        });
+      })
+      .catch((error) => {
+        console.error("후보 공급사 조회 실패:", error);
+      });
+  }, [
+    onProjectDataChange,
+    projectData.candidateVendors,
+    projectData.candidateVendorsHydrationAttempted,
+    projectData.projectApiId,
+  ]);
+
+  const candidates = projectData.candidateVendors ?? [];
+  const partners = useMemo(
+    () => [
+      ...candidates.map(normalizeCandidateVendor),
+      ...MOCK_CAUTION_PARTNERS.map((partner, index) => ({
+        ...partner,
+        rank: candidates.length + index + 1,
+      })),
+    ],
+    [candidates],
+  );
+  const candidateStatus = projectData.projectApiId
+    ? partners.length > 0
+      ? "ready"
+      : "empty"
+    : "missing-project-api-id";
+
+  const recommendedCount = partners.filter((partner) => partner.recommended).length;
+  const cautionCount = partners.filter((partner) => partner.caution).length;
+
+  const filteredPartners = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const base = showRecommendedOnly
+      ? partners.filter((partner) => partner.recommended)
+      : partners;
+
+    const matchedPartners = base.filter((partner) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        partner.name.toLowerCase().includes(normalizedSearch) ||
+        partner.specialty.toLowerCase().includes(normalizedSearch);
+      const matchesPremium =
+        premiumFilter === "all" ||
+        (premiumFilter === "premium" && partner.premium) ||
+        (premiumFilter === "standard" && !partner.premium);
+      return matchesSearch && matchesPremium;
+    });
+
+    const mockPartners = matchedPartners.filter((partner) =>
+      MOCK_CAUTION_PARTNER_IDS.has(partner.id),
+    );
+    const realPartners = matchedPartners.filter(
+      (partner) => !MOCK_CAUTION_PARTNER_IDS.has(partner.id),
+    );
+
+    const sortedRealPartners = realPartners.sort((a, b) => {
+      if (sortKey === "cases") {
+        const caseDiff = (b.cases ?? 0) - (a.cases ?? 0);
+        if (caseDiff !== 0) return caseDiff;
+        return b.score - a.score || a.rank - b.rank;
+      }
+      const scoreDiff = b.score - a.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.rank - b.rank;
+    });
+
+    return [...sortedRealPartners, ...mockPartners];
+  }, [partners, premiumFilter, searchTerm, showRecommendedOnly, sortKey]);
+
+  const displayPartners = useMemo(() => {
+    if (expandedPartnerList) return filteredPartners;
+    return filteredPartners.slice(0, DEFAULT_VISIBLE_PARTNERS);
+  }, [expandedPartnerList, filteredPartners]);
+
+  const hasHiddenPartners =
+    filteredPartners.length > DEFAULT_VISIBLE_PARTNERS && !expandedPartnerList;
+
+  const targetPartners = useMemo(
+    () => partners.filter((partner) => targetIds.includes(partner.id)),
+    [partners, targetIds],
+  );
+  const selectedCautionPartners = useMemo(
+    () => targetPartners.filter((partner) => partner.caution),
+    [targetPartners],
+  );
+  const nonFlaggedTargetCount = targetPartners.length - selectedCautionPartners.length;
+  const activeMessagePartner =
+    targetPartners.find((partner) => partner.id === activePartnerId) ??
+    targetPartners[0] ??
+    null;
+  const defaultRequestMessage = useMemo(
+    () => buildRequestMessage(activeMessagePartner, projectData),
+    [activeMessagePartner, projectData],
+  );
+  const requestMessage = activeMessagePartner
+    ? resolveRequestMessage(
+        activeMessagePartner,
+        projectData,
+        messageOverrides[activeMessagePartner.id],
+      )
+    : defaultRequestMessage;
+  const displayMessage = isMessageEditing ? draftMessage : requestMessage;
+
+  useEffect(() => {
+    setIsMessageEditing(false);
+  }, [activePartnerId]);
+  const cautionPartners = useMemo(
+    () => partners.filter((partner) => partner.caution),
+    [partners],
+  );
+  const candidateEmptyMessage = getCandidateEmptyMessage(candidateStatus);
+
+  const persistRequestTargets = (nextTargetIds, partnersList = partners) => {
+    showAutoSaveStatus("saving");
+    onProjectDataChange?.((current) => ({
+      ...current,
+      requestTargetIds: nextTargetIds,
+      requestTargets: partnersList.filter((partner) =>
+        nextTargetIds.includes(partner.id),
+      ),
+    }));
+
+    const apiProjectId = projectData.projectApiId;
+    if (apiProjectId) {
+      updateProject(apiProjectId, { requested_vendor_ids: nextTargetIds })
+        .then(() => {
+          showAutoSaveStatus("saved");
+        })
+        .catch((error) => {
+          console.error("요청 대상 저장 실패:", error);
+          showAutoSaveStatus("error");
+        });
+      return;
+    }
+
+    showAutoSaveStatus("saved");
+  };
+
+  const updateRequestTargets = (updater) => {
+    setTargetIds((current) => {
+      const nextTargetIds =
+        typeof updater === "function" ? updater(current) : updater;
+      persistRequestTargets(nextTargetIds);
+      return nextTargetIds;
+    });
+  };
+
+  const addPartner = (partnerId) => {
+    updateRequestTargets((current) =>
+      current.includes(partnerId) ? current : [...current, partnerId],
+    );
+  };
+
+  const removePartner = (partnerId) => {
+    updateRequestTargets((current) => current.filter((id) => id !== partnerId));
+    if (activePartnerId === partnerId) {
+      setActivePartnerId("");
+    }
+  };
+
+  const togglePartner = (partnerId) => {
+    if (targetIds.includes(partnerId)) {
+      removePartner(partnerId);
+      return;
+    }
+    addPartner(partnerId);
+  };
+
+  const addRecommendedPartners = () => {
+    updateRequestTargets((current) => [
+      ...new Set([
+        ...current,
+        ...partners
+          .filter((partner) => partner.recommended)
+          .map((partner) => partner.id),
+      ]),
+    ]);
+  };
+
+  const openCopyModal = (partnerId = "") => {
+    if (!targetPartners.length) return;
+    setActivePartnerId(partnerId || targetPartners[0].id);
+    setCopyFeedback("");
+    setIsMessageEditing(false);
+    setMessageOverrides((current) => {
+      const entries = Object.entries(current);
+      if (!entries.length) return current;
+
+      const next = {};
+      let changed = false;
+      for (const [id, text] of entries) {
+        const partner = targetPartners.find((item) => item.id === id);
+        const normalized = normalizeLegacyRequestMessage(text, partner?.name ?? "");
+        next[id] = normalized;
+        if (normalized !== text) changed = true;
+      }
+      return changed ? next : current;
+    });
+    setCopyModalOpen(true);
+  };
+
+  const closeCopyModal = () => {
+    setCopyModalOpen(false);
+    setCopyFeedback("");
+    setIsMessageEditing(false);
+  };
+
+  const startMessageEdit = () => {
+    setDraftMessage(requestMessage);
+    setIsMessageEditing(true);
+  };
+
+  const saveMessageEdit = () => {
+    if (!activeMessagePartner) return;
+    const normalizedMessage = normalizeLegacyRequestMessage(
+      draftMessage,
+      activeMessagePartner.name,
+    );
+    setMessageOverrides((current) => ({
+      ...current,
+      [activeMessagePartner.id]: normalizedMessage,
+    }));
+    setIsMessageEditing(false);
+    setCopyFeedback("문구를 저장했어요.");
+    if (copyFeedbackTimerRef.current) {
+      window.clearTimeout(copyFeedbackTimerRef.current);
+    }
+    copyFeedbackTimerRef.current = window.setTimeout(() => {
+      setCopyFeedback("");
+      copyFeedbackTimerRef.current = null;
+    }, 1800);
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(displayMessage);
+      setCopyFeedback("문구를 복사했어요.");
+      if (copyFeedbackTimerRef.current) {
+        window.clearTimeout(copyFeedbackTimerRef.current);
+      }
+      copyFeedbackTimerRef.current = window.setTimeout(() => {
+        setCopyFeedback("");
+        copyFeedbackTimerRef.current = null;
+      }, 1800);
+    } catch (error) {
+      console.error("요청 문구 복사 실패:", error);
+      setCopyFeedback("복사에 실패했어요.");
+    }
+  };
+
+  const proceedToQuoteWaiting = () => {
+    persistRequestTargets(targetIds);
+    onGoDashboard();
+  };
+
+  const handleGoQuoteWaiting = () => {
+    if (selectedCautionPartners.length > 0) {
+      setCautionConfirmOpen(true);
+      return;
+    }
+
+    proceedToQuoteWaiting();
+  };
+
+  const handleGoBack = () => {
+    persistRequestTargets(targetIds);
+    onBack();
+  };
+
+  useEffect(() => {
+    if (!cautionConfirmOpen) return undefined;
+
+    const focusablesSelector =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const focusInitial = () => {
+      (cautionExcludeButtonRef.current ?? cautionCancelButtonRef.current)?.focus();
+    };
+
+    focusInitial();
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCautionConfirmOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const dialogNode = cautionDialogRef.current;
+      if (!dialogNode) return;
+
+      const focusableElements = Array.from(
+        dialogNode.querySelectorAll(focusablesSelector),
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (!focusableElements.length) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey) {
+        if (activeElement === firstElement || !dialogNode.contains(activeElement)) {
+          event.preventDefault();
+          lastElement.focus();
+        }
+        return;
+      }
+
+      if (activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [cautionConfirmOpen]);
+
+  const closeCautionConfirm = () => {
+    setCautionConfirmOpen(false);
+  };
+
+  const handleProceedWithoutFlagged = () => {
+    const flaggedPartnerIds = new Set(selectedCautionPartners.map((partner) => partner.id));
+    const nextTargetIds = targetIds.filter((id) => !flaggedPartnerIds.has(id));
+
+    if (activePartnerId && flaggedPartnerIds.has(activePartnerId)) {
+      setActivePartnerId("");
+    }
+
+    setTargetIds(nextTargetIds);
+    closeCautionConfirm();
+    persistRequestTargets(nextTargetIds);
+    onGoDashboard();
+  };
+
+  const projectInfoSummary = buildProjectInfoSummary(projectData, {
+    includeLocation: true,
+  });
+
+  return (
+    <div className="flow-page partner-page">
+      <FlowTopbar
+        onHome={onGoHome}
+        trail="프로젝트 상세 > 파트너 매칭/견적 요청"
+        action={
+          <>
+            <AutoSaveStatus status={autoSaveStatus} />
+            <button className="button action-secondary" onClick={onGoHome} type="button">
+              목록
+            </button>
+            <div className="avatar" />
+            <div className="user-name">
+              <b>{getUserDisplayName(userRole)}</b>
+              <small>{USER.team}</small>
+            </div>
+          </>
+        }
+      />
+
+      <main className="partner-main">
+        <ProjectDetailHeader
+          infoSummary={projectInfoSummary}
+          onBack={handleGoBack}
+          projectName={projectData.projectName || "새 프로젝트"}
+        />
+
+        <ProjectStepTabs
+          activeStep={2}
+          onGoRequirements={handleGoBack}
+          onGoQuoteWaiting={handleGoQuoteWaiting}
+        />
+
+        <section className="partner-notice strong">
+          <i aria-hidden="true" className="fa-solid fa-info partner-notice-icon" />
+          <span>
+            {partners.length === 0
+              ? "공급사 추천 결과를 불러오고 있어요. 아직 추천된 공급사가 없을 수 있어요."
+              : `공급사 ${partners.length}개를 순위대로 보여드려요. 상위 10개는 AI 추천으로 표시되고, 기본 미충족 공급사는 아래에 구분되어 보여요.`}
+          </span>
+        </section>
+
+        <section className="partner-layout">
+          <div className="partner-table-panel">
+            <div className="requirements-section-title partner-section-header">
+              <div>
+                <div className="partner-section-header-row">
+                  <h2>추천 공급사 목록</h2>
+                  <div className="partner-count-chips compact">
+                    <Badge tone="blue">AI 추천 {recommendedCount}</Badge>
+                    <Badge tone="blue">선택 {targetPartners.length}</Badge>
+                    <Badge tone="orange">주의 {cautionCount}</Badge>
+                  </div>
+                </div>
+                <p>AI가 추천한 공급사를 검토하고, 견적을 요청할 업체를 선택해요.</p>
+              </div>
+            </div>
+
+            <div className="partner-tools-top compact partner-tools-inline">
+              <label className="partner-search-field">
+                <PartnerSearchIcon />
+                <input
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="공급사명, 전문 분야 검색"
+                  type="search"
+                  value={searchTerm}
+                />
+              </label>
+              <select
+                onChange={(event) => setPremiumFilter(event.target.value)}
+                value={premiumFilter}
+              >
+                <option value="all">전체 공급사</option>
+                <option value="premium">프리미엄만</option>
+                <option value="standard">일반만</option>
+              </select>
+              <select
+                onChange={(event) => setSortKey(event.target.value)}
+                value={sortKey}
+              >
+                <option value="ai">AI 추천 점수순</option>
+                <option value="cases">사례 많은 순</option>
+              </select>
+              <button
+                className="partner-expand-button partner-expand-button-inline"
+                onClick={() => setShowRecommendedOnly((current) => !current)}
+                type="button"
+              >
+                {showRecommendedOnly ? "전체 보기" : "AI 추천만 보기"}
+              </button>
+              <button
+                className="partner-expand-button partner-expand-button-inline"
+                onClick={addRecommendedPartners}
+                type="button"
+              >
+                AI 추천 대상 모두 추가
+              </button>
+            </div>
+
+            <div className="partner-table-wrap">
+              <table className="partner-table">
+                <colgroup>
+                  <col className="col-select" />
+                  <col className="col-rank" />
+                  <col className="col-name" />
+                  <col className="col-score" />
+                  <col className="col-premium" />
+                  <col className="col-cases" />
+                  <col className="col-type" />
+                  <col className="col-action" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>선택</th>
+                    <th>순위</th>
+                    <th>공급사명</th>
+                    <th>AI 추천 점수</th>
+                    <th>프리미엄</th>
+                    <th>사례 5건 이상</th>
+                    <th>구분</th>
+                    <th>요청</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayPartners.length === 0 ? (
+                    <tr>
+                      <td className="partner-empty-cell" colSpan={8}>
+                        <b>{candidateEmptyMessage.title}</b>
+                        <span>{candidateEmptyMessage.description}</span>
+                      </td>
+                    </tr>
+                  ) : null}
+                  {displayPartners.map((partner) => {
+                    const isTarget = targetIds.includes(partner.id);
+                    return (
+                      <tr
+                        className={[
+                          "partner-table-row",
+                          partner.recommended ? "ai-recommended-row" : "",
+                          partner.caution ? "caution-row" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        key={partner.id}
+                        onClick={() => togglePartner(partner.id)}
+                      >
+                        <td>
+                          <input
+                            checked={isTarget}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={() => togglePartner(partner.id)}
+                            type="checkbox"
+                          />
+                        </td>
+                        <td>{partner.rank}</td>
+                        <td>
+                          <b>{partner.name}</b>
+                          <small>{partner.specialty}</small>
+                        </td>
+                        <td>{partner.score}/100</td>
+                        <td>
+                          <Badge tone={partner.premium ? "blue" : "gray"}>
+                            {partner.premium ? "해당" : "일반"}
+                          </Badge>
+                        </td>
+                        <td>
+                          {partner.cases >= 5 ? "예" : "아니오"}
+                          {partner.cases ? ` (${partner.cases}건)` : ""}
+                        </td>
+                        <td>
+                          <Badge
+                            title={partner.caution ? partner.reason : undefined}
+                            tone={
+                              partner.caution
+                                ? "orange"
+                                : partner.recommended
+                                  ? "blue"
+                                  : "gray"
+                            }
+                          >
+                            {partner.caution
+                              ? "\uC8FC\uC758"
+                              : partner.recommended
+                                ? "AI \uCD94\uCC9C"
+                                : partner.businessRulePassed
+                                  ? "\uCD94\uCC9C \uAC00\uB2A5"
+                                  : "\uAE30\uC900 \uBBF8\uCDA9\uC871"}
+                          </Badge>
+                        </td>
+                        <td>
+                          <button
+                            aria-label={isTarget ? "제거" : "추가"}
+                            className={`partner-row-action${
+                              isTarget ? " partner-row-action-remove" : ""
+                            }`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              togglePartner(partner.id);
+                            }}
+                            type="button"
+                          >
+                            {isTarget ? (
+                              <i aria-hidden="true" className="fa-solid fa-minus" />
+                            ) : (
+                              <i aria-hidden="true" className="fa-solid fa-plus" />
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {(hasHiddenPartners || expandedPartnerList) && (
+              <div className="partner-more-wrap">
+                <button
+                  className="partner-expand-button partner-expand-button-centered"
+                  onClick={() => setExpandedPartnerList((current) => !current)}
+                  type="button"
+                >
+                  <span>
+                    {expandedPartnerList
+                      ? "15개만 보기"
+                      : `${filteredPartners.length - DEFAULT_VISIBLE_PARTNERS}개 더 보기`}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <aside
+            className={`request-panel ${
+              targetPartners.length >= REQUEST_PANEL_SCROLL_THRESHOLD
+                ? "panel-static"
+                : "panel-sticky"
+            }`}
+          >
+            <div className="request-card">
+              <div className="request-card-head">
+                <div className="requirements-section-title">
+                  <div>
+                    <div className="request-card-title-row">
+                      <h2>요청 발송 대상</h2>
+                      <Badge tone="blue">{targetPartners.length}개 대상</Badge>
+                    </div>
+                    <p>선택한 공급사를 최종 확인해요.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                className="button action-primary request-card-copy-button"
+                disabled={targetPartners.length === 0}
+                onClick={() => openCopyModal()}
+                type="button"
+              >
+                견적 요청 문구 복사
+              </button>
+
+              {targetPartners.length === 0 ? (
+                <div className="request-empty">
+                  아직 요청 발송 대상이 없어요.
+                  <span>
+                    추천된 공급사를 전체 추가하거나, 원하는 업체만 골라서 추가할 수 있어요.
+                  </span>
+                </div>
+              ) : (
+                <div className="selected-partner-list">
+                  {targetPartners.map((partner) => (
+                    (() => {
+                      const badge = getPartnerStatusBadge(partner);
+
+                      return (
+                        <button
+                          className={`selected-partner-pill request-target-card${
+                            activeMessagePartner?.id === partner.id ? " is-active" : ""
+                          }`}
+                          key={partner.id}
+                          onClick={() => setActivePartnerId(partner.id)}
+                          type="button"
+                        >
+                          <span>
+                            <span className="selected-partner-name-row">
+                              <b>{partner.name}</b>
+                              <Badge title={badge.title} tone={badge.tone}>
+                                {badge.label}
+                              </Badge>
+                            </span>
+                            <small>AI 추천 점수 {partner.score}</small>
+                          </span>
+                          <button
+                            aria-label={`${partner.name} 제거`}
+                            className="selected-partner-remove"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removePartner(partner.id);
+                            }}
+                            type="button"
+                          >
+                            <i
+                              aria-hidden="true"
+                              className="fa-solid fa-xmark selected-partner-remove-icon"
+                            />
+                          </button>
+                        </button>
+                      );
+                    })()
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
+        </section>
+      </main>
+
+      <footer className="partner-bottom-actions">
+        <span>상태: 요청 대상 검토중 · 발송 대상 {targetPartners.length}개</span>
+        <div>
+          <button
+            className="button action-secondary"
+            onClick={handleGoBack}
+            type="button"
+          >
+            이전
+          </button>
+          <button
+            className="button action-primary"
+            disabled={targetPartners.length === 0}
+            onClick={handleGoQuoteWaiting}
+            type="button"
+          >
+            다음: 견적 수신
+          </button>
+        </div>
+      </footer>
+
+      {copyModalOpen && activeMessagePartner ? (
+        <div className="request-copy-modal-layer" role="presentation">
+          <button
+            aria-label="견적 요청 문구 닫기"
+            className="request-copy-backdrop"
+            onClick={closeCopyModal}
+            type="button"
+          />
+          <div
+            aria-labelledby="request-copy-title"
+            aria-modal="true"
+            className="request-copy-modal"
+            role="dialog"
+          >
+            <div className="request-copy-header">
+              <div>
+                <p>카톡 견적 요청</p>
+                <h2 id="request-copy-title">복사해서 업체에 보내요</h2>
+              </div>
+              <button
+                aria-label="복사 모달 닫기"
+                className="request-copy-close"
+                onClick={closeCopyModal}
+                type="button"
+              >
+                <i aria-hidden="true" className="fa-solid fa-xmark" />
+              </button>
+            </div>
+
+            <div className="request-copy-summary">
+              <div className="request-copy-summary-title">견적을 보낼 업체를 선택해요</div>
+              <div className="request-copy-summary-tags">
+                {targetPartners.map((partner) => (
+                  <button
+                    className={`request-copy-target-chip${
+                      activeMessagePartner.id === partner.id ? " is-active" : ""
+                    }`}
+                    key={partner.id}
+                    onClick={() => setActivePartnerId(partner.id)}
+                    type="button"
+                  >
+                    {partner.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              className="request-copy-textarea"
+              onChange={(event) => setDraftMessage(event.target.value)}
+              readOnly={!isMessageEditing}
+              value={displayMessage}
+            />
+
+            <p className="request-copy-help">
+              {isMessageEditing
+                ? "문구를 직접 수정한 뒤 저장해 주세요. 업체를 바꾸면 각 업체별 문구가 따로 유지돼요."
+                : "업체명은 선택한 공급사 이름으로 자동으로 바뀌어요. 복사 후 카카오톡이나 메일에 바로 붙여 넣어요."}
+            </p>
+
+            <div className="request-copy-actions">
+              {copyFeedback ? <span>{copyFeedback}</span> : <span />}
+              <div>
+                {isMessageEditing ? (
+                  <button
+                    className="button"
+                    onClick={() => setIsMessageEditing(false)}
+                    type="button"
+                  >
+                    취소
+                  </button>
+                ) : null}
+                <button
+                  className="button"
+                  onClick={isMessageEditing ? saveMessageEdit : startMessageEdit}
+                  type="button"
+                >
+                  {isMessageEditing ? "저장" : "수정"}
+                </button>
+                <button
+                  className="button action-primary"
+                  disabled={isMessageEditing}
+                  onClick={handleCopyMessage}
+                  type="button"
+                >
+                  복사
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {cautionConfirmOpen ? (
+        <div className="request-copy-modal-layer" role="presentation">
+          <button
+            aria-label="주의 업체 확인 모달 닫기"
+            className="request-copy-backdrop caution-confirm-backdrop"
+            onClick={closeCautionConfirm}
+            type="button"
+          />
+          <div
+            aria-labelledby="caution-confirm-title"
+            aria-modal="true"
+            className="confirm-dialog caution-confirm-dialog"
+            ref={cautionDialogRef}
+            role="dialog"
+          >
+            <h2 className="caution-confirm-title" id="caution-confirm-title">
+              <span>주의 이력이 있는 업체가 포함됐어요</span>
+            </h2>
+            <p className="caution-confirm-subtext">
+              발송 대상 {targetPartners.length}개 중 {selectedCautionPartners.length}개 업체에
+              주의 이력이 있어요.
+            </p>
+            <div className="caution-confirm-list">
+              {selectedCautionPartners.map((partner) => (
+                <div className="caution-confirm-item" key={partner.id}>
+                  <div className="caution-confirm-item-title">
+                    <i
+                      aria-hidden="true"
+                      className="fa-solid fa-triangle-exclamation"
+                    />
+                    <b>{partner.name}</b>
+                  </div>
+                  <p>{partner.reason}</p>
+                </div>
+              ))}
+            </div>
+            <p className="caution-confirm-question">그래도 견적을 요청할까요?</p>
+            <div className="confirm-actions caution-confirm-actions">
+              <button
+                className="button"
+                onClick={closeCautionConfirm}
+                ref={cautionCancelButtonRef}
+                type="button"
+              >
+                취소
+              </button>
+              <button
+                className="button caution-confirm-exclude-button"
+                disabled={nonFlaggedTargetCount === 0}
+                onClick={handleProceedWithoutFlagged}
+                ref={cautionExcludeButtonRef}
+                type="button"
+              >
+                주의 업체 제외하고 요청
+              </button>
+              <button
+                className="button action-primary"
+                onClick={() => {
+                  closeCautionConfirm();
+                  proceedToQuoteWaiting();
+                }}
+                type="button"
+              >
+                그래도 전체 요청
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

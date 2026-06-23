@@ -1,0 +1,17 @@
+=== V-09 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ final_score:
+      baseline = 73.4
+      함정     = 35
+  ▶ partner_found:
+      baseline = True
+      함정     = False
+  ▶ score_breakdown:
+      baseline = {'spec_score': 82.54, 'spec_weight': 0.3, 'price_score': 28.81, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 73.4, 'is_premium': True, 'success_rate': 0.1, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 2.0}
+      함정     = {'spec_score': 95, 'price_score': 92, 'delivery_score': 90, 'warranty_score': 88, 'installation_score': 85}
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

@@ -1,2 +1,40 @@
-.env
+# Python
 __pycache__/
+venv/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Azure / secrets
+*.key
+*.pem
+secrets.json
+
+# Runtime outputs
+data/demo_outputs/
+data/api_demo_uploads/
+data/partner_embeddings.json
+
+# Raw sensitive documents
+data/*.pdf
+data/*.xlsx
+data/*.xls
+data/*.png
+data/*.jpg
+data/*.jpeg
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Design
+DESIGN.md

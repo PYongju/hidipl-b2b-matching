@@ -1,0 +1,1516 @@
+﻿import { useEffect, useRef, useState } from "react";
+import { MsalProvider } from "@azure/msal-react";
+import { msalInstance } from "./auth/msalInstance";
+import { msalReady } from "./auth/msalInstance";
+import LoginPage from "./pages/LoginPage";
+import AdminProjectListPage from "./pages/AdminProjectListPage";
+import ProjectListPage from "./pages/ProjectListPage";
+import ProjectCreatePage from "./pages/ProjectCreatePage";
+import ProjectRequirementsPage from "./pages/ProjectRequirementsPage";
+import AnalysisPage from "./pages/AnalysisPage";
+import DashboardPage from "./pages/DashboardPage";
+import PartnerMatchingPage from "./pages/PartnerMatchingPage";
+import PartnerMatchingLoadingModal from "./components/PartnerMatchingLoadingModal";
+import QuoteWaitingPage from "./pages/QuoteWaitingPage";
+import QuoteReviewLoadingPage from "./pages/QuoteReviewLoadingPage";
+import {
+  ApiError,
+  createProject,
+  deleteProjects as deleteProjectsApi,
+  fetchAdminProjects,
+  fetchCandidateVendors,
+  fetchProject,
+  fetchProjectMatches,
+  fetchProjects,
+  runProjectMatch,
+  updateProject,
+  uploadProjectQuotes,
+} from "./api/apiClient";
+import { initialProjectData, makeProjectFromData } from "./data/mockProjects";
+import { createMatchViewModel } from "./utils/matchAdapter";
+import {
+  buildHydratedProjectFields,
+  shouldHydrateMatchData,
+} from "./utils/projectMatchHydration";
+import {
+  applyParsedRequestTextToProjectData,
+  buildProjectRequestPayload,
+  formatProjectSolutions,
+  normalizeProjectSolutions,
+} from "./utils/projectRequestText";
+import { resolveCompareCellOverrides } from "./utils/compareCellOverrides";
+import { resolveReviewMemo } from "./utils/reviewMemoStorage";
+import { loadQuoteIdsFromStorage } from "./utils/projectQuoteIds";
+const PARTNER_MATCHING_MIN_STEP_MS = 1800;
+const SESSION_SCREEN_KEY = "hidipl_screen";
+const SESSION_PROJECT_KEY = "hidipl_active_project_id";
+const KNOWN_SERVER_STATUSES = new Set([
+  "matched",
+  "created",
+  "partner_matching",
+  "partner_matched",
+  "quote_uploaded",
+]);
+const PROJECT_FLOW_SCREENS = new Set([
+  "requirements",
+  "partnerMatching",
+  "quoteWaiting",
+  "quoteReviewLoading",
+  "dashboard",
+  "analysis",
+  "wizard",
+]);
+
+function readSavedSession() {
+  return {
+    screen: localStorage.getItem(SESSION_SCREEN_KEY),
+    projectApiId: localStorage.getItem(SESSION_PROJECT_KEY),
+  };
+}
+
+function shouldRestoreProjectSession(savedScreen, savedProjectApiId) {
+  return Boolean(
+    savedProjectApiId &&
+    savedScreen &&
+    savedScreen !== "projects" &&
+    savedScreen !== "login",
+  );
+}
+
+function isOAuthRedirectInProgress() {
+  const { hash, search } = window.location;
+  return (
+    hash.includes("code=") ||
+    hash.includes("access_token") ||
+    hash.includes("id_token") ||
+    search.includes("code=")
+  );
+}
+
+function shouldBootstrapAuth(savedSession, shouldRestoreSession) {
+  const hasAccount = msalInstance.getAllAccounts().length > 0;
+  if (hasAccount && !shouldRestoreSession) {
+    return savedSession.screen !== "projects";
+  }
+  return !hasAccount && isOAuthRedirectInProgress();
+}
+
+function persistAppSession(screenName, projectApiId) {
+  localStorage.setItem(SESSION_SCREEN_KEY, screenName);
+  if (projectApiId && PROJECT_FLOW_SCREENS.has(screenName)) {
+    localStorage.setItem(SESSION_PROJECT_KEY, projectApiId);
+    return;
+  }
+  if (screenName === "projects" || screenName === "login") {
+    localStorage.removeItem(SESSION_PROJECT_KEY);
+  }
+}
+
+function resolveProjectListId(data, fallbackId = "") {
+  return data.projectApiId ?? data.projectId ?? fallbackId;
+}
+
+function matchesProjectEntry(project, targetId, data = {}) {
+  const projectApiId = data.projectApiId ?? targetId;
+  const projectId = data.projectId;
+
+  return (
+    project.id === targetId ||
+    project.id === projectApiId ||
+    project.id === projectId ||
+    project.data?.projectApiId === projectApiId ||
+    project.data?.projectApiId === targetId ||
+    project.data?.projectId === projectId
+  );
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+function normalizeProjectsResponse(list) {
+  if (Array.isArray(list)) return list;
+  if (Array.isArray(list?.projects)) return list.projects;
+  if (Array.isArray(list?.items)) return list.items;
+  return null;
+}
+
+function resolveServerProjectId(item) {
+  return item?.project_id ?? item?.projectId ?? item?.id ?? "";
+}
+
+async function runPartnerMatchingStep(step, setStep, action) {
+  const stepStartedAt = Date.now();
+  setStep(step);
+  const result = await action();
+  const remainingStepMs =
+    PARTNER_MATCHING_MIN_STEP_MS - (Date.now() - stepStartedAt);
+  if (remainingStepMs > 0) {
+    await wait(remainingStepMs);
+  }
+  return result;
+}
+
+async function resolveAuthContext() {
+  const [adminResult, projectsResult] = await Promise.allSettled([
+    fetchAdminProjects(),
+    fetchProjects(),
+  ]);
+
+  if (adminResult.status === "fulfilled") {
+    return {
+      role: "admin",
+      prefetchedList: adminResult.value,
+    };
+  }
+
+  if (projectsResult.status === "fulfilled") {
+    return {
+      role: "member",
+      prefetchedList: projectsResult.value,
+    };
+  }
+
+  const projectsError = projectsResult.reason;
+  const adminError = adminResult.reason;
+
+  if (adminError instanceof ApiError && adminError.status === 403) {
+    console.error("프로젝트 목록 조회 실패:", projectsError);
+    throw projectsError;
+  }
+
+  console.error("역할 확인 실패:", adminError);
+  throw adminError ?? projectsError;
+}
+
+function resolveWorkflowStatusFromServer(item) {
+  if (item.workflow_status === "completed") return "완료";
+  if (
+    item.workflow_status === "컨펌 요청" ||
+    item.workflow_status === "확정 완료"
+  ) {
+    return item.workflow_status;
+  }
+  return getWorkflowStatusFromServerStatus(item.status);
+}
+
+export default function App() {
+  const savedSession = readSavedSession();
+  const isAuthenticated = msalInstance.getAllAccounts().length > 0;
+  const shouldRestoreSession = shouldRestoreProjectSession(
+    savedSession.screen,
+    savedSession.projectApiId,
+  );
+  const [restoring, setRestoring] = useState(shouldRestoreSession);
+  const [authBootstrapping, setAuthBootstrapping] = useState(() =>
+    shouldBootstrapAuth(savedSession, shouldRestoreSession),
+  );
+  const [screen, setScreen] = useState(() => {
+    if (!isAuthenticated) return "login";
+    if (shouldRestoreSession) return savedSession.screen;
+    return "projects";
+  });
+  const [projects, setProjects] = useState([]);
+  const [projectData, setProjectData] = useState(initialProjectData);
+  const [editingProjectId, setEditingProjectId] = useState("");
+  const [activeProjectId, setActiveProjectId] = useState("");
+  const [analysisState, setAnalysisState] = useState("idle");
+  const [analysisErrorMessage, setAnalysisErrorMessage] = useState("");
+  const [partnerMatchingTransition, setPartnerMatchingTransition] =
+    useState("idle");
+  const [partnerMatchingStep, setPartnerMatchingStep] =
+    useState("creating-project");
+  const [partnerMatchingError, setPartnerMatchingError] = useState("");
+  const [projectsLoadError, setProjectsLoadError] = useState("");
+  const [userRole, setUserRole] = useState(null);
+  const [projectsLoading, setProjectsLoading] = useState(
+    () => isAuthenticated && savedSession.screen !== "login",
+  );
+  const [projectsHydrated, setProjectsHydrated] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("idle");
+  const autoSaveStatusTimerRef = useRef(null);
+  const saveScopeRef = useRef(
+    `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+  const projectCreationRef = useRef({
+    scopeKey: saveScopeRef.current,
+    promise: null,
+    result: null,
+  });
+  const partnerMatchingInFlightRef = useRef(false);
+  const analysisInFlightRef = useRef(false);
+  const activeOpenProjectRef = useRef(null);
+
+  const clearAutoSaveStatusTimer = () => {
+    if (autoSaveStatusTimerRef.current) {
+      window.clearTimeout(autoSaveStatusTimerRef.current);
+      autoSaveStatusTimerRef.current = null;
+    }
+  };
+
+  const showAutoSaveStatus = (status) => {
+    clearAutoSaveStatusTimer();
+    setAutoSaveStatus(status);
+
+    if (status === "saved" || status === "error") {
+      autoSaveStatusTimerRef.current = window.setTimeout(
+        () => {
+          setAutoSaveStatus("idle");
+          autoSaveStatusTimerRef.current = null;
+        },
+        status === "saved" ? 1800 : 3000,
+      );
+    }
+  };
+
+  const resetSaveScope = () => {
+    const nextScope = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    saveScopeRef.current = nextScope;
+    projectCreationRef.current = {
+      scopeKey: nextScope,
+      promise: null,
+      result: null,
+    };
+    return nextScope;
+  };
+
+  const buildProjectListItem = (data, id = data.projectId, overrides = {}) => ({
+    id,
+    name: data.projectName || `${data.companyName || "신규 고객"} 프로젝트`,
+    status: overrides.status || data.workflowStatus || "진행 중",
+    statusTone:
+      overrides.statusTone ||
+      getProjectStatusTone(overrides.status || data.workflowStatus),
+    desc:
+      overrides.desc || data.currentStage || data.usage || "요구사항 정리 중",
+    meta: [
+      data.projectDate || "일정 미정",
+      data.budgetAmount ? `${data.budgetAmount} 이하` : "예산 미정",
+      formatProjectSolutions(data, "솔루션 미정"),
+    ],
+    data: {
+      ...data,
+      ...(overrides.data ?? {}),
+    },
+  });
+
+  const syncProjectList = (data, overrides = {}) => {
+    const id = resolveProjectListId(data, editingProjectId);
+    if (!id) return;
+    const nextProject = buildProjectListItem(data, id, overrides);
+    setProjects((current) => {
+      const exists = current.some((project) =>
+        matchesProjectEntry(project, id, data),
+      );
+      if (!exists) return [nextProject, ...current];
+      return current.map((project) =>
+        matchesProjectEntry(project, id, data) ? nextProject : project,
+      );
+    });
+    setActiveProjectId(id);
+    setEditingProjectId(id);
+  };
+
+  const updateProjectData = (updater, listOverrides = {}) => {
+    setProjectData((current) => {
+      const nextData =
+        typeof updater === "function" ? updater(current) : updater;
+      syncProjectList(nextData, listOverrides);
+      return nextData;
+    });
+  };
+
+  const ensureProjectCreated = async (baseData) => {
+    if (baseData.projectApiId) {
+      return {
+        projectApiId: baseData.projectApiId,
+        ensuredData: baseData,
+        createdPayloadSnapshot: null,
+      };
+    }
+
+    const saveScope = saveScopeRef.current;
+    let creationState = projectCreationRef.current;
+    if (creationState.scopeKey !== saveScope) {
+      creationState = {
+        scopeKey: saveScope,
+        promise: null,
+        result: null,
+      };
+      projectCreationRef.current = creationState;
+    }
+
+    if (!creationState.promise) {
+      const payload = buildProjectRequestPayload(baseData);
+      const payloadSnapshot = JSON.stringify(payload);
+      creationState.promise = createProject(payload).then((createdProject) => ({
+        createdProject,
+        payloadSnapshot,
+      }));
+    }
+
+    if (!creationState.result) {
+      creationState.result = await creationState.promise;
+    }
+
+    const { createdProject, payloadSnapshot } = creationState.result;
+    const projectApiId = createdProject.project_id ?? createdProject.id;
+    const projectId =
+      projectApiId ||
+      baseData.projectId ||
+      `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+
+    return {
+      projectApiId,
+      createdPayloadSnapshot: payloadSnapshot,
+      ensuredData: {
+        ...baseData,
+        projectApiId,
+        projectId,
+        requestId:
+          createdProject.request_id ??
+          createdProject.requestId ??
+          baseData.requestId,
+        createdProject,
+        workflowStatus: baseData.workflowStatus || "진행 중",
+      },
+    };
+  };
+
+  const autoSaveProjectData = async (
+    patchData,
+    nextData,
+    { screenName, listOverrides = {} } = {},
+  ) => {
+    showAutoSaveStatus("saving");
+    const saveScope = saveScopeRef.current;
+
+    try {
+      const { projectApiId, ensuredData, createdPayloadSnapshot } =
+        await ensureProjectCreated(nextData);
+
+      const shouldPatchProject =
+        Boolean(projectApiId && patchData) &&
+        (!createdPayloadSnapshot ||
+          JSON.stringify(patchData) !== createdPayloadSnapshot);
+
+      if (shouldPatchProject) {
+        await updateProject(projectApiId, patchData);
+      }
+
+      if (saveScopeRef.current !== saveScope) {
+        return projectApiId;
+      }
+
+      updateProjectData(
+        (current) => ({
+          ...current,
+          ...ensuredData,
+          projectApiId,
+          lastScreen:
+            screenName ?? ensuredData.lastScreen ?? current.lastScreen,
+        }),
+        listOverrides,
+      );
+      showAutoSaveStatus("saved");
+      return projectApiId;
+    } catch (error) {
+      console.error("저장 중 오류:", error);
+      showAutoSaveStatus("error");
+      return null;
+    }
+  };
+
+  const hydrateProjectMatchData = async (apiProjectId, baseData) => {
+    try {
+      const matchesResponse = await fetchProjectMatches(apiProjectId);
+      return {
+        ...baseData,
+        ...buildHydratedProjectFields(matchesResponse, baseData),
+        matchHydrationAttempted: true,
+      };
+    } catch (error) {
+      console.error("매칭 결과 조회 실패:", error);
+      return {
+        ...baseData,
+        matchHydrationAttempted: true,
+      };
+    }
+  };
+
+  const refreshOpenedProjectInBackground = async (
+    apiProjectId,
+    localProjectData,
+  ) => {
+    try {
+      const needsMatchHydration = shouldHydrateMatchData(localProjectData);
+      const [serverProject, matchesResponse] = await Promise.all([
+        fetchProject(apiProjectId),
+        needsMatchHydration
+          ? fetchProjectMatches(apiProjectId).catch((error) => {
+              console.error("매칭 결과 조회 실패:", error);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+
+      if (activeOpenProjectRef.current !== apiProjectId) return;
+
+      let nextProjectData = mergeServerProjectData(
+        localProjectData,
+        serverProject,
+      );
+
+      if (matchesResponse) {
+        nextProjectData = {
+          ...nextProjectData,
+          ...buildHydratedProjectFields(matchesResponse, nextProjectData),
+          matchHydrationAttempted: true,
+        };
+      } else if (needsMatchHydration) {
+        nextProjectData = {
+          ...nextProjectData,
+          matchHydrationAttempted: true,
+        };
+      }
+
+      const nextScreen = getScreenFromProject(nextProjectData);
+      setProjectData(nextProjectData);
+      upsertProjectInList(nextProjectData, apiProjectId);
+      setScreen(nextScreen);
+      persistAppSession(nextScreen, apiProjectId);
+    } catch (error) {
+      console.error("프로젝트 상태를 불러오지 못했어요:", error);
+    }
+  };
+
+  const buildAdminProjectListItem = (item) => {
+    const projectId = resolveServerProjectId(item);
+    if (!projectId) return null;
+
+    return {
+      id: projectId,
+      name: item.company_name ?? "",
+      companyName: item.company_name ?? "",
+      status: item.status ?? "",
+      workflowStatus: item.workflow_status ?? "",
+      location: item.location ?? "",
+      deadline: item.deadline ?? "",
+      createdAt: item.created_at ?? "",
+      data: {
+        projectApiId: projectId,
+        projectId,
+        companyName: item.company_name ?? "",
+        location: item.location ?? "",
+        projectDate: item.deadline ?? "",
+        serverStatus: item.status,
+        workflowStatus: resolveWorkflowStatusFromServer(item),
+        currentStage: getCurrentStageFromServerStatus(item.status),
+      },
+    };
+  };
+
+  const loadProjects = async (options = {}) => {
+    const role = options.role ?? userRole;
+    const statusFilter = options.statusFilter ?? null;
+    const prefetchedList = options.prefetchedList;
+    setProjectsLoading(true);
+
+    try {
+      if (role === "admin") {
+        const list =
+          prefetchedList ?? (await fetchAdminProjects(statusFilter));
+        const items = Array.isArray(list) ? list : [];
+        const mappedProjects = items
+          .map(buildAdminProjectListItem)
+          .filter(Boolean);
+        setProjectsLoadError("");
+        setProjects(mappedProjects);
+        return mappedProjects;
+      }
+
+      const list = prefetchedList ?? (await fetchProjects());
+      const items = normalizeProjectsResponse(list);
+
+      if (!items) {
+        console.error("프로젝트 목록 응답 형식 오류:", list);
+        setProjectsLoadError(
+          "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
+        setProjects([]);
+        return [];
+      }
+
+      const mappedProjects = items
+        .map((item) => {
+          const projectId = resolveServerProjectId(item);
+          if (!projectId) return null;
+
+          const parsedFields = applyParsedRequestTextToProjectData(
+            {},
+            item.request_text,
+          );
+
+          return buildProjectListItem(
+            {
+              projectApiId: projectId,
+              companyName: item.company_name ?? item.companyName ?? "",
+              location: item.location ?? "",
+              projectDate: item.deadline ?? item.projectDate ?? "",
+              requestText: item.request_text ?? item.requestText ?? "",
+              ...parsedFields,
+              reviewMemo: resolveReviewMemo({ projectApiId: projectId }),
+              solutions: parsedFields.solutions ?? [],
+              serverStatus: item.status,
+              workflowStatus: resolveWorkflowStatusFromServer(item),
+              currentStage: getCurrentStageFromServerStatus(item.status),
+            },
+            projectId,
+          );
+        })
+        .filter(Boolean);
+
+      setProjectsLoadError("");
+      setProjects((current) => {
+        const merged = mappedProjects.map((mapped) => {
+          const existing = current.find((p) => p.id === mapped.id);
+          if (existing?.status === "완료") {
+            return {
+              ...mapped,
+              status: "완료",
+              statusTone: getProjectStatusTone("완료"),
+              desc: existing.desc,
+              data: {
+                ...mapped.data,
+                workflowStatus: "완료",
+                currentStage: existing.data?.currentStage ?? "검토 완료",
+              },
+            };
+          }
+          // 기존 로컬 전용 필드 보존 (서버에 저장되지 않는 프론트 상태)
+          const localOnlyFields = {};
+          if (existing?.data?.lastScreen) {
+            localOnlyFields.lastScreen = existing.data.lastScreen;
+          }
+          if (existing?.data?.requestTargetIds?.length > 0) {
+            localOnlyFields.requestTargetIds = existing.data.requestTargetIds;
+            localOnlyFields.requestTargets = existing.data.requestTargets ?? [];
+          }
+          if (
+            existing?.data?.compareCellOverrides &&
+            Object.keys(existing.data.compareCellOverrides).length > 0
+          ) {
+            localOnlyFields.compareCellOverrides =
+              existing.data.compareCellOverrides;
+          }
+          const storedQuoteIds = loadQuoteIdsFromStorage(mapped.id);
+          if (storedQuoteIds.length > 0 && !existing?.data?.quoteIds?.length) {
+            localOnlyFields.quoteIds = storedQuoteIds;
+          }
+          if (Object.keys(localOnlyFields).length > 0) {
+            return {
+              ...mapped,
+              data: {
+                ...mapped.data,
+                ...localOnlyFields,
+              },
+            };
+          }
+          return mapped;
+        });
+        const mergedIds = new Set(merged.map((p) => p.id));
+        const localOnly = current.filter((p) => !mergedIds.has(p.id));
+        return [...merged, ...localOnly];
+      });
+      return mappedProjects.map((project) => {
+        const storedQuoteIds = loadQuoteIdsFromStorage(project.id);
+        if (!storedQuoteIds.length) return project;
+        return {
+          ...project,
+          data: {
+            ...project.data,
+            quoteIds: project.data?.quoteIds?.length
+              ? project.data.quoteIds
+              : storedQuoteIds,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("프로젝트 목록 조회 실패:", error);
+      // 기존 상태 유지하되 사용자에게 오류 안내
+      setProjectsLoadError(
+        "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+      );
+      setProjects([]);
+      return [];
+    } finally {
+      setProjectsLoading(false);
+      setProjectsHydrated(true);
+    }
+  };
+
+  const upsertProjectInList = (
+    data,
+    id = resolveProjectListId(data),
+    overrides = {},
+  ) => {
+    if (!id) return;
+    const nextProject = buildProjectListItem(data, id, overrides);
+    setProjects((current) => {
+      const exists = current.some((project) =>
+        matchesProjectEntry(project, id, data),
+      );
+      if (!exists) return [nextProject, ...current];
+      return current.map((project) =>
+        matchesProjectEntry(project, id, data) ? nextProject : project,
+      );
+    });
+    setActiveProjectId(id);
+    setEditingProjectId(id);
+  };
+
+  const restoreProjectSession = async (
+    savedProjectApiId,
+    savedScreen,
+    role = userRole,
+  ) => {
+    resetSaveScope();
+    const loadedProjects = await loadProjects({ role });
+    const cachedProject = loadedProjects.find(
+      (project) =>
+        project.id === savedProjectApiId ||
+        project.data?.projectApiId === savedProjectApiId,
+    );
+    const localProjectData = {
+      ...initialProjectData,
+      ...(cachedProject?.data ?? {}),
+      projectId: savedProjectApiId,
+      projectApiId: savedProjectApiId,
+      lastScreen: savedScreen,
+    };
+
+    const serverProject = await fetchProject(savedProjectApiId);
+    let restoredProjectData = mergeServerProjectData(
+      localProjectData,
+      serverProject,
+    );
+
+    if (shouldHydrateMatchData(restoredProjectData)) {
+      restoredProjectData = await hydrateProjectMatchData(
+        savedProjectApiId,
+        restoredProjectData,
+      );
+    }
+
+    const nextScreen = resolveRestoredScreen(restoredProjectData, savedScreen);
+    upsertProjectInList(restoredProjectData, savedProjectApiId);
+    setProjectData(restoredProjectData);
+    setScreen(nextScreen);
+    persistAppSession(nextScreen, savedProjectApiId);
+    return nextScreen;
+  };
+
+  const goToProjects = async () => {
+    activeOpenProjectRef.current = null;
+    await loadProjects({ role: userRole });
+    setAutoSaveStatus("idle");
+    setScreen("projects");
+    persistAppSession("projects");
+  };
+
+  const goHome = async () => {
+    activeOpenProjectRef.current = null;
+    updateProjectData((current) => ({
+      ...current,
+      lastScreen: screen,
+    }));
+    await loadProjects({ role: userRole });
+    setAutoSaveStatus("idle");
+    setScreen("projects");
+    persistAppSession("projects");
+  };
+
+  useEffect(() => {
+    let ignore = false;
+
+    (async () => {
+      await msalReady;
+
+      const hasAccount = msalInstance.getAllAccounts().length > 0;
+
+      if (!ignore) {
+        setAuthBootstrapping(false);
+      }
+
+      if (!hasAccount) {
+        if (!ignore) {
+          setUserRole(null);
+          setRestoring(false);
+        }
+        return;
+      }
+
+      if (!shouldRestoreSession && !ignore) {
+        setScreen("projects");
+        persistAppSession("projects");
+        setProjectsLoading(true);
+      }
+
+      let role;
+      let prefetchedList;
+
+      try {
+        ({ role, prefetchedList } = await resolveAuthContext());
+      } catch (error) {
+        if (!ignore) {
+          setUserRole("member");
+          setProjectsLoadError(
+            "프로젝트 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+          );
+          setRestoring(false);
+        }
+        return;
+      }
+
+      if (ignore) return;
+
+      setUserRole(role);
+
+      if (shouldRestoreSession) {
+        try {
+          await restoreProjectSession(
+            savedSession.projectApiId,
+            savedSession.screen,
+            role,
+          );
+        } catch (error) {
+          console.error("분석 실행 실패:", error);
+          if (!ignore) {
+            await loadProjects({ role });
+            setScreen("projects");
+            persistAppSession("projects");
+          }
+        } finally {
+          if (!ignore) {
+            setRestoring(false);
+          }
+        }
+        return;
+      }
+
+      await loadProjects({ role, prefetchedList });
+      if (!ignore) {
+        setRestoring(false);
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => () => clearAutoSaveStatusTimer(), []);
+
+  useEffect(() => {
+    if (restoring) return;
+    persistAppSession(screen, projectData.projectApiId);
+  }, [restoring, screen, projectData.projectApiId]);
+
+  useEffect(() => {
+    let ignore = false;
+    const apiProjectId = projectData.projectApiId;
+
+    if (screen !== "dashboard" || !apiProjectId) return undefined;
+    if (
+      !shouldHydrateMatchData(projectData) ||
+      projectData.matchHydrationAttempted
+    ) {
+      return undefined;
+    }
+
+    setProjectData((current) => ({
+      ...current,
+      matchHydrationAttempted: true,
+    }));
+    hydrateProjectMatchData(apiProjectId, projectData).then((nextData) => {
+      if (!ignore) {
+        setProjectData(nextData);
+        syncProjectList(nextData);
+      }
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    screen,
+    projectData.projectApiId,
+    projectData.matchId,
+    projectData.quoteIds,
+    projectData.cachedExplanation,
+    projectData.matchHydrationAttempted,
+    projectData.serverStatus,
+    projectData.lastScreen,
+  ]);
+  const startNewProject = () => {
+    resetSaveScope();
+    setEditingProjectId("");
+    setActiveProjectId("");
+    setAutoSaveStatus("idle");
+    setProjectData({
+      ...initialProjectData,
+      projectId: "",
+      projectApiId: null,
+      lastScreen: "requirements",
+    });
+    setScreen("requirements");
+  };
+
+  const createDraftProject = async (draftData, shouldContinue = false) => {
+    resetSaveScope();
+    let projectApiId = null;
+    try {
+      const created = await createProject({
+        company_name: draftData.companyName || "미입력",
+        location: draftData.location || null,
+        deadline: draftData.projectDate || null,
+        request_text: draftData.usage || "",
+      });
+      projectApiId = created.project_id;
+    } catch (error) {
+      console.error("프로젝트 생성 실패:", error);
+    }
+
+    const projectId =
+      projectApiId ||
+      `PV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    const nextData = {
+      ...initialProjectData,
+      ...draftData,
+      projectId,
+      projectApiId,
+      currentStage: draftData.currentStage || "요구사항",
+      workflowStatus: "진행 중",
+      lastScreen: "requirements",
+    };
+
+    upsertProjectInList(nextData, projectApiId || projectId, {
+      status: "진행 중",
+      statusTone: "blue",
+      desc: shouldContinue ? "요구사항 작성 중" : "요구사항 정리 중",
+    });
+    setProjectData(nextData);
+    setActiveProjectId(projectId);
+    setEditingProjectId(projectId);
+
+    if (shouldContinue) {
+      setScreen("requirements");
+    }
+  };
+
+  const editProject = async (project) => {
+    resetSaveScope();
+    const localProjectData = { ...initialProjectData, ...project.data };
+    setEditingProjectId(project.id);
+    setActiveProjectId(project.id);
+    setProjectData(localProjectData);
+
+    const apiProjectId =
+      localProjectData.projectApiId ?? localProjectData.project_id;
+    if (apiProjectId) {
+      try {
+        const serverProject = await fetchProject(apiProjectId);
+        const restoredProjectData = mergeServerProjectData(
+          localProjectData,
+          serverProject,
+        );
+        setProjectData(restoredProjectData);
+        syncProjectList(restoredProjectData);
+      } catch (error) {
+        console.error("프로젝트 저장 후 서버 상태 조회 실패:", error);
+      }
+    }
+
+    setScreen("requirements");
+  };
+
+  const openProjectFromList = (projectId) => {
+    resetSaveScope();
+    const project = projects.find((item) => item.id === projectId);
+    if (!project) {
+      setScreen("requirements");
+      return;
+    }
+
+    const localProjectData = { ...initialProjectData, ...project.data };
+    const apiProjectId =
+      localProjectData.projectApiId ?? localProjectData.project_id;
+
+    setProjectData(localProjectData);
+    setActiveProjectId(project.id);
+    setEditingProjectId(project.id);
+
+    const targetScreen = getScreenFromProject(localProjectData);
+    setScreen(targetScreen);
+
+    if (apiProjectId) {
+      activeOpenProjectRef.current = apiProjectId;
+      persistAppSession(targetScreen, apiProjectId);
+      void refreshOpenedProjectInBackground(apiProjectId, localProjectData);
+      return;
+    }
+
+    activeOpenProjectRef.current = null;
+  };
+
+  const saveCurrentProjectScreen = (screenName, overrides = {}) => {
+    updateProjectData((current) => ({
+      ...current,
+      ...overrides,
+      lastScreen: screenName,
+    }));
+  };
+
+  const openDashboard = () => {
+    setScreen("dashboard");
+  };
+
+  const deleteProjects = async (projectIds) => {
+    try {
+      await deleteProjectsApi(projectIds);
+    } catch (error) {
+      console.error("프로젝트 삭제 실패:", error);
+    }
+    setProjects((current) =>
+      current.filter((project) => !projectIds.includes(project.id)),
+    );
+    if (projectIds.includes(activeProjectId)) {
+      setActiveProjectId("");
+    }
+  };
+
+  const completeAnalysis = () => {
+    const id = editingProjectId || undefined;
+    const nextProject = makeProjectFromData(projectData, id);
+    setProjects((current) => {
+      const exists = current.some((project) => project.id === nextProject.id);
+      return exists
+        ? current.map((project) =>
+            project.id === nextProject.id ? nextProject : project,
+          )
+        : [nextProject, ...current];
+    });
+    setActiveProjectId(nextProject.id);
+    setEditingProjectId(nextProject.id);
+    setScreen("partnerMatching");
+  };
+
+  const buildProjectRequest = (data) => buildProjectRequestPayload(data);
+
+  const unwrapCandidateVendors = (response) =>
+    response?.candidate_vendors ?? response?.candidates ?? [];
+
+  const startPartnerMatchingFromRequirements = async () => {
+    if (
+      partnerMatchingTransition === "loading" ||
+      partnerMatchingInFlightRef.current
+    ) {
+      return;
+    }
+
+    const serverStatus = projectData.serverStatus ?? projectData.status;
+    const alreadyMatched =
+      serverStatus === "partner_matching" ||
+      serverStatus === "partner_matched" ||
+      serverStatus === "quote_uploaded" ||
+      serverStatus === "matched";
+
+    if (
+      projectData.projectApiId &&
+      (projectData.candidateVendors?.length || alreadyMatched)
+    ) {
+      setScreen("partnerMatching");
+      return;
+    }
+
+    partnerMatchingInFlightRef.current = true;
+    setPartnerMatchingTransition("loading");
+    setPartnerMatchingStep("creating-project");
+    setPartnerMatchingError("");
+
+    try {
+      const { projectApiId, ensuredData } = projectData.projectApiId
+        ? {
+            projectApiId: projectData.projectApiId,
+            ensuredData: projectData,
+          }
+        : await runPartnerMatchingStep(
+            "creating-project",
+            setPartnerMatchingStep,
+            () => ensureProjectCreated(projectData),
+          );
+
+      if (!projectApiId) {
+        throw new Error(
+          "프로젝트 정보를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
+      }
+
+      const candidateResponse = await runPartnerMatchingStep(
+        "fetching-candidates",
+        setPartnerMatchingStep,
+        () => fetchCandidateVendors(projectApiId, 10),
+      );
+      const candidateVendors = unwrapCandidateVendors(candidateResponse);
+
+      await runPartnerMatchingStep(
+        "finishing",
+        setPartnerMatchingStep,
+        async () => {},
+      );
+
+      updateProjectData(
+        (current) => ({
+          ...current,
+          ...ensuredData,
+          projectApiId,
+          requestId: ensuredData?.requestId ?? current.requestId,
+          createdProject: ensuredData?.createdProject ?? current.createdProject,
+          candidateVendors,
+          candidateVendorsLoaded: true,
+          candidateVendorsResponse: candidateResponse,
+          currentStage: "요청 대상 검토중",
+          workflowStatus: "진행 중",
+          lastScreen: "partnerMatching",
+        }),
+        {
+          status: "진행 중",
+          statusTone: "blue",
+          desc: "파트너 추천/요청 검토 중",
+        },
+      );
+      setPartnerMatchingTransition("idle");
+      setScreen("partnerMatching");
+    } catch (error) {
+      setPartnerMatchingTransition("error");
+      setPartnerMatchingError(
+        error.message ||
+          "요구사항 저장 또는 공급사 추천 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      partnerMatchingInFlightRef.current = false;
+    }
+  };
+
+  const cancelPartnerMatchingTransition = () => {
+    setPartnerMatchingTransition("idle");
+    setPartnerMatchingStep("creating-project");
+    setPartnerMatchingError("");
+  };
+
+  const startAnalysisFlow = async () => {
+    if (analysisInFlightRef.current) return;
+
+    analysisInFlightRef.current = true;
+    setScreen("analysis");
+    setAnalysisState("loading");
+    setAnalysisErrorMessage("");
+
+    try {
+      const { projectApiId, ensuredData } =
+        await ensureProjectCreated(projectData);
+      const createdProject = ensuredData.createdProject;
+      const requestId = ensuredData.requestId;
+      const uploadResult = await uploadProjectQuotes(
+        projectApiId,
+        projectData.quoteFiles ?? [],
+      );
+      const quoteIds =
+        uploadResult.quote_ids ??
+        uploadResult.quotes?.map((quote) => quote.quote_id ?? quote.id) ??
+        [];
+      const matchResult = await runProjectMatch(projectApiId);
+      const matchViewModel = createMatchViewModel(matchResult);
+      const matchId = matchViewModel.matchId;
+
+      updateProjectData((current) => ({
+        ...current,
+        ...ensuredData,
+        projectApiId,
+        requestId,
+        createdProject,
+        quoteIds,
+        matchId,
+        matchResult: matchViewModel,
+        quoteUploadResult: uploadResult,
+      }));
+      setAnalysisState("ready");
+    } catch (error) {
+      setAnalysisErrorMessage(
+        error.message ||
+          "AI 분석 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+      );
+      setAnalysisState("error");
+    } finally {
+      analysisInFlightRef.current = false;
+    }
+  };
+
+  const rolePending = isAuthenticated && userRole === null;
+  const isRestoringProjectFlow = restoring && screen !== "projects";
+
+  if (isRestoringProjectFlow) {
+    return (
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="app-shell app-restoring"
+      >
+        <p>프로젝트를 불러오는 중입니다...</p>
+      </div>
+    );
+  }
+
+  if (authBootstrapping) {
+    return (
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="app-shell app-restoring"
+      >
+        <p>로그인 확인 중...</p>
+      </div>
+    );
+  }
+
+  if (screen === "login") {
+    return (
+      <MsalProvider instance={msalInstance}>
+        <LoginPage />
+      </MsalProvider>
+    );
+  }
+
+  // 6/12 백엔드 작업 반영
+  if (screen === "projects") {
+    const isListLoading = projectsLoading || rolePending || !projectsHydrated;
+
+    if (userRole === "admin") {
+      return (
+        <AdminProjectListPage
+          isLoading={isListLoading}
+          loadError={projectsLoadError}
+          projects={projects}
+          onGoHome={goHome}
+          onOpenProject={openProjectFromList}
+          onReloadProjects={(options) =>
+            loadProjects({ role: "admin", ...options })
+          }
+        />
+      );
+    }
+
+    return (
+      <ProjectListPage
+        isLoading={isListLoading}
+        loadError={projectsLoadError}
+        projects={projects}
+        onCreate={startNewProject}
+        onDeleteProjects={deleteProjects}
+        onEditProject={editProject}
+        onGoHome={goHome}
+        onOpenDashboard={openProjectFromList}
+        onReloadProjects={() => loadProjects({ role: "member" })}
+      />
+    );
+  }
+
+  const goQuoteWaitingFromPartner = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적서 업로드 대기",
+        workflowStatus: "진행 중",
+        lastScreen: "quoteWaiting",
+      }),
+      {
+        status: "진행 중",
+        statusTone: "blue",
+        desc: "견적서 업로드 대기",
+      },
+    );
+    setScreen("quoteWaiting");
+  };
+
+  const goQuoteReviewLoading = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 비교 분석 중",
+        workflowStatus: "검토 중",
+        lastScreen: "quoteReviewLoading",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 비교 분석 중",
+      },
+    );
+    setScreen("quoteReviewLoading");
+  };
+
+  const openDashboardAfterMatch = () => {
+    updateProjectData(
+      (current) => ({
+        ...current,
+        currentStage: "견적 검토",
+        workflowStatus: "검토 중",
+        lastScreen: "dashboard",
+      }),
+      {
+        status: "검토 중",
+        statusTone: "orange",
+        desc: "견적 검토 중",
+      },
+    );
+    openDashboard();
+  };
+
+  if (screen === "requirements") {
+    return (
+      <>
+        <ProjectRequirementsPage
+          isPartnerMatchingLoading={partnerMatchingTransition === "loading"}
+          projectData={projectData}
+          userRole={userRole}
+          onBack={goToProjects}
+          onGoHome={goHome}
+          onGoProjects={goToProjects}
+          onNext={startPartnerMatchingFromRequirements}
+          onProjectDataChange={updateProjectData}
+          onAutoSave={async (data) => {
+            await autoSaveProjectData(data, {
+              ...projectData,
+              lastScreen: "requirements",
+            });
+          }}
+        />
+        <PartnerMatchingLoadingModal
+          errorMessage={partnerMatchingError}
+          loadingStep={partnerMatchingStep}
+          onCancel={cancelPartnerMatchingTransition}
+          onRetry={startPartnerMatchingFromRequirements}
+          open={
+            partnerMatchingTransition === "loading" ||
+            partnerMatchingTransition === "error"
+          }
+          category={formatProjectSolutions(projectData, "미선택")}
+          companyName={projectData.companyName}
+          status={partnerMatchingTransition === "error" ? "error" : "loading"}
+        />
+      </>
+    );
+  }
+
+  if (screen === "wizard") {
+    return (
+      <ProjectCreatePage
+        projectData={projectData}
+        onProjectDataChange={setProjectData}
+        onAnalyze={startAnalysisFlow}
+        onBack={goToProjects}
+        onGoHome={goHome}
+      />
+    );
+  }
+
+  if (screen === "analysis") {
+    return (
+      <AnalysisPage
+        errorMessage={analysisErrorMessage}
+        onBack={() => setScreen("wizard")}
+        onDashboard={completeAnalysis}
+        onGoHome={goHome}
+        onRetry={startAnalysisFlow}
+        state={analysisState}
+      />
+    );
+  }
+
+  if (screen === "partnerMatching") {
+    return (
+      <PartnerMatchingPage
+        projectData={projectData}
+        userRole={userRole}
+        onBack={() => {
+          setScreen("requirements");
+          updateProjectData((current) => ({
+            ...current,
+            lastScreen: "requirements",
+          }));
+        }}
+        onGoDashboard={goQuoteWaitingFromPartner}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
+      />
+    );
+  }
+
+  if (screen === "quoteWaiting") {
+    return (
+      <QuoteWaitingPage
+        projectData={projectData}
+        userRole={userRole}
+        onBack={() => setScreen("partnerMatching")}
+        onGoDashboard={goQuoteReviewLoading}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
+      />
+    );
+  }
+
+  if (screen === "quoteReviewLoading") {
+    return (
+      <QuoteReviewLoadingPage
+        projectData={projectData}
+        userRole={userRole}
+        onBack={() => setScreen("quoteWaiting")}
+        onComplete={openDashboardAfterMatch}
+        onGoHome={goHome}
+        onProjectDataChange={updateProjectData}
+      />
+    );
+  }
+
+  return (
+    <DashboardPage
+      onBack={() => setScreen("quoteWaiting")}
+      projectData={projectData}
+      userRole={userRole}
+      onGoProjects={goToProjects}
+      onProjectDataChange={updateProjectData}
+    />
+  );
+}
+
+function resolveRestoredScreen(projectData, savedScreen) {
+  const serverStatus = projectData.serverStatus ?? projectData.status;
+
+  if (serverStatus === "created") {
+    return "requirements";
+  }
+
+  if (serverStatus && KNOWN_SERVER_STATUSES.has(serverStatus)) {
+    return getScreenFromProject(projectData);
+  }
+
+  return getScreenFromProject({
+    ...projectData,
+    lastScreen: savedScreen ?? projectData.lastScreen,
+  });
+}
+
+function getProjectStatusTone(status) {
+  if (status === "완료" || status === "확정 완료") return "green";
+  if (status === "검토 중") return "orange";
+  if (status === "컨펌 요청") return "purple";
+  return "blue";
+}
+
+function mergeServerProjectData(localData, serverProject) {
+  const serverStatus =
+    serverProject?.status ?? localData.serverStatus ?? localData.status;
+  const lastScreen = getScreenFromServerStatus(
+    serverStatus,
+    localData.lastScreen,
+  );
+  const serverWorkflow = serverProject?.workflow_status;
+  const workflowStatus =
+    localData.workflowStatus === "완료"
+      ? "완료"
+      : serverWorkflow === "컨펌 요청" || serverWorkflow === "확정 완료"
+        ? serverWorkflow
+        : getWorkflowStatusFromServerStatus(
+            serverStatus,
+            localData.workflowStatus,
+          );
+  const requestText = serverProject?.request_text ?? localData.requestText;
+  const parsedFields = applyParsedRequestTextToProjectData(
+    localData,
+    serverProject?.request_text,
+  );
+  const mergedProjectData = {
+    ...localData,
+    ...parsedFields,
+  };
+
+  return {
+    ...mergedProjectData,
+    projectApiId: serverProject?.project_id ?? localData.projectApiId,
+    serverStatus,
+    companyName: serverProject?.company_name ?? localData.companyName,
+    location: serverProject?.location ?? localData.location,
+    projectDate: serverProject?.deadline ?? localData.projectDate,
+    requestText,
+    compareCellOverrides: resolveCompareCellOverrides(mergedProjectData),
+    reviewMemo:
+      serverProject?.review_memo ??
+      resolveReviewMemo(mergedProjectData, undefined),
+    solutions:
+      parsedFields.solutions?.length > 0
+        ? parsedFields.solutions
+        : normalizeProjectSolutions({ ...localData, ...parsedFields }),
+    createdAt: serverProject?.created_at ?? localData.createdAt,
+    currentStage: getCurrentStageFromServerStatus(
+      serverStatus,
+      localData.currentStage,
+    ),
+    workflowStatus,
+    lastScreen,
+  };
+}
+
+function getCurrentStageFromServerStatus(status, fallback = "요구사항") {
+  if (status === "matched") return "견적 검토";
+  if (status === "quote_uploaded") return "견적 비교 분석 중";
+  if (status === "partner_matching") return "파트너 매칭 결과";
+  if (status === "partner_matched") return "견적서 업로드 대기";
+  if (status === "created") return "요구사항";
+  return fallback;
+}
+
+function getWorkflowStatusFromServerStatus(status, fallback = "진행 중") {
+  if (status === "matched") return "검토 중";
+  if (status === "quote_uploaded") return "검토 중";
+  if (status === "partner_matching") return "진행 중";
+  if (status === "partner_matched") return "진행 중";
+  if (status === "created") return "진행 중";
+  return fallback;
+}
+
+function getScreenFromServerStatus(status, fallback = "requirements") {
+  if (status === "matched") return "dashboard";
+  if (status === "quote_uploaded") return "quoteReviewLoading";
+  if (status === "partner_matching") return fallback;
+  if (status === "partner_matched") return fallback;
+  if (status === "created") return "requirements";
+  return fallback;
+}
+
+function getScreenFromProject(data) {
+  const lastScreen = getScreenFromServerStatus(
+    data?.serverStatus ?? data?.status,
+    data?.lastScreen,
+  );
+  if (
+    lastScreen === "partnerMatching" ||
+    lastScreen === "quoteWaiting" ||
+    lastScreen === "quoteReviewLoading" ||
+    lastScreen === "dashboard"
+  ) {
+    return lastScreen;
+  }
+  return "requirements";
+}

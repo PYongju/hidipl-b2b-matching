@@ -1,0 +1,11 @@
+=== M-10 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ total_with_vat:
+      baseline = 54780000
+      함정     = None
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)

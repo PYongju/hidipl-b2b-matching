@@ -1,0 +1,1859 @@
+{
+  "request_id": "baseline-eval-V-15",
+  "customer_name": "일강이엔아이",
+  "top_n": 3,
+  "items": [
+    {
+      "rank": 1,
+      "quote_id": "V-15",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 1.0,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [
+        "예산 상한 초과"
+      ],
+      "business_sort_key": [
+        1,
+        85.35,
+        100.0,
+        84.49,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+      "source_file_path": "일강_비디오월_46인치_다올씨앤씨.pdf",
+      "final_score": 100,
+      "spec_score": 100,
+      "price_score": 100.0,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.689843708204,
+      "total_supply_price": 9440000,
+      "total_with_vat": 10384000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.49,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 85.35,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_46인치_다올씨앤씨.pdf",
+        "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+        "source_file_hash": "88fc704c1d66a7c9310deea6926b57bf7c47e111827a70d3ac4b678636a5b146",
+        "source_file_hash_short": "88fc704c",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 2,
+      "quote_id": "시스메이트_20251211_000000_3b191b90",
+      "partner_name": "시스메이트",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        81.58,
+        57.99,
+        80.61,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "시스메이트",
+      "project_name": "일강 비디오월 55인치",
+      "source_file_path": "일강_비디오월_55인치_시스메이트.pdf",
+      "final_score": 81.58,
+      "spec_score": 80.61,
+      "price_score": 57.99,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.61218747828,
+      "total_supply_price": 16280000,
+      "total_with_vat": 17908000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "계약 후 60일 이내",
+      "warranty_months": 36,
+      "line_item_count": 8,
+      "check_required": [
+        "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+        "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+        "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+        "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+        "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+        "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+        "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다."
+      ],
+      "score_breakdown": {
+        "spec_score": 80.61,
+        "spec_weight": 0.3,
+        "price_score": 57.99,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 81.58,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+        "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+        "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+        "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+        "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+        "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+        "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.",
+        "유지보수 포함 여부: True",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "시스메이트",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 23,
+        "industry_breakdown": {
+          "문화/공공": 8,
+          "상업시설": 5,
+          "기업": 5,
+          "교육": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 12,
+          "비디오월": 10
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 23
+        },
+        "avg_projects_3yr": 2000,
+        "avg_revenue_3yr": "300억원",
+        "avg_revenue_3yr_million": 30000.0,
+        "years_in_business": 12,
+        "representative": "정종균",
+        "company_age_years": 12,
+        "avg_project_count_3y": 2000,
+        "avg_revenue_3y_million": 30000.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 119",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_55인치_시스메이트.pdf",
+        "file_stem": "일강_비디오월_55인치_시스메이트",
+        "source_file_hash": "3b191b9083e043b2c6d90336cebad2ec0ca4990ae35928be5a934934e8c9f068",
+        "source_file_hash_short": "3b191b90",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+          "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+          "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+          "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+          "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+          "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+          "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다."
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 비디오월 55인치",
+          "file_stem": "일강_비디오월_55인치_시스메이트",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "시스메이트",
+          "normalized_vendor_name": "시스메이트",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 3,
+      "quote_id": "딥사이닝_20251210_000000_ee066fd8",
+      "partner_name": "딥사이닝",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        79.26,
+        46.5,
+        84.35,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "딥사이닝",
+      "project_name": "일강 비디오월 49인치",
+      "source_file_path": "일강_비디오월_49인치_딥사이닝.pdf",
+      "final_score": 79.26,
+      "spec_score": 84.35,
+      "price_score": 46.5,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.687066777446,
+      "total_supply_price": 20300000,
+      "total_with_vat": 22330000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "발주 후 60일",
+      "warranty_months": 12,
+      "line_item_count": 5,
+      "check_required": [
+        "일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요",
+        "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.35,
+        "spec_weight": 0.3,
+        "price_score": 46.5,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 79.26,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "딥사이닝",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "사이니지",
+          "비디오월"
+        ],
+        "installation_count": 13,
+        "industry_breakdown": {
+          "기업": 7,
+          "상업시설": 3
+        },
+        "solution_breakdown": {
+          "사이니지": 6,
+          "비디오월": 3
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 9,
+          "소규모 비즈니스": 4
+        },
+        "avg_projects_3yr": 120,
+        "avg_revenue_3yr": "65억원",
+        "avg_revenue_3yr_million": 6500.0,
+        "years_in_business": 8,
+        "representative": "김동재",
+        "company_age_years": 8,
+        "avg_project_count_3y": 120,
+        "avg_revenue_3y_million": 6500.0,
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_49인치_딥사이닝.pdf",
+        "file_stem": "일강_비디오월_49인치_딥사이닝",
+        "source_file_hash": "ee066fd860b904c37e1eba12788fc19c0f6838ebf34ef8ff1b04ea066b81be64",
+        "source_file_hash_short": "ee066fd8",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요",
+          "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신"
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 비디오월 49인치",
+          "file_stem": "일강_비디오월_49인치_딥사이닝",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "딥사이닝",
+          "normalized_vendor_name": "딥사이닝",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    }
+  ],
+  "all_items": [
+    {
+      "rank": 1,
+      "quote_id": "V-15",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        85.35,
+        100.0,
+        84.49,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+      "source_file_path": "일강_비디오월_46인치_다올씨앤씨.pdf",
+      "final_score": 85.35,
+      "spec_score": 84.49,
+      "price_score": 100.0,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.689843708204,
+      "total_supply_price": 9440000,
+      "total_with_vat": 10384000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.49,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 85.35,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_46인치_다올씨앤씨.pdf",
+        "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+        "source_file_hash": "88fc704c1d66a7c9310deea6926b57bf7c47e111827a70d3ac4b678636a5b146",
+        "source_file_hash_short": "88fc704c",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (1안)",
+          "file_stem": "일강_비디오월_46인치_다올씨앤씨",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 2,
+      "quote_id": "시스메이트_20251211_000000_3b191b90",
+      "partner_name": "시스메이트",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        81.58,
+        57.99,
+        80.61,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "시스메이트",
+      "project_name": "일강 비디오월 55인치",
+      "source_file_path": "일강_비디오월_55인치_시스메이트.pdf",
+      "final_score": 81.58,
+      "spec_score": 80.61,
+      "price_score": 57.99,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.61218747828,
+      "total_supply_price": 16280000,
+      "total_with_vat": 17908000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "계약 후 60일 이내",
+      "warranty_months": 36,
+      "line_item_count": 8,
+      "check_required": [
+        "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+        "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+        "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+        "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+        "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+        "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+        "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다."
+      ],
+      "score_breakdown": {
+        "spec_score": 80.61,
+        "spec_weight": 0.3,
+        "price_score": 57.99,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 81.58,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+        "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+        "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+        "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+        "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+        "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+        "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다.",
+        "유지보수 포함 여부: True",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "시스메이트",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 23,
+        "industry_breakdown": {
+          "문화/공공": 8,
+          "상업시설": 5,
+          "기업": 5,
+          "교육": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 12,
+          "비디오월": 10
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 23
+        },
+        "avg_projects_3yr": 2000,
+        "avg_revenue_3yr": "300억원",
+        "avg_revenue_3yr_million": 30000.0,
+        "years_in_business": 12,
+        "representative": "정종균",
+        "company_age_years": 12,
+        "avg_project_count_3y": 2000,
+        "avg_revenue_3y_million": 30000.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 119",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_55인치_시스메이트.pdf",
+        "file_stem": "일강_비디오월_55인치_시스메이트",
+        "source_file_hash": "3b191b9083e043b2c6d90336cebad2ec0ca4990ae35928be5a934934e8c9f068",
+        "source_file_hash_short": "3b191b90",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "본 견적은 전기, 통신공사 수요처 제공 기준입니다.",
+          "본 견적은 실시설계, 현장 실사 및 구조검토에 따라 변경될 수 있습니다.",
+          "본 견적은 운영상 필요에 따른 CMS, 컨트롤러는 제외된 견적입니다. (모니터별 개별 화면 제어시 필요)",
+          "콘텐츠 해상도, 운영관리 부분은 반드시 사전에 확인하시고 진행해 주시기 바랍니다. (4K이상 고해상도 사용시 GPU필수적용)",
+          "매립설치시 제공하는 레이아웃에 맞도록 인테리어 마감 필수입니다. (타공도 레이아웃 제공함)",
+          "돌출설치시 별도 기구물 제작 필수 입니다. (전체기구물, 사이드마감 중 선택)",
+          "인테리어 마감공사 비용은 현장답사 후 확인이 가능합니다."
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 비디오월 55인치",
+          "file_stem": "일강_비디오월_55인치_시스메이트",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "시스메이트",
+          "normalized_vendor_name": "시스메이트",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 3,
+      "quote_id": "딥사이닝_20251210_000000_ee066fd8",
+      "partner_name": "딥사이닝",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        79.26,
+        46.5,
+        84.35,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "딥사이닝",
+      "project_name": "일강 비디오월 49인치",
+      "source_file_path": "일강_비디오월_49인치_딥사이닝.pdf",
+      "final_score": 79.26,
+      "spec_score": 84.35,
+      "price_score": 46.5,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.687066777446,
+      "total_supply_price": 20300000,
+      "total_with_vat": 22330000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "발주 후 60일",
+      "warranty_months": 12,
+      "line_item_count": 5,
+      "check_required": [
+        "일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요",
+        "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.35,
+        "spec_weight": 0.3,
+        "price_score": 46.5,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 79.26,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "딥사이닝",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "사이니지",
+          "비디오월"
+        ],
+        "installation_count": 13,
+        "industry_breakdown": {
+          "기업": 7,
+          "상업시설": 3
+        },
+        "solution_breakdown": {
+          "사이니지": 6,
+          "비디오월": 3
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 9,
+          "소규모 비즈니스": 4
+        },
+        "avg_projects_3yr": 120,
+        "avg_revenue_3yr": "65억원",
+        "avg_revenue_3yr_million": 6500.0,
+        "years_in_business": 8,
+        "representative": "김동재",
+        "company_age_years": 8,
+        "avg_project_count_3y": 120,
+        "avg_revenue_3y_million": 6500.0,
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_49인치_딥사이닝.pdf",
+        "file_stem": "일강_비디오월_49인치_딥사이닝",
+        "source_file_hash": "ee066fd860b904c37e1eba12788fc19c0f6838ebf34ef8ff1b04ea066b81be64",
+        "source_file_hash_short": "ee066fd8",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "일부 품목의 수량×단가와 금액이 일치하지 않아 확인 필요",
+          "회의실 내 태양광 발전 현황 확인을 위한 비디오월 건 관련 견적서입니다. 미중복 기준으로 견적서 드립니다. 영업기회 중복 확인 후 별도로 회신"
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 비디오월 49인치",
+          "file_stem": "일강_비디오월_49인치_딥사이닝",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "딥사이닝",
+          "normalized_vendor_name": "딥사이닝",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 4,
+      "quote_id": "딥사이닝_20251211_000000_a5e77e8b",
+      "partner_name": "딥사이닝",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        75.23,
+        35.3,
+        82.13,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "딥사이닝",
+      "project_name": "일강 비디오월 55인치",
+      "source_file_path": "일강_비디오월_55인치_딥사이닝.pdf",
+      "final_score": 75.23,
+      "spec_score": 82.13,
+      "price_score": 35.3,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.642650742754,
+      "total_supply_price": 26740000,
+      "total_with_vat": 29414000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "발주 후 60일",
+      "warranty_months": 12,
+      "line_item_count": 5,
+      "check_required": [
+        "공급가+VAT와 견적서 총액이 30,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.13,
+        "spec_weight": 0.3,
+        "price_score": 35.3,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 75.23,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "딥사이닝",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "사이니지",
+          "비디오월"
+        ],
+        "installation_count": 13,
+        "industry_breakdown": {
+          "기업": 7,
+          "상업시설": 3
+        },
+        "solution_breakdown": {
+          "사이니지": 6,
+          "비디오월": 3
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 9,
+          "소규모 비즈니스": 4
+        },
+        "avg_projects_3yr": 120,
+        "avg_revenue_3yr": "65억원",
+        "avg_revenue_3yr_million": 6500.0,
+        "years_in_business": 8,
+        "representative": "김동재",
+        "company_age_years": 8,
+        "avg_project_count_3y": 120,
+        "avg_revenue_3y_million": 6500.0,
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_55인치_딥사이닝.pdf",
+        "file_stem": "일강_비디오월_55인치_딥사이닝",
+        "source_file_hash": "a5e77e8bfdfd36c7cf6d3b8043ed308284d2dc16d51f0e0ff92b2c357fdbccdc",
+        "source_file_hash_short": "a5e77e8b",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "공급가+VAT와 견적서 총액이 30,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요"
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 비디오월 55인치",
+          "file_stem": "일강_비디오월_55인치_딥사이닝",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "딥사이닝",
+          "normalized_vendor_name": "딥사이닝",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 5,
+      "quote_id": "효성ITX_20251210_000000_eb487781_opt2_비디오월",
+      "partner_name": "효성ITX",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.2,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        74.04,
+        45.38,
+        88.07,
+        1,
+        0.2,
+        2,
+        2
+      ],
+      "vendor_name": "효성ITX",
+      "project_name": "충북 음성 회의실 내 디스플레이 견적 - 비디오월",
+      "source_file_path": "일강_비디오월&LED전광판(p1_5)_효성itx.pdf",
+      "final_score": 74.04,
+      "spec_score": 88.07,
+      "price_score": 45.38,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.761412657739,
+      "total_supply_price": 20800000,
+      "total_with_vat": 22880000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "별도협의",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "납기 별도협의",
+        "운영PC 제외",
+        "현장실사 필요",
+        "유상보수정비요율 : 별도협의"
+      ],
+      "score_breakdown": {
+        "spec_score": 88.07,
+        "spec_weight": 0.3,
+        "price_score": 45.38,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 74.04,
+        "is_premium": true,
+        "success_rate": 0.2,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "운영PC 제외",
+        "현장실사 필요",
+        "유상보수정비요율 : 별도협의",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "효성ITX",
+        "is_premium_partner": true,
+        "past_success_rate": 0.2,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 12,
+        "industry_breakdown": {
+          "문화/공공": 5,
+          "기업": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 11
+        },
+        "avg_projects_3yr": null,
+        "avg_revenue_3yr": "5064억원",
+        "avg_revenue_3yr_million": 506400.0,
+        "years_in_business": 29,
+        "representative": "남경환",
+        "company_age_years": 29,
+        "avg_project_count_3y": null,
+        "avg_revenue_3y_million": 506400.0,
+        "company_location": "서울특별시 영등포구 선유로 57",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월&LED전광판(p1_5)_효성itx.pdf",
+        "file_stem": "일강_비디오월&LED전광판(p1_5)_효성itx",
+        "source_file_hash": "eb487781e89948e37c9c3a1c00d6610fd26b511ad875dbdf4226d4aa1df70e0e",
+        "source_file_hash_short": "eb487781",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 별도협의",
+          "운영PC 제외",
+          "현장실사 필요",
+          "유상보수정비요율 : 별도협의"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "충북 음성 회의실 내 디스플레이 견적 견적일 : 2025년 12월 10일 작성자: 연락처",
+          "resolved_project_name": "충북 음성 회의실 내 디스플레이 견적",
+          "file_stem": "일강_비디오월&LED전광판(p1_5)_효성itx",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "효성ITX",
+          "normalized_vendor_name": "효성itx",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "split_from_multi_option": true,
+        "parent_quote_id": "효성ITX_20251210_000000_eb487781",
+        "option_index": 2,
+        "option_label": "비디오월",
+        "option_total_candidate": {
+          "supply_price": 20800000,
+          "tax_amount": 2080000,
+          "total_with_vat": 22880000
+        },
+        "split_method": "product_group_boundary_section_reconstructed",
+        "split_confidence": "high",
+        "line_item_corrections": [],
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 6,
+      "quote_id": "다올씨앤씨_20251211_000000_b663dca5",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        66.3,
+        37.11,
+        83.88,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (4안)",
+      "source_file_path": "일강_비디오월_55인치_다올씨앤씨_4안_다올씨앤씨LCD.pdf",
+      "final_score": 66.3,
+      "spec_score": 83.88,
+      "price_score": 37.11,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.67769319246,
+      "total_supply_price": 25440000,
+      "total_with_vat": 27900000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 3,
+      "check_required": [
+        "공급가+VAT와 견적서 총액이 84,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요",
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 83.88,
+        "spec_weight": 0.3,
+        "price_score": 37.11,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 66.3,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_55인치_다올씨앤씨_4안_다올씨앤씨LCD.pdf",
+        "file_stem": "일강_비디오월_55인치_다올씨앤씨_4안_다올씨앤씨LCD",
+        "source_file_hash": "b663dca56209ee52bba8e474681d9f229f6a1f8376985aa36dcde23f91243149",
+        "source_file_hash_short": "b663dca5",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "공급가+VAT와 견적서 총액이 84,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요",
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (4안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (4안)",
+          "file_stem": "일강_비디오월_55인치_다올씨앤씨_4안_다올씨앤씨LCD",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    },
+    {
+      "rank": 7,
+      "quote_id": "다올씨앤씨_20251211_000000_a47565b3",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        65.12,
+        32.51,
+        84.56,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (3안)",
+      "source_file_path": "일강_비디오월_55인치_다올씨앤씨_3안_삼성전자.pdf",
+      "final_score": 65.12,
+      "spec_score": 84.56,
+      "price_score": 32.51,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.691270797516,
+      "total_supply_price": 29040000,
+      "total_with_vat": 31900000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 3,
+      "check_required": [
+        "공급가+VAT와 견적서 총액이 44,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요",
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.56,
+        "spec_weight": 0.3,
+        "price_score": 32.51,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 65.12,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월_55인치_다올씨앤씨_3안_삼성전자.pdf",
+        "file_stem": "일강_비디오월_55인치_다올씨앤씨_3안_삼성전자",
+        "source_file_hash": "a47565b393fac6e7334db29c10a7baa2d3bf9051b75a2b83f0fbbfe21ec4e5df",
+        "source_file_hash_short": "a47565b3",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "공급가+VAT와 견적서 총액이 44,000원 차이납니다. 만원 단위 절사 또는 조정금액 가능성 확인 필요",
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (3안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (3안)",
+          "file_stem": "일강_비디오월_55인치_다올씨앤씨_3안_삼성전자",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "비디오월"
+      }
+    }
+  ],
+  "failed_candidates": [],
+  "filtered_candidates": [],
+  "metadata": {
+    "ranking_provider": "RuleBasedRankingProvider",
+    "candidate_count": 7,
+    "failed_candidate_count": 0,
+    "filtered_candidate_count": 0,
+    "input_quote_count": 7,
+    "product_group_filter": {
+      "enabled": false,
+      "source": "grouped_product_group",
+      "input_quote_count": 7,
+      "ranking_quote_count": 7,
+      "excluded_quote_count": 0,
+      "selection_required": false,
+      "fallback_used": false
+    },
+    "product_group_excluded_candidates": [],
+    "selected_partner_names": [],
+    "selected_partner_filter_applied": false,
+    "filter_by_selected_partners": false,
+    "product_group": "비디오월",
+    "product_group_quote_count": 7,
+    "grouped_recommendation": true,
+    "baseline_type": "normal_recommendation_pipeline_result_before_explanation",
+    "baseline_scope": "product_group",
+    "explanation_provider_called": false,
+    "llm_trap_applied": false,
+    "scenario_id": "ILGANG-BASELINE-001",
+    "customer_request_summary": "회의실 내 태양광 발전 현황 확인을 위한 비디오월 및 LED전광판 견적 비교",
+    "source_data_dir": "data/일강이엔아이",
+    "quote_file_count": 11,
+    "quote_result_count": 12,
+    "group_quote_result_count": 7,
+    "product_group_counts": {
+      "비디오월": 7,
+      "LED전광판": 5
+    },
+    "failed_quote_files": [],
+    "top_n": 3,
+    "generated_at": "2026-06-16T00:39:54.320632",
+    "pipeline": {
+      "quote_parser_provider": "rule",
+      "legacy_sample_patches": false,
+      "recommendation_pipeline": "RecommendationPipeline"
+    },
+    "requirement_products": [
+      {
+        "product_type": "비디오월",
+        "display_type": null,
+        "name": "46\" 비디오월 3x3",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": 46,
+        "layout_rows": 3,
+        "layout_cols": 3,
+        "width_mm": null,
+        "height_mm": null,
+        "pitch_mm": null,
+        "pitch_max_mm": null,
+        "raw_text": "46\" 비디오월 3x3",
+        "metadata": {}
+      },
+      {
+        "product_type": "LED전광판",
+        "display_type": null,
+        "name": "LED P1.56",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": null,
+        "layout_rows": null,
+        "layout_cols": null,
+        "width_mm": 3000,
+        "height_mm": 2000,
+        "pitch_mm": 1.56,
+        "pitch_max_mm": null,
+        "raw_text": "LED P1.56, 3,000 x 2,000mm",
+        "metadata": {}
+      }
+    ],
+    "eval_baseline": true,
+    "eval_source_scenario": "ilgangeeni_videowall",
+    "eval_source_rank": 1,
+    "eval_original_qid": "다올씨앤씨_20251210_000000_88fc704c"
+  }
+}

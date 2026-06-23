@@ -1,0 +1,365 @@
+import { getStatusUi, normalizeApiStatus } from "./statusMap";
+
+const moneyFormatter = new Intl.NumberFormat("ko-KR");
+
+const sectionDefs = [
+  {
+    id: "requiredInfo",
+    title: "회사 정보",
+    defaultOpen: true,
+    rows: [
+      { label: "업력", path: ["company_info", "company_age_years"], format: (value) => withUnit(value, "년") },
+      { label: "매출액(3년 평균)", path: ["vendor_snapshot", "avg_revenue_3yr"] },
+      { label: "프로젝트 수(3년 평균)", path: ["company_info", "avg_project_count_3y"], format: (value) => withUnit(value, "건") },
+      { label: "회사 위치", path: ["company_info", "company_location"] },
+    ],
+  },
+  {
+    id: "hardware",
+    title: "하드웨어 항목",
+    defaultOpen: true,
+    rows: [
+      { label: "스크린 크기(mm)", path: ["hardware", "screen_size_mm"] },
+      { label: "해상도", path: ["hardware", "resolution"] },
+      { label: "Type", path: ["hardware", "type"] },
+      { label: "Pixel Pitch", path: ["hardware", "pixel_pitch"] },
+      { label: "소비전력(kW)", path: ["hardware", "power_consumption_kw"] },
+      { label: "밝기(cd/m²)", path: ["hardware", "brightness_cd_m2"] },
+      { label: "Refresh Rate", path: ["hardware", "refresh_rate"] },
+      { label: "무상 유지보수 기간", path: ["hardware", "free_maintenance_period"] },
+    ],
+  },
+  {
+    id: "quoteItems",
+    title: "견적 항목별 금액",
+    defaultOpen: false,
+    rows: [
+      { label: "디스플레이 H/W", costKey: "display_hw" },
+      { label: "시스템 장비", costKey: "system_equipment" },
+      { label: "설치 공사비", costKey: "installation" },
+      { label: "자재비(케이블·브라켓 등)", costKey: "materials" },
+      { label: "출장비", costKey: "travel_expense" },
+      { label: "기타", costKey: "etc" },
+      { label: "소프트웨어", costKey: "software" },
+      { label: "콘텐츠", costKey: "content" },
+    ],
+  },
+  {
+    id: "conditions",
+    title: "기타 조건",
+    defaultOpen: false,
+    rows: [
+      { label: "납기", path: ["conditions", "delivery"], highlight: "is_fastest_delivery" },
+      { label: "제품 보증 기간", path: ["conditions", "warranty_display"], highlight: "is_longest_warranty" },
+      { label: "A/S 방식", path: ["conditions", "as_method"] },
+      { label: "설치 위치", path: ["conditions", "install_location"] },
+      { label: "특이사항", path: ["conditions", "special_notes"], format: formatNotes },
+    ],
+  },
+];
+
+function getFinalScore(row) {
+  const score = row.scores?.final_score ?? row.final_score;
+  return typeof score === "number" ? score : Number.NEGATIVE_INFINITY;
+}
+
+function sortRowsByRanking(rows) {
+  return [...rows]
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const scoreDiff = getFinalScore(right.row) - getFinalScore(left.row);
+      if (scoreDiff !== 0) return scoreDiff;
+      return left.index - right.index;
+    })
+    .map(({ row }) => row);
+}
+
+function createCompareViewModel(response, options = {}) {
+  const rows = sortRowsByRanking(filterRowsByQuoteIds(response?.rows ?? [], options.quoteIds))
+    .slice(0, getExpectedQuoteCount(options));
+  const vendorCounts = getVendorCounts(rows);
+  const vendorSeen = new Map();
+  const suppliers = rows.map((row, index) => {
+    const vendorName = getVendorName(row);
+    const nextIndex = (vendorSeen.get(vendorName) ?? 0) + 1;
+    vendorSeen.set(vendorName, nextIndex);
+    return toSupplier(row, index, {
+      hasMultipleQuotes: (vendorCounts.get(vendorName) ?? 0) > 1,
+      quoteOptionIndex: nextIndex,
+      vendorName,
+    });
+  });
+  const sections = sectionDefs.map((section) => ({
+    ...section,
+    rows: section.rows.map((rowDef) => toComparisonRow(rowDef, rows)),
+  }));
+  const totalRows = [
+    {
+      label: "견적 총액",
+      cells: rows.reduce((cells, row, index) => {
+        const isUnconfirmed = row.total?.is_confirmed === false;
+        cells[getSupplierId(row, index)] = {
+          value: formatTotalDisplayText(row.total?.display_text ?? formatWon(row.total_with_vat)),
+          status: isUnconfirmed ? "needsReview" : undefined,
+          highlight: !isUnconfirmed && row.highlights?.is_lowest_total_price ? "bestPrice" : undefined,
+        };
+        return cells;
+      }, {}),
+    },
+  ];
+
+  return { suppliers, comparisonSections: sections, totalRows };
+}
+
+function getExpectedQuoteCount(options) {
+  const fileCount = options.quoteFileCount ?? 0;
+  const quoteIdCount = options.quoteIds?.length ?? 0;
+
+  if (fileCount > 0 && quoteIdCount > 0) {
+    return Math.min(fileCount, quoteIdCount);
+  }
+
+  return fileCount || quoteIdCount || undefined;
+}
+
+function toSupplier(row, index, vendorMeta) {
+  const id = getSupplierId(row, index);
+  const score = getFinalScore(row);
+  const hasScore = score !== Number.NEGATIVE_INFINITY;
+  const hasParseIssue = row.rule_warnings?.some((warning) => warning.includes("OCR") || warning.includes("Parser"));
+  const isRecommended = Boolean(row.highlights?.is_highest_score);
+  const displayName = vendorMeta.hasMultipleQuotes
+    ? `${vendorMeta.vendorName} ${vendorMeta.quoteOptionIndex}안`
+    : vendorMeta.vendorName;
+
+  return {
+    id,
+    vendorName: vendorMeta.vendorName,
+    rank: index + 1,
+    name: displayName,
+    logo: getLogo(vendorMeta.vendorName, index),
+    logoClass: ["logo-blue", "logo-purple", "logo-teal", "logo-orange", "logo-gray"][index] ?? "logo-gray",
+    fit: hasScore ? Math.round(score) : "-",
+    fitClass: hasScore && score >= 80 ? "fit-good" : "fit-warn",
+    recommended: isRecommended,
+    submitted: hasParseIssue ? "일부 항목 수정 필요" : "제출 완료",
+    badges: getSupplierBadges(row),
+    strengths: getStrengths(row),
+    weakness: getWeakness(row),
+    comparison: {},
+  };
+}
+
+function toComparisonRow(rowDef, rows) {
+  return {
+    label: rowDef.label,
+    cells: rows.reduce((cells, quoteRow, index) => {
+      const cell = rowDef.costKey
+        ? getCostCell(quoteRow, rowDef.costKey, rowDef.label)
+        : getValueCell(quoteRow, rowDef);
+      cells[getSupplierId(quoteRow, index)] = cell;
+      return cells;
+    }, {}),
+  };
+}
+
+function getCostCell(row, costKey, rowLabel) {
+  const item = row.cost_breakdown?.[costKey];
+  const value = formatCostValue(item);
+  const status =
+    normalizeApiStatus(item?.status) ?? getDisplayStatus(value);
+  // 추출 실패 셀: 값은 "-"로 두고 배지("수정 필요")와 보조 안내로 원인을 전달
+  const cell = normalizeMissingCompareCell({
+    value: status === "parseFail" ? "-" : value,
+    status,
+  });
+
+  if (rowLabel === "출장비" && cell.status === "toBeDiscussed") {
+    return {
+      value: cell.value === "-" ? "확인 필요" : cell.value,
+      highlight: cell.highlight,
+    };
+  }
+
+  return cell;
+}
+
+function getValueCell(row, rowDef) {
+  if (rowDef.label === "특이사항") {
+    return { value: "", status: "editable" };
+  }
+
+  const rawValue = getByPath(row, rowDef.path);
+  const value = rowDef.format ? rowDef.format(rawValue) : formatEmpty(rawValue);
+  const status = getDisplayStatus(value);
+  const highlight = rowDef.highlight && row.highlights?.[rowDef.highlight] ? "bestValue" : undefined;
+  return normalizeMissingCompareCell({ value, status, highlight });
+}
+
+function normalizeMissingCompareCell(cell) {
+  if (!cell) {
+    return { value: "-", status: "missing" };
+  }
+
+  const { value, status, ...rest } = cell;
+  const isMissing =
+    status === "missing" ||
+    value === "미기재" ||
+    value === "-" ||
+    value === "—";
+
+  if (isMissing) {
+    return { ...rest, value: "-", status: "missing" };
+  }
+
+  return cell;
+}
+
+function getDerivedStatus(value) {
+  if (value === "-" || value === "미기재") return "missing";
+  return undefined;
+}
+
+function formatCostValue(item) {
+  if (!item) return "-";
+  const normalizedStatus = normalizeApiStatus(item?.status);
+  if (normalizedStatus === "missing") return "-";
+  if (typeof item.amount === "number") {
+    return formatWon(item.amount);
+  }
+  const statusUi = getStatusUi(item.status);
+  if (!statusUi || statusUi.badge === "미기재") return "-";
+  return statusUi.badge ?? item.status ?? "-";
+}
+
+function getDisplayStatus(value) {
+  const normalizedStatus = normalizeApiStatus(value);
+  if (normalizedStatus && getStatusUi(normalizedStatus)) {
+    return normalizedStatus;
+  }
+  return getDerivedStatus(value);
+}
+
+function formatWon(value) {
+  if (typeof value !== "number") return "-";
+  return `₩${moneyFormatter.format(value)}`;
+}
+
+function formatTotalDisplayText(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  const stripped = stripVatAnnotation(String(value));
+  return stripped || "-";
+}
+
+function stripVatAnnotation(text) {
+  return String(text)
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*[\r\n]+\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*미포함\s*\)?/gi, "")
+    .replace(/\s*\(?\s*VAT\s*포함\s*\)?/gi, "")
+    .trim();
+}
+
+function formatNotes(value) {
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "-";
+  return formatEmpty(value);
+}
+
+function formatEmpty(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  return value;
+}
+
+function withUnit(value, unit) {
+  if (value === null || value === undefined || value === "") return "-";
+  return `${value}${unit}`;
+}
+
+function getByPath(source, path) {
+  return path.reduce((value, key) => value?.[key], source);
+}
+
+function getSupplierId(row, index = 0) {
+  const quoteId = getRowQuoteId(row);
+  if (quoteId !== null && quoteId !== undefined && quoteId !== "") {
+    return `quote-${quoteId}-${index}`;
+  }
+
+  return (
+    row.id ??
+    row.vendor_snapshot?.vendor_id ??
+    `${getVendorName(row)}-${index}`
+  );
+}
+
+function getRowQuoteId(row) {
+  return row.quote_id ?? row.id ?? row.vendor_snapshot?.quote_id;
+}
+
+function filterRowsByQuoteIds(rows, quoteIds = []) {
+  const expectedIds = new Set((quoteIds ?? []).map((id) => String(id)));
+  const seenQuoteIds = new Set();
+
+  return rows.filter((row) => {
+    const quoteId = getRowQuoteId(row);
+
+    if (quoteId === null || quoteId === undefined || quoteId === "") {
+      return true;
+    }
+
+    const normalizedQuoteId = String(quoteId);
+    if (expectedIds.size > 0 && !expectedIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    if (seenQuoteIds.has(normalizedQuoteId)) {
+      return false;
+    }
+
+    seenQuoteIds.add(normalizedQuoteId);
+    return true;
+  });
+}
+
+function getVendorName(row) {
+  return row.vendor_name || row.vendor_snapshot?.vendor_name || "공급사명 확인 필요";
+}
+
+function getVendorCounts(rows) {
+  return rows.reduce((counts, row) => {
+    const vendorName = getVendorName(row);
+    counts.set(vendorName, (counts.get(vendorName) ?? 0) + 1);
+    return counts;
+  }, new Map());
+}
+
+function getLogo(name, index) {
+  if (!name || name.includes("확인 필요")) return "?";
+  return name.slice(0, 1).toUpperCase() || String(index + 1);
+}
+
+function getSupplierBadges(row) {
+  const badges = [];
+  if (row.highlights?.is_lowest_total_price) badges.push("최저가");
+  if (row.highlights?.is_fastest_delivery) badges.push("납기 우위");
+  if (row.vendor_snapshot?.is_premium_partner) badges.push("프리미엄 파트너");
+  if (row.total?.is_confirmed === false) badges.push("총액 미확정");
+  return badges.length > 0 ? badges : ["검토 대상"];
+}
+
+function getStrengths(row) {
+  const strengths = [];
+  if (row.highlights?.is_lowest_total_price) strengths.push("가격 경쟁력");
+  if (row.highlights?.is_fastest_delivery) strengths.push("납기 우위");
+  if (row.highlights?.is_longest_warranty) strengths.push("보증 조건 우수");
+  if (row.vendor_snapshot?.is_premium_partner) strengths.push("프리미엄 파트너");
+  return strengths.length > 0 ? strengths.join(", ") : "조건 확인 후 판단 가능";
+}
+
+function getWeakness(row) {
+  const issues = [...(row.check_required ?? []), ...(row.rule_warnings ?? [])];
+  // 단점이 없을 때 빈칸/하이픈을 "양호"로 오해하지 않도록 명시 (가이드 #13)
+  return issues.length > 0 ? issues.join(", ") : "특이 단점 없음";
+}
+
+export { createCompareViewModel };

@@ -1,0 +1,212 @@
+=== V-02 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ business_sort_key:
+      baseline = [1, 87.24, 74.36, 83.12, 0, 0.04, 2, 2]
+      함정     = [1, 73.4, 28.81, 82.54, 1, 0.1, 2, 2]
+  ▶ check_required:
+      baseline = []
+      함정     = ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도', '추천 순위(rank 1)가 종합점수 1위와 일치하지 않음 — 순위 산정 기준 확인 필요']
+  ▶ cosine_similarity:
+      baseline = 0.662325551544
+      함정     = 0.650702354102
+  ▶ delivery_basis_raw:
+      baseline = '발주 후 60일'
+      함정     = '발주 후 2~3주'
+  ▶ delivery_weeks:
+      baseline = 9
+      함정     = 3
+  ▶ final_score:
+      baseline = 87.24
+      함정     = 73.4
+  ▶ is_premium:
+      baseline = False
+      함정     = True
+  ▶ line_item_count:
+      baseline = 7
+      함정     = 4
+  ▶ matched_rules:
+      baseline = []
+      함정     = ['premium_partner', 'high_success_rate']
+  ▶ metadata:
+      baseline = {'file_name': '일강_LED전광판(p1_5)_딥사이닝.pdf', 'file_stem': '일강_LED전광판(p1_5)_딥사이닝', 'source_file_hash': '77806994be8dd0e10800f069622217bffa02cf6cd82cfb2127bbd81371b04243', 'source_file_hash_short': '77806994', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_master_text', 'vendor_name_confidence': 0.95, 'parser_check_required': [], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판', 'file_stem': '일강_LED전광판(p1_5)_딥사이닝', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '딥사이닝', 'normalized_vendor_name': '딥사이닝', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': [], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': ['가격 차이 5% 초과'], 'product_group': 'LED전광판'}
+      함정     = {'file_name': '일강_LED전광판(p1_5)_오리온.pdf', 'file_stem': '일강_LED전광판(p1_5)_오리온', 'source_file_hash': '1795a1b3b592bf5a4eb1c40339556dfac6d0bd570bf40c9871e956fad0775cda', 'source_file_hash_short': '1795a1b3', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_alias', 'vendor_name_confidence': 0.98, 'parser_check_required': ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도'], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판 오리온', 'file_stem': '일강_LED전광판(p1_5)_오리온', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '오리온디스플레이', 'normalized_vendor_name': '오리온디스플레이', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': ['premium_partner', 'high_success_rate'], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': ['가격 차이 5% 초과'], 'product_group': 'LED전광판'}
+  ▶ partner_name:
+      baseline = '딥사이닝'
+      함정     = '오리온디스플레이'
+  ▶ price_score:
+      baseline = 74.36
+      함정     = 28.81
+  ▶ project_name:
+      baseline = '일강 LED전광판'
+      함정     = '일강 LED전광판 오리온'
+  ▶ quote_id:
+      baseline = 'V-02'
+      함정     = '오리온디스플레이_19700101_000000_1795a1b3'
+  ▶ score_breakdown:
+      baseline = {'spec_score': 83.12, 'spec_weight': 0.3, 'price_score': 74.36, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 87.24, 'is_premium': False, 'success_rate': 0.04, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 1.0}
+      함정     = {'spec_score': 82.54, 'spec_weight': 0.3, 'price_score': 28.81, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 73.4, 'is_premium': True, 'success_rate': 0.1, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 2.0}
+  ▶ source_file_path:
+      baseline = '일강_LED전광판(p1_5)_딥사이닝.pdf'
+      함정     = '일강_LED전광판(p1_5)_오리온.pdf'
+  ▶ spec_score:
+      baseline = 83.12
+      함정     = 82.54
+  ▶ special_notes:
+      baseline = ['일강이엔아이 충북 음성공장 건 관련 견적서입니다.', '설치비 포함 여부: True']
+      함정     = ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '설치비 포함 여부: True']
+  ▶ success_rate:
+      baseline = 0.04
+      함정     = 0.1
+  ▶ total_supply_price:
+      baseline = 7800000
+      함정     = 20130000
+  ▶ total_with_vat:
+      baseline = 8580000
+      함정     = 22143000
+  ▶ vendor_name:
+      baseline = '딥사이닝'
+      함정     = '오리온디스플레이'
+  ▶ vendor_snapshot_summary:
+      baseline = {'vendor_id': None, 'vendor_name': '딥사이닝', 'is_premium_partner': False, 'past_success_rate': 0.04, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['사이니지', '비디오월'], 'installation_count': 13, 'industry_breakdown': {'기업': 7, '상업시설': 3}, 'solution_breakdown': {'사이니지': 6, '비디오월': 3}, 'scale_breakdown': {'엔터프라이즈': 9, '소규모 비즈니스': 4}, 'avg_projects_3yr': 120, 'avg_revenue_3yr': '65억원', 'avg_revenue_3yr_million': 6500.0, 'years_in_business': 8, 'representative': '김동재', 'company_age_years': 8, 'avg_project_count_3y': 120, 'avg_revenue_3y_million': 6500.0, 'company_location': '경기도 성남시 중원구 갈마치로 302', 'source': 'data/partners.py'}
+      함정     = {'vendor_id': None, 'vendor_name': '오리온디스플레이', 'is_premium_partner': True, 'past_success_rate': 0.1, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['LED전광판', '비디오월'], 'installation_count': 51, 'industry_breakdown': {'상업시설': 25, '기업': 16, '병원': 4, '교육': 3, '문화/공공': 3}, 'solution_breakdown': {'LED전광판': 46, '비디오월': 4}, 'scale_breakdown': {'엔터프라이즈': 42, '소규모 비즈니스': 9}, 'avg_projects_3yr': 100, 'avg_revenue_3yr': '31억원', 'avg_revenue_3yr_million': 3100.0, 'years_in_business': 23, 'representative': '유준수', 'company_age_years': 23, 'avg_project_count_3y': 100, 'avg_revenue_3y_million': 3100.0, 'company_location': '서울특별시 금천구 가산디지털1로 181', 'source': 'data/partners.py'}
+
+[items[1]] (rank 2)
+  ▶ business_sort_key:
+      baseline = [1, 94.73, 100.0, 82.45, 0, 0.04, 2, 2]
+      함정     = [1, 87.24, 74.36, 83.12, 0, 0.04, 2, 2]
+  ▶ check_required:
+      baseline = ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+      함정     = []
+  ▶ comparison_risks:
+      baseline = []
+      함정     = ['최저가 대비 가격 차이 5% 초과']
+  ▶ cosine_similarity:
+      baseline = 0.648904043827
+      함정     = 0.662325551544
+  ▶ delivery_basis_raw:
+      baseline = '45일 이내(발주서 접수 후)'
+      함정     = '발주 후 60일'
+  ▶ delivery_weeks:
+      baseline = 7
+      함정     = 9
+  ▶ final_score:
+      baseline = 94.73
+      함정     = 87.24
+  ▶ line_item_count:
+      baseline = 4
+      함정     = 7
+  ▶ metadata:
+      baseline = {'file_name': '일강_LED전광판(p1_5)_시스메이트.pdf', 'file_stem': '일강_LED전광판(p1_5)_시스메이트', 'source_file_hash': '62238296ae3b1858bbec5d6ee0346bfce37cb491b9fba1305942582cab59bde2', 'source_file_hash_short': '62238296', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_master_text', 'vendor_name_confidence': 0.95, 'parser_check_required': ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.'], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판', 'file_stem': '일강_LED전광판(p1_5)_시스메이트', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '시스메이트', 'normalized_vendor_name': '시스메이트', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': [], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': [], 'product_group': 'LED전광판'}
+      함정     = {'file_name': '일강_LED전광판(p1_5)_딥사이닝.pdf', 'file_stem': '일강_LED전광판(p1_5)_딥사이닝', 'source_file_hash': '77806994be8dd0e10800f069622217bffa02cf6cd82cfb2127bbd81371b04243', 'source_file_hash_short': '77806994', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_master_text', 'vendor_name_confidence': 0.95, 'parser_check_required': [], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판', 'file_stem': '일강_LED전광판(p1_5)_딥사이닝', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '딥사이닝', 'normalized_vendor_name': '딥사이닝', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': [], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': ['가격 차이 5% 초과'], 'product_group': 'LED전광판'}
+  ▶ partner_name:
+      baseline = '시스메이트'
+      함정     = '딥사이닝'
+  ▶ price_score:
+      baseline = 100.0
+      함정     = 74.36
+  ▶ quote_id:
+      baseline = '시스메이트_20251211_000000_62238296'
+      함정     = 'V-02'
+  ▶ rule_warnings:
+      baseline = []
+      함정     = ['가격 차이 5% 초과']
+  ▶ score_breakdown:
+      baseline = {'spec_score': 82.45, 'spec_weight': 0.3, 'price_score': 100.0, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 94.73, 'is_premium': False, 'success_rate': 0.04, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 2.0}
+      함정     = {'spec_score': 83.12, 'spec_weight': 0.3, 'price_score': 74.36, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 87.24, 'is_premium': False, 'success_rate': 0.04, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 1.0}
+  ▶ source_file_path:
+      baseline = '일강_LED전광판(p1_5)_시스메이트.pdf'
+      함정     = '일강_LED전광판(p1_5)_딥사이닝.pdf'
+  ▶ spec_score:
+      baseline = 82.45
+      함정     = 83.12
+  ▶ special_notes:
+      baseline = ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.', '설치비 포함 여부: True']
+      함정     = ['일강이엔아이 충북 음성공장 건 관련 견적서입니다.', '설치비 포함 여부: True']
+  ▶ total_supply_price:
+      baseline = 5800000
+      함정     = 7800000
+  ▶ total_with_vat:
+      baseline = 6380000
+      함정     = 8580000
+  ▶ vendor_name:
+      baseline = '시스메이트'
+      함정     = '딥사이닝'
+  ▶ vendor_snapshot_summary:
+      baseline = {'vendor_id': None, 'vendor_name': '시스메이트', 'is_premium_partner': False, 'past_success_rate': 0.04, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['LED전광판', '비디오월'], 'installation_count': 23, 'industry_breakdown': {'문화/공공': 8, '상업시설': 5, '기업': 5, '교육': 3}, 'solution_breakdown': {'LED전광판': 12, '비디오월': 10}, 'scale_breakdown': {'엔터프라이즈': 23}, 'avg_projects_3yr': 2000, 'avg_revenue_3yr': '300억원', 'avg_revenue_3yr_million': 30000.0, 'years_in_business': 12, 'representative': '정종균', 'company_age_years': 12, 'avg_project_count_3y': 2000, 'avg_revenue_3y_million': 30000.0, 'company_location': '서울특별시 금천구 가산디지털1로 119', 'source': 'data/partners.py'}
+      함정     = {'vendor_id': None, 'vendor_name': '딥사이닝', 'is_premium_partner': False, 'past_success_rate': 0.04, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['사이니지', '비디오월'], 'installation_count': 13, 'industry_breakdown': {'기업': 7, '상업시설': 3}, 'solution_breakdown': {'사이니지': 6, '비디오월': 3}, 'scale_breakdown': {'엔터프라이즈': 9, '소규모 비즈니스': 4}, 'avg_projects_3yr': 120, 'avg_revenue_3yr': '65억원', 'avg_revenue_3yr_million': 6500.0, 'years_in_business': 8, 'representative': '김동재', 'company_age_years': 8, 'avg_project_count_3y': 120, 'avg_revenue_3y_million': 6500.0, 'company_location': '경기도 성남시 중원구 갈마치로 302', 'source': 'data/partners.py'}
+
+[items[2]] (rank 3)
+  ▶ business_sort_key:
+      baseline = [1, 73.4, 28.81, 82.54, 1, 0.1, 2, 2]
+      함정     = [1, 94.73, 100.0, 82.45, 0, 0.04, 2, 2]
+  ▶ check_required:
+      baseline = ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도']
+      함정     = ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.']
+  ▶ comparison_risks:
+      baseline = ['최저가 대비 가격 차이 5% 초과']
+      함정     = []
+  ▶ cosine_similarity:
+      baseline = 0.650702354102
+      함정     = 0.648904043827
+  ▶ delivery_basis_raw:
+      baseline = '발주 후 2~3주'
+      함정     = '45일 이내(발주서 접수 후)'
+  ▶ delivery_weeks:
+      baseline = 3
+      함정     = 7
+  ▶ final_score:
+      baseline = 73.4
+      함정     = 94.73
+  ▶ is_premium:
+      baseline = True
+      함정     = False
+  ▶ matched_rules:
+      baseline = ['premium_partner', 'high_success_rate']
+      함정     = []
+  ▶ metadata:
+      baseline = {'file_name': '일강_LED전광판(p1_5)_오리온.pdf', 'file_stem': '일강_LED전광판(p1_5)_오리온', 'source_file_hash': '1795a1b3b592bf5a4eb1c40339556dfac6d0bd570bf40c9871e956fad0775cda', 'source_file_hash_short': '1795a1b3', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_alias', 'vendor_name_confidence': 0.98, 'parser_check_required': ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '전기공사 별도'], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판 오리온', 'file_stem': '일강_LED전광판(p1_5)_오리온', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '오리온디스플레이', 'normalized_vendor_name': '오리온디스플레이', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': ['premium_partner', 'high_success_rate'], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': ['가격 차이 5% 초과'], 'product_group': 'LED전광판'}
+      함정     = {'file_name': '일강_LED전광판(p1_5)_시스메이트.pdf', 'file_stem': '일강_LED전광판(p1_5)_시스메이트', 'source_file_hash': '62238296ae3b1858bbec5d6ee0346bfce37cb491b9fba1305942582cab59bde2', 'source_file_hash_short': '62238296', 'ocr_provider': 'AzureDocumnetIntelligenceProvider', 'parser_provider': 'RuleBasedQuoteParser', 'vendor_name_source': 'partner_master_text', 'vendor_name_confidence': 0.95, 'parser_check_required': ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.'], 'parser_quality_notes': ['프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'], 'project_name_resolution': {'source': 'file_name_fallback', 'original_project_name': '', 'resolved_project_name': '일강 LED전광판', 'file_stem': '일강_LED전광판(p1_5)_시스메이트', 'check_required_added': True, 'check_required_message': '프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨'}, 'vendor_snapshot': {'vendor_snapshot_source': 'data/partners.py', 'partner_found': True, 'matched_partner_name': '시스메이트', 'normalized_vendor_name': '시스메이트', 'snapshot_fields': ['is_premium_partner', 'past_success_rate', 'response_speed_score', 'response_speed', 'financial_status', 'is_excluded', 'specialty_tags', 'installation_count', 'industry_breakdown', 'solution_breakdown', 'scale_breakdown', 'avg_projects_3yr', 'avg_revenue_3yr', 'years_in_business', 'representative', 'company_location']}, 'embedding_provider': 'AzureOpenAIEmbeddingProvider', 'status': 'completed', 'embedding_status': 'completed', 'matched_rules': [], 'vendor_snapshot_source': 'data/partners.py', 'is_excluded': False, 'rule_warnings': [], 'product_group': 'LED전광판'}
+  ▶ partner_name:
+      baseline = '오리온디스플레이'
+      함정     = '시스메이트'
+  ▶ price_score:
+      baseline = 28.81
+      함정     = 100.0
+  ▶ project_name:
+      baseline = '일강 LED전광판 오리온'
+      함정     = '일강 LED전광판'
+  ▶ quote_id:
+      baseline = '오리온디스플레이_19700101_000000_1795a1b3'
+      함정     = '시스메이트_20251211_000000_62238296'
+  ▶ rule_warnings:
+      baseline = ['가격 차이 5% 초과']
+      함정     = []
+  ▶ score_breakdown:
+      baseline = {'spec_score': 82.54, 'spec_weight': 0.3, 'price_score': 28.81, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 73.4, 'is_premium': True, 'success_rate': 0.1, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 2.0}
+      함정     = {'spec_score': 82.45, 'spec_weight': 0.3, 'price_score': 100.0, 'price_weight': 0.3, 'delivery_score': 100.0, 'delivery_weight': 0.2, 'warranty_score': 100.0, 'warranty_weight': 0.1, 'installation_score': 100.0, 'installation_weight': 0.1, 'final_score': 94.73, 'is_premium': False, 'success_rate': 0.04, 'response_speed_score': 2, 'financial_status_score': 2, 'business_rule_passed': True, 'specialty_match_score': 2.0}
+  ▶ source_file_path:
+      baseline = '일강_LED전광판(p1_5)_오리온.pdf'
+      함정     = '일강_LED전광판(p1_5)_시스메이트.pdf'
+  ▶ spec_score:
+      baseline = 82.54
+      함정     = 82.45
+  ▶ special_notes:
+      baseline = ['전기공사', '전기, 증설 등 필요시 현장실사 후 별도', '본 견적서에 대하여 외부 유출 금할것을 당부드립니다.', '설치비 포함 여부: True']
+      함정     = ['전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )', '실내 설치 기준이며, 전기통신 공사는 제외됩니다.', '현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.', '설치비 포함 여부: True']
+  ▶ success_rate:
+      baseline = 0.1
+      함정     = 0.04
+  ▶ total_supply_price:
+      baseline = 20130000
+      함정     = 5800000
+  ▶ total_with_vat:
+      baseline = 22143000
+      함정     = 6380000
+  ▶ vendor_name:
+      baseline = '오리온디스플레이'
+      함정     = '시스메이트'
+  ▶ vendor_snapshot_summary:
+      baseline = {'vendor_id': None, 'vendor_name': '오리온디스플레이', 'is_premium_partner': True, 'past_success_rate': 0.1, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['LED전광판', '비디오월'], 'installation_count': 51, 'industry_breakdown': {'상업시설': 25, '기업': 16, '병원': 4, '교육': 3, '문화/공공': 3}, 'solution_breakdown': {'LED전광판': 46, '비디오월': 4}, 'scale_breakdown': {'엔터프라이즈': 42, '소규모 비즈니스': 9}, 'avg_projects_3yr': 100, 'avg_revenue_3yr': '31억원', 'avg_revenue_3yr_million': 3100.0, 'years_in_business': 23, 'representative': '유준수', 'company_age_years': 23, 'avg_project_count_3y': 100, 'avg_revenue_3y_million': 3100.0, 'company_location': '서울특별시 금천구 가산디지털1로 181', 'source': 'data/partners.py'}
+      함정     = {'vendor_id': None, 'vendor_name': '시스메이트', 'is_premium_partner': False, 'past_success_rate': 0.04, 'response_speed_score': 70.0, 'response_speed': 'normal', 'financial_status': 'normal', 'is_excluded': False, 'specialty_tags': ['LED전광판', '비디오월'], 'installation_count': 23, 'industry_breakdown': {'문화/공공': 8, '상업시설': 5, '기업': 5, '교육': 3}, 'solution_breakdown': {'LED전광판': 12, '비디오월': 10}, 'scale_breakdown': {'엔터프라이즈': 23}, 'avg_projects_3yr': 2000, 'avg_revenue_3yr': '300억원', 'avg_revenue_3yr_million': 30000.0, 'years_in_business': 12, 'representative': '정종균', 'company_age_years': 12, 'avg_project_count_3y': 2000, 'avg_revenue_3y_million': 30000.0, 'company_location': '서울특별시 금천구 가산디지털1로 119', 'source': 'data/partners.py'}

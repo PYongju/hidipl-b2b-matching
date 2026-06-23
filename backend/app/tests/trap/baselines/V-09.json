@@ -1,0 +1,1501 @@
+{
+  "request_id": "baseline-eval-V-09",
+  "customer_name": "일강이엔아이",
+  "top_n": 3,
+  "items": [
+    {
+      "rank": 1,
+      "quote_id": "V-09",
+      "partner_name": "오리온디스플레이",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.1,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        73.4,
+        28.81,
+        82.54,
+        1,
+        0.1,
+        2,
+        2
+      ],
+      "vendor_name": "오리온디스플레이",
+      "project_name": "일강 LED전광판 오리온",
+      "source_file_path": "일강_LED전광판(p1_5)_오리온.pdf",
+      "final_score": 73.4,
+      "spec_score": 82.54,
+      "price_score": 28.81,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.650702354102,
+      "total_supply_price": 20130000,
+      "total_with_vat": 22143000,
+      "delivery_weeks": 3,
+      "delivery_basis_raw": "발주 후 2~3주",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "전기공사",
+        "전기, 증설 등 필요시 현장실사 후 별도",
+        "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+        "전기공사 별도"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.54,
+        "spec_weight": 0.3,
+        "price_score": 28.81,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 73.4,
+        "is_premium": true,
+        "success_rate": 0.1,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "전기공사",
+        "전기, 증설 등 필요시 현장실사 후 별도",
+        "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "오리온디스플레이",
+        "is_premium_partner": true,
+        "past_success_rate": 0.1,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 51,
+        "industry_breakdown": {
+          "상업시설": 25,
+          "기업": 16,
+          "병원": 4,
+          "교육": 3,
+          "문화/공공": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 46,
+          "비디오월": 4
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 42,
+          "소규모 비즈니스": 9
+        },
+        "avg_projects_3yr": 100,
+        "avg_revenue_3yr": "31억원",
+        "avg_revenue_3yr_million": 3100.0,
+        "years_in_business": 23,
+        "representative": "유준수",
+        "company_age_years": 23,
+        "avg_project_count_3y": 100,
+        "avg_revenue_3y_million": 3100.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_오리온.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_오리온",
+        "source_file_hash": "1795a1b3b592bf5a4eb1c40339556dfac6d0bd570bf40c9871e956fad0775cda",
+        "source_file_hash_short": "1795a1b3",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "전기공사",
+          "전기, 증설 등 필요시 현장실사 후 별도",
+          "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+          "전기공사 별도"
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판 오리온",
+          "file_stem": "일강_LED전광판(p1_5)_오리온",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "오리온디스플레이",
+          "normalized_vendor_name": "오리온디스플레이",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 2,
+      "quote_id": "시스메이트_20251211_000000_62238296",
+      "partner_name": "시스메이트",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        94.73,
+        100.0,
+        82.45,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "시스메이트",
+      "project_name": "일강 LED전광판",
+      "source_file_path": "일강_LED전광판(p1_5)_시스메이트.pdf",
+      "final_score": 94.73,
+      "spec_score": 82.45,
+      "price_score": 100.0,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.648904043827,
+      "total_supply_price": 5800000,
+      "total_with_vat": 6380000,
+      "delivery_weeks": 7,
+      "delivery_basis_raw": "45일 이내(발주서 접수 후)",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+        "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+        "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다."
+      ],
+      "score_breakdown": {
+        "spec_score": 82.45,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 94.73,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+        "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+        "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "시스메이트",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 23,
+        "industry_breakdown": {
+          "문화/공공": 8,
+          "상업시설": 5,
+          "기업": 5,
+          "교육": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 12,
+          "비디오월": 10
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 23
+        },
+        "avg_projects_3yr": 2000,
+        "avg_revenue_3yr": "300억원",
+        "avg_revenue_3yr_million": 30000.0,
+        "years_in_business": 12,
+        "representative": "정종균",
+        "company_age_years": 12,
+        "avg_project_count_3y": 2000,
+        "avg_revenue_3y_million": 30000.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 119",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_시스메이트.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_시스메이트",
+        "source_file_hash": "62238296ae3b1858bbec5d6ee0346bfce37cb491b9fba1305942582cab59bde2",
+        "source_file_hash_short": "62238296",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+          "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+          "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다."
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판",
+          "file_stem": "일강_LED전광판(p1_5)_시스메이트",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "시스메이트",
+          "normalized_vendor_name": "시스메이트",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 3,
+      "quote_id": "딥사이닝_20251210_000000_77806994",
+      "partner_name": "딥사이닝",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        87.24,
+        74.36,
+        83.12,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "딥사이닝",
+      "project_name": "일강 LED전광판",
+      "source_file_path": "일강_LED전광판(p1_5)_딥사이닝.pdf",
+      "final_score": 87.24,
+      "spec_score": 83.12,
+      "price_score": 74.36,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.662325551544,
+      "total_supply_price": 7800000,
+      "total_with_vat": 8580000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "발주 후 60일",
+      "warranty_months": 12,
+      "line_item_count": 7,
+      "check_required": [],
+      "score_breakdown": {
+        "spec_score": 83.12,
+        "spec_weight": 0.3,
+        "price_score": 74.36,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 87.24,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "일강이엔아이 충북 음성공장 건 관련 견적서입니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "딥사이닝",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "사이니지",
+          "비디오월"
+        ],
+        "installation_count": 13,
+        "industry_breakdown": {
+          "기업": 7,
+          "상업시설": 3
+        },
+        "solution_breakdown": {
+          "사이니지": 6,
+          "비디오월": 3
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 9,
+          "소규모 비즈니스": 4
+        },
+        "avg_projects_3yr": 120,
+        "avg_revenue_3yr": "65억원",
+        "avg_revenue_3yr_million": 6500.0,
+        "years_in_business": 8,
+        "representative": "김동재",
+        "company_age_years": 8,
+        "avg_project_count_3y": 120,
+        "avg_revenue_3y_million": 6500.0,
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_딥사이닝.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_딥사이닝",
+        "source_file_hash": "77806994be8dd0e10800f069622217bffa02cf6cd82cfb2127bbd81371b04243",
+        "source_file_hash_short": "77806994",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판",
+          "file_stem": "일강_LED전광판(p1_5)_딥사이닝",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "딥사이닝",
+          "normalized_vendor_name": "딥사이닝",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    }
+  ],
+  "all_items": [
+    {
+      "rank": 1,
+      "quote_id": "시스메이트_20251211_000000_62238296",
+      "partner_name": "시스메이트",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        94.73,
+        100.0,
+        82.45,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "시스메이트",
+      "project_name": "일강 LED전광판",
+      "source_file_path": "일강_LED전광판(p1_5)_시스메이트.pdf",
+      "final_score": 94.73,
+      "spec_score": 82.45,
+      "price_score": 100.0,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.648904043827,
+      "total_supply_price": 5800000,
+      "total_with_vat": 6380000,
+      "delivery_weeks": 7,
+      "delivery_basis_raw": "45일 이내(발주서 접수 후)",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+        "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+        "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다."
+      ],
+      "score_breakdown": {
+        "spec_score": 82.45,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 94.73,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+        "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+        "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "시스메이트",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 23,
+        "industry_breakdown": {
+          "문화/공공": 8,
+          "상업시설": 5,
+          "기업": 5,
+          "교육": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 12,
+          "비디오월": 10
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 23
+        },
+        "avg_projects_3yr": 2000,
+        "avg_revenue_3yr": "300억원",
+        "avg_revenue_3yr_million": 30000.0,
+        "years_in_business": 12,
+        "representative": "정종균",
+        "company_age_years": 12,
+        "avg_project_count_3y": 2000,
+        "avg_revenue_3y_million": 30000.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 119",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_시스메이트.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_시스메이트",
+        "source_file_hash": "62238296ae3b1858bbec5d6ee0346bfce37cb491b9fba1305942582cab59bde2",
+        "source_file_hash_short": "62238296",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "전원 220V사용, 통신 UTP CAT.5E 사용 ( 최대전력 2 KW, 20A 차단기 1ea )",
+          "실내 설치 기준이며, 전기통신 공사는 제외됩니다.",
+          "현장 실사후 컨디션에 따라 비용은 변경될 수 있습니다."
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판",
+          "file_stem": "일강_LED전광판(p1_5)_시스메이트",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "시스메이트",
+          "normalized_vendor_name": "시스메이트",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 2,
+      "quote_id": "딥사이닝_20251210_000000_77806994",
+      "partner_name": "딥사이닝",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        87.24,
+        74.36,
+        83.12,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "딥사이닝",
+      "project_name": "일강 LED전광판",
+      "source_file_path": "일강_LED전광판(p1_5)_딥사이닝.pdf",
+      "final_score": 87.24,
+      "spec_score": 83.12,
+      "price_score": 74.36,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.662325551544,
+      "total_supply_price": 7800000,
+      "total_with_vat": 8580000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "발주 후 60일",
+      "warranty_months": 12,
+      "line_item_count": 7,
+      "check_required": [],
+      "score_breakdown": {
+        "spec_score": 83.12,
+        "spec_weight": 0.3,
+        "price_score": 74.36,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 87.24,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "일강이엔아이 충북 음성공장 건 관련 견적서입니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "딥사이닝",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "사이니지",
+          "비디오월"
+        ],
+        "installation_count": 13,
+        "industry_breakdown": {
+          "기업": 7,
+          "상업시설": 3
+        },
+        "solution_breakdown": {
+          "사이니지": 6,
+          "비디오월": 3
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 9,
+          "소규모 비즈니스": 4
+        },
+        "avg_projects_3yr": 120,
+        "avg_revenue_3yr": "65억원",
+        "avg_revenue_3yr_million": 6500.0,
+        "years_in_business": 8,
+        "representative": "김동재",
+        "company_age_years": 8,
+        "avg_project_count_3y": 120,
+        "avg_revenue_3y_million": 6500.0,
+        "company_location": "경기도 성남시 중원구 갈마치로 302",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_딥사이닝.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_딥사이닝",
+        "source_file_hash": "77806994be8dd0e10800f069622217bffa02cf6cd82cfb2127bbd81371b04243",
+        "source_file_hash_short": "77806994",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판",
+          "file_stem": "일강_LED전광판(p1_5)_딥사이닝",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "딥사이닝",
+          "normalized_vendor_name": "딥사이닝",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 3,
+      "quote_id": "V-09",
+      "partner_name": "오리온디스플레이",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.1,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        73.4,
+        28.81,
+        82.54,
+        1,
+        0.1,
+        2,
+        2
+      ],
+      "vendor_name": "오리온디스플레이",
+      "project_name": "일강 LED전광판 오리온",
+      "source_file_path": "일강_LED전광판(p1_5)_오리온.pdf",
+      "final_score": 73.4,
+      "spec_score": 82.54,
+      "price_score": 28.81,
+      "delivery_score": 100.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.650702354102,
+      "total_supply_price": 20130000,
+      "total_with_vat": 22143000,
+      "delivery_weeks": 3,
+      "delivery_basis_raw": "발주 후 2~3주",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "전기공사",
+        "전기, 증설 등 필요시 현장실사 후 별도",
+        "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+        "전기공사 별도"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.54,
+        "spec_weight": 0.3,
+        "price_score": 28.81,
+        "price_weight": 0.3,
+        "delivery_score": 100.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 73.4,
+        "is_premium": true,
+        "success_rate": 0.1,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "전기공사",
+        "전기, 증설 등 필요시 현장실사 후 별도",
+        "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "오리온디스플레이",
+        "is_premium_partner": true,
+        "past_success_rate": 0.1,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "비디오월"
+        ],
+        "installation_count": 51,
+        "industry_breakdown": {
+          "상업시설": 25,
+          "기업": 16,
+          "병원": 4,
+          "교육": 3,
+          "문화/공공": 3
+        },
+        "solution_breakdown": {
+          "LED전광판": 46,
+          "비디오월": 4
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 42,
+          "소규모 비즈니스": 9
+        },
+        "avg_projects_3yr": 100,
+        "avg_revenue_3yr": "31억원",
+        "avg_revenue_3yr_million": 3100.0,
+        "years_in_business": 23,
+        "representative": "유준수",
+        "company_age_years": 23,
+        "avg_project_count_3y": 100,
+        "avg_revenue_3y_million": 3100.0,
+        "company_location": "서울특별시 금천구 가산디지털1로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_오리온.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_오리온",
+        "source_file_hash": "1795a1b3b592bf5a4eb1c40339556dfac6d0bd570bf40c9871e956fad0775cda",
+        "source_file_hash_short": "1795a1b3",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "전기공사",
+          "전기, 증설 등 필요시 현장실사 후 별도",
+          "본 견적서에 대하여 외부 유출 금할것을 당부드립니다.",
+          "전기공사 별도"
+        ],
+        "parser_quality_notes": [
+          "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        ],
+        "project_name_resolution": {
+          "source": "file_name_fallback",
+          "original_project_name": "",
+          "resolved_project_name": "일강 LED전광판 오리온",
+          "file_stem": "일강_LED전광판(p1_5)_오리온",
+          "check_required_added": true,
+          "check_required_message": "프로젝트명이 문서에서 명확히 추출되지 않아 파일명 기준으로 보정됨"
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "오리온디스플레이",
+          "normalized_vendor_name": "오리온디스플레이",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 4,
+      "quote_id": "효성ITX_20251210_000000_eb487781_opt1_LED전광판",
+      "partner_name": "효성ITX",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.2,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        71.49,
+        40.07,
+        84.91,
+        1,
+        0.2,
+        2,
+        2
+      ],
+      "vendor_name": "효성ITX",
+      "project_name": "충북 음성 회의실 내 디스플레이 견적 - LED전광판",
+      "source_file_path": "일강_비디오월&LED전광판(p1_5)_효성itx.pdf",
+      "final_score": 71.49,
+      "spec_score": 84.91,
+      "price_score": 40.07,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.698170413525,
+      "total_supply_price": 14473000,
+      "total_with_vat": 15920300,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "별도협의",
+      "warranty_months": 12,
+      "line_item_count": 6,
+      "check_required": [
+        "납기 별도협의",
+        "운영PC 제외",
+        "현장실사 필요",
+        "유상보수정비요율 : 별도협의"
+      ],
+      "score_breakdown": {
+        "spec_score": 84.91,
+        "spec_weight": 0.3,
+        "price_score": 40.07,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 71.49,
+        "is_premium": true,
+        "success_rate": 0.2,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "운영PC 제외",
+        "현장실사 필요",
+        "유상보수정비요율 : 별도협의",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "효성ITX",
+        "is_premium_partner": true,
+        "past_success_rate": 0.2,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 12,
+        "industry_breakdown": {
+          "문화/공공": 5,
+          "기업": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 11
+        },
+        "avg_projects_3yr": null,
+        "avg_revenue_3yr": "5064억원",
+        "avg_revenue_3yr_million": 506400.0,
+        "years_in_business": 29,
+        "representative": "남경환",
+        "company_age_years": 29,
+        "avg_project_count_3y": null,
+        "avg_revenue_3y_million": 506400.0,
+        "company_location": "서울특별시 영등포구 선유로 57",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_비디오월&LED전광판(p1_5)_효성itx.pdf",
+        "file_stem": "일강_비디오월&LED전광판(p1_5)_효성itx",
+        "source_file_hash": "eb487781e89948e37c9c3a1c00d6610fd26b511ad875dbdf4226d4aa1df70e0e",
+        "source_file_hash_short": "eb487781",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 별도협의",
+          "운영PC 제외",
+          "현장실사 필요",
+          "유상보수정비요율 : 별도협의"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "충북 음성 회의실 내 디스플레이 견적 견적일 : 2025년 12월 10일 작성자: 연락처",
+          "resolved_project_name": "충북 음성 회의실 내 디스플레이 견적",
+          "file_stem": "일강_비디오월&LED전광판(p1_5)_효성itx",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "효성ITX",
+          "normalized_vendor_name": "효성itx",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "split_from_multi_option": true,
+        "parent_quote_id": "효성ITX_20251210_000000_eb487781",
+        "option_index": 1,
+        "option_label": "LED전광판",
+        "option_total_candidate": {
+          "supply_price": 14473000,
+          "tax_amount": 1447300,
+          "total_with_vat": 15920300
+        },
+        "split_method": "product_group_boundary_section_reconstructed",
+        "split_confidence": "high",
+        "line_item_corrections": [],
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    },
+    {
+      "rank": 5,
+      "quote_id": "다올씨앤씨_20251210_000000_26bef5db",
+      "partner_name": "다올씨앤씨",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        68.78,
+        45.31,
+        83.97,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "다올씨앤씨",
+      "project_name": "일강이앤아이 회의실 디스플레이 (2안)",
+      "source_file_path": "일강_LED전광판(p1_5)_다올씨앤씨.pdf",
+      "final_score": 68.78,
+      "spec_score": 83.97,
+      "price_score": 45.31,
+      "delivery_score": 50.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.679359543439,
+      "total_supply_price": 12800000,
+      "total_with_vat": 14080000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 12,
+      "line_item_count": 4,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)",
+        "견적 납기 미기재"
+      ],
+      "score_breakdown": {
+        "spec_score": 83.97,
+        "spec_weight": 0.3,
+        "price_score": 45.31,
+        "price_weight": 0.3,
+        "delivery_score": 50.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 68.78,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 2.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "1차 전기 인입공사 및 통신 공사 별도",
+        "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+        "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "다올씨앤씨",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "비디오월",
+          "LED전광판"
+        ],
+        "installation_count": 38,
+        "industry_breakdown": {
+          "문화/공공": 25,
+          "교육": 5,
+          "상업시설": 3,
+          "기업": 3
+        },
+        "solution_breakdown": {
+          "비디오월": 24,
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 31,
+          "소규모 비즈니스": 7
+        },
+        "avg_projects_3yr": 50,
+        "avg_revenue_3yr": "40억원",
+        "avg_revenue_3yr_million": 4000.0,
+        "years_in_business": 21,
+        "representative": "김승용",
+        "company_age_years": 21,
+        "avg_project_count_3y": 50,
+        "avg_revenue_3y_million": 4000.0,
+        "company_location": "서울특별시 용산구 새창로 181",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "일강_LED전광판(p1_5)_다올씨앤씨.pdf",
+        "file_stem": "일강_LED전광판(p1_5)_다올씨앤씨",
+        "source_file_hash": "26bef5db6d9f49c284ab194a90820d6bf2e244d01ea0b0904eff9666b3bc1bd9",
+        "source_file_hash_short": "26bef5db",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_master_text",
+        "vendor_name_confidence": 0.95,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기 인입공사 및 통신 공사 별도",
+          "설치 구조물(보강대) / 인테리어 마감 공사 별도",
+          "제품무상보증기간 : 준공일로부터 1년 (단, 소비자 과실에 의한 A/S 제외)"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "일강이앤아이 회의실 디스플레이 (2안)",
+          "resolved_project_name": "일강이앤아이 회의실 디스플레이 (2안)",
+          "file_stem": "일강_LED전광판(p1_5)_다올씨앤씨",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "다올씨앤씨",
+          "normalized_vendor_name": "다올씨앤씨",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      },
+      "product_group": "LED전광판"
+    }
+  ],
+  "failed_candidates": [],
+  "filtered_candidates": [],
+  "metadata": {
+    "ranking_provider": "RuleBasedRankingProvider",
+    "candidate_count": 5,
+    "failed_candidate_count": 0,
+    "filtered_candidate_count": 0,
+    "input_quote_count": 5,
+    "product_group_filter": {
+      "enabled": false,
+      "source": "grouped_product_group",
+      "input_quote_count": 5,
+      "ranking_quote_count": 5,
+      "excluded_quote_count": 0,
+      "selection_required": false,
+      "fallback_used": false
+    },
+    "product_group_excluded_candidates": [],
+    "selected_partner_names": [],
+    "selected_partner_filter_applied": false,
+    "filter_by_selected_partners": false,
+    "product_group": "LED전광판",
+    "product_group_quote_count": 5,
+    "grouped_recommendation": true,
+    "baseline_type": "normal_recommendation_pipeline_result_before_explanation",
+    "baseline_scope": "product_group",
+    "explanation_provider_called": false,
+    "llm_trap_applied": false,
+    "scenario_id": "ILGANG-BASELINE-001",
+    "customer_request_summary": "회의실 내 태양광 발전 현황 확인을 위한 비디오월 및 LED전광판 견적 비교",
+    "source_data_dir": "data/일강이엔아이",
+    "quote_file_count": 11,
+    "quote_result_count": 12,
+    "group_quote_result_count": 5,
+    "product_group_counts": {
+      "비디오월": 7,
+      "LED전광판": 5
+    },
+    "failed_quote_files": [],
+    "top_n": 3,
+    "generated_at": "2026-06-16T00:39:54.322153",
+    "pipeline": {
+      "quote_parser_provider": "rule",
+      "legacy_sample_patches": false,
+      "recommendation_pipeline": "RecommendationPipeline"
+    },
+    "requirement_products": [
+      {
+        "product_type": "비디오월",
+        "display_type": null,
+        "name": "46\" 비디오월 3x3",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": 46,
+        "layout_rows": 3,
+        "layout_cols": 3,
+        "width_mm": null,
+        "height_mm": null,
+        "pitch_mm": null,
+        "pitch_max_mm": null,
+        "raw_text": "46\" 비디오월 3x3",
+        "metadata": {}
+      },
+      {
+        "product_type": "LED전광판",
+        "display_type": null,
+        "name": "LED P1.56",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": null,
+        "layout_rows": null,
+        "layout_cols": null,
+        "width_mm": 3000,
+        "height_mm": 2000,
+        "pitch_mm": 1.56,
+        "pitch_max_mm": null,
+        "raw_text": "LED P1.56, 3,000 x 2,000mm",
+        "metadata": {}
+      }
+    ],
+    "eval_baseline": true,
+    "eval_source_scenario": "ilgangeeni_led",
+    "eval_source_rank": 3,
+    "eval_original_qid": "오리온디스플레이_19700101_000000_1795a1b3"
+  }
+}

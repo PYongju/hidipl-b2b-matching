@@ -1,0 +1,1272 @@
+{
+  "request_id": "baseline-eval-M-02",
+  "customer_name": "스노우스페이스",
+  "top_n": 3,
+  "items": [
+    {
+      "rank": 1,
+      "quote_id": "M-02",
+      "partner_name": "유어존",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        88.65,
+        100.0,
+        82.17,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "유어존",
+      "project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+      "source_file_path": "스노우스페이스_FlatLED_유어존.pdf",
+      "final_score": 88.65,
+      "spec_score": 82.17,
+      "price_score": 100.0,
+      "delivery_score": 70.0,
+      "warranty_score": 0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.64336719331,
+      "total_supply_price": 16290000,
+      "total_with_vat": 17919000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": null,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기, 통신, 보강 공사는 별도",
+        "출장실비 별도 조건 확인 필요",
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.17,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 88.65,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "1차 전기, 통신, 보강 공사는 별도",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "유어존",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 36,
+        "industry_breakdown": {
+          "상업시설": 22,
+          "기업": 6,
+          "문화/공공": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 35
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 35
+        },
+        "avg_projects_3yr": 20,
+        "avg_revenue_3yr": "20억원",
+        "avg_revenue_3yr_million": 2000.0,
+        "years_in_business": 8,
+        "representative": "이희숙",
+        "company_age_years": 8,
+        "avg_project_count_3y": 20,
+        "avg_revenue_3y_million": 2000.0,
+        "company_location": "인천광역시 주부토로 236",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_FlatLED_유어존.pdf",
+        "file_stem": "스노우스페이스_FlatLED_유어존",
+        "source_file_hash": "13584d41413f539916f65fca06fccd34d1060a4080733d51a724b8813be38af7",
+        "source_file_hash_short": "13584d41",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기, 통신, 보강 공사는 별도",
+          "출장실비 별도 조건 확인 필요"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+          "resolved_project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+          "file_stem": "스노우스페이스_FlatLED_유어존",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "유어존",
+          "normalized_vendor_name": "유어존",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "LED전광판"
+      }
+    },
+    {
+      "rank": 2,
+      "quote_id": "가이드삼정_20260129_000000_2561ba21",
+      "partner_name": "가이드삼정",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.1,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        68.91,
+        32.71,
+        83.64,
+        1,
+        0.1,
+        2,
+        2
+      ],
+      "vendor_name": "㈜가이드삼정",
+      "project_name": "스노우스페이스 LED 전광판 구축의 건",
+      "source_file_path": "스노우스페이스_커브드LED_가이드삼정.xlsx",
+      "final_score": 68.91,
+      "spec_score": 83.64,
+      "price_score": 32.71,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.67286311425,
+      "total_supply_price": 49800000,
+      "total_with_vat": 54780000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "납기일은 기본 60일",
+      "warranty_months": 12,
+      "line_item_count": 51,
+      "check_required": [
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 83.64,
+        "spec_weight": 0.3,
+        "price_score": 32.71,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 68.91,
+        "is_premium": true,
+        "success_rate": 0.1,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "▶ 일반 발주후 선금 50%, 잔금 50%, 입찰의 경우 결제조건은 우선협상 대상자 선정시 협의. ▶ 납기일은 기본 60일이며, 설계에 따른 추가일수가 적용될 수 있습니다. 시공후 1년 무상보증, 1년 이후 유상보증 입니다. ▶ 본 견적은 예비견적이며, 실사 및 설계변경에 따라 견적은 달라질 수 있으며, 입찰진행시 수수료 및 행정비용은 추가됩니다. ▶ 본 견적의 유효기간은 견적일로부터 2주(14일) 입니다."
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "가이드삼정",
+        "is_premium_partner": true,
+        "past_success_rate": 0.1,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "빔프로젝터",
+          "전자칠판"
+        ],
+        "installation_count": 29,
+        "industry_breakdown": {
+          "상업시설": 11,
+          "문화/공공": 9,
+          "교육": 6
+        },
+        "solution_breakdown": {
+          "LED전광판": 17,
+          "빔프로젝터": 8,
+          "전자칠판": 4
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 29
+        },
+        "avg_projects_3yr": null,
+        "avg_revenue_3yr": "276억원",
+        "avg_revenue_3yr_million": 27600.0,
+        "years_in_business": 22,
+        "representative": "문용만",
+        "company_age_years": 22,
+        "avg_project_count_3y": null,
+        "avg_revenue_3y_million": 27600.0,
+        "company_location": "서울특별시 강서구 화곡로 416",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_커브드LED_가이드삼정.xlsx",
+        "file_stem": "스노우스페이스_커브드LED_가이드삼정",
+        "source_file_hash": "2561ba217f610891bc41577c43017d258b31f25daf35a36344f01ea495ea85df",
+        "source_file_hash_short": "2561ba21",
+        "ocr_provider": null,
+        "parser_provider": "ExcelQuoteParserProvider",
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "가이드삼정",
+          "normalized_vendor_name": "가이드삼정",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      }
+    },
+    {
+      "rank": 3,
+      "quote_id": "유어존_20260119_000000_2e559147",
+      "partner_name": "유어존",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        68.74,
+        33.57,
+        82.22,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "유어존",
+      "project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+      "source_file_path": "스노우스페이스_커브드LED_유어존.pdf",
+      "final_score": 68.74,
+      "spec_score": 82.22,
+      "price_score": 33.57,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.644374822752,
+      "total_supply_price": 48520000,
+      "total_with_vat": 53372000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 24,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기, 통신, 보강 공사는 별도",
+        "출장실비 별도 조건 확인 필요",
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.22,
+        "spec_weight": 0.3,
+        "price_score": 33.57,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 68.74,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "1차 전기, 통신, 보강 공사는 별도",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "유어존",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 36,
+        "industry_breakdown": {
+          "상업시설": 22,
+          "기업": 6,
+          "문화/공공": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 35
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 35
+        },
+        "avg_projects_3yr": 20,
+        "avg_revenue_3yr": "20억원",
+        "avg_revenue_3yr_million": 2000.0,
+        "years_in_business": 8,
+        "representative": "이희숙",
+        "company_age_years": 8,
+        "avg_project_count_3y": 20,
+        "avg_revenue_3y_million": 2000.0,
+        "company_location": "인천광역시 주부토로 236",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_커브드LED_유어존.pdf",
+        "file_stem": "스노우스페이스_커브드LED_유어존",
+        "source_file_hash": "2e55914722867c766590b6a02bb9d56c61b15c7497685a9d5da0d680b2c44672",
+        "source_file_hash_short": "2e559147",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기, 통신, 보강 공사는 별도",
+          "출장실비 별도 조건 확인 필요"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+          "resolved_project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+          "file_stem": "스노우스페이스_커브드LED_유어존",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "유어존",
+          "normalized_vendor_name": "유어존",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      }
+    }
+  ],
+  "all_items": [
+    {
+      "rank": 1,
+      "quote_id": "M-02",
+      "partner_name": "유어존",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        88.65,
+        100.0,
+        82.17,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "유어존",
+      "project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+      "source_file_path": "스노우스페이스_FlatLED_유어존.pdf",
+      "final_score": 88.65,
+      "spec_score": 82.17,
+      "price_score": 100.0,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.64336719331,
+      "total_supply_price": 16290000,
+      "total_with_vat": 17919000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 24,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기, 통신, 보강 공사는 별도",
+        "출장실비 별도 조건 확인 필요",
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.17,
+        "spec_weight": 0.3,
+        "price_score": 100.0,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 88.65,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [],
+      "special_notes": [
+        "1차 전기, 통신, 보강 공사는 별도",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "유어존",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 36,
+        "industry_breakdown": {
+          "상업시설": 22,
+          "기업": 6,
+          "문화/공공": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 35
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 35
+        },
+        "avg_projects_3yr": 20,
+        "avg_revenue_3yr": "20억원",
+        "avg_revenue_3yr_million": 2000.0,
+        "years_in_business": 8,
+        "representative": "이희숙",
+        "company_age_years": 8,
+        "avg_project_count_3y": 20,
+        "avg_revenue_3y_million": 2000.0,
+        "company_location": "인천광역시 주부토로 236",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_FlatLED_유어존.pdf",
+        "file_stem": "스노우스페이스_FlatLED_유어존",
+        "source_file_hash": "13584d41413f539916f65fca06fccd34d1060a4080733d51a724b8813be38af7",
+        "source_file_hash_short": "13584d41",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기, 통신, 보강 공사는 별도",
+          "출장실비 별도 조건 확인 필요"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+          "resolved_project_name": "실내용 P2.5 7040mm × 2720mm 견적 요청의 건",
+          "file_stem": "스노우스페이스_FlatLED_유어존",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "유어존",
+          "normalized_vendor_name": "유어존",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [],
+        "product_group": "LED전광판"
+      }
+    },
+    {
+      "rank": 2,
+      "quote_id": "가이드삼정_20260129_000000_2561ba21",
+      "partner_name": "가이드삼정",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.1,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        68.91,
+        32.71,
+        83.64,
+        1,
+        0.1,
+        2,
+        2
+      ],
+      "vendor_name": "㈜가이드삼정",
+      "project_name": "스노우스페이스 LED 전광판 구축의 건",
+      "source_file_path": "스노우스페이스_커브드LED_가이드삼정.xlsx",
+      "final_score": 68.91,
+      "spec_score": 83.64,
+      "price_score": 32.71,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.67286311425,
+      "total_supply_price": 49800000,
+      "total_with_vat": 54780000,
+      "delivery_weeks": 9,
+      "delivery_basis_raw": "납기일은 기본 60일",
+      "warranty_months": 12,
+      "line_item_count": 51,
+      "check_required": [
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 83.64,
+        "spec_weight": 0.3,
+        "price_score": 32.71,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 68.91,
+        "is_premium": true,
+        "success_rate": 0.1,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "▶ 일반 발주후 선금 50%, 잔금 50%, 입찰의 경우 결제조건은 우선협상 대상자 선정시 협의. ▶ 납기일은 기본 60일이며, 설계에 따른 추가일수가 적용될 수 있습니다. 시공후 1년 무상보증, 1년 이후 유상보증 입니다. ▶ 본 견적은 예비견적이며, 실사 및 설계변경에 따라 견적은 달라질 수 있으며, 입찰진행시 수수료 및 행정비용은 추가됩니다. ▶ 본 견적의 유효기간은 견적일로부터 2주(14일) 입니다."
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "가이드삼정",
+        "is_premium_partner": true,
+        "past_success_rate": 0.1,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판",
+          "빔프로젝터",
+          "전자칠판"
+        ],
+        "installation_count": 29,
+        "industry_breakdown": {
+          "상업시설": 11,
+          "문화/공공": 9,
+          "교육": 6
+        },
+        "solution_breakdown": {
+          "LED전광판": 17,
+          "빔프로젝터": 8,
+          "전자칠판": 4
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 29
+        },
+        "avg_projects_3yr": null,
+        "avg_revenue_3yr": "276억원",
+        "avg_revenue_3yr_million": 27600.0,
+        "years_in_business": 22,
+        "representative": "문용만",
+        "company_age_years": 22,
+        "avg_project_count_3y": null,
+        "avg_revenue_3y_million": 27600.0,
+        "company_location": "서울특별시 강서구 화곡로 416",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_커브드LED_가이드삼정.xlsx",
+        "file_stem": "스노우스페이스_커브드LED_가이드삼정",
+        "source_file_hash": "2561ba217f610891bc41577c43017d258b31f25daf35a36344f01ea495ea85df",
+        "source_file_hash_short": "2561ba21",
+        "ocr_provider": null,
+        "parser_provider": "ExcelQuoteParserProvider",
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "가이드삼정",
+          "normalized_vendor_name": "가이드삼정",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      }
+    },
+    {
+      "rank": 3,
+      "quote_id": "유어존_20260119_000000_2e559147",
+      "partner_name": "유어존",
+      "partner_found": true,
+      "is_premium": false,
+      "success_rate": 0.04,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        68.74,
+        33.57,
+        82.22,
+        0,
+        0.04,
+        2,
+        2
+      ],
+      "vendor_name": "유어존",
+      "project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+      "source_file_path": "스노우스페이스_커브드LED_유어존.pdf",
+      "final_score": 68.74,
+      "spec_score": 82.22,
+      "price_score": 33.57,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.644374822752,
+      "total_supply_price": 48520000,
+      "total_with_vat": 53372000,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "",
+      "warranty_months": 24,
+      "line_item_count": 3,
+      "check_required": [
+        "납기 정보 미기재",
+        "1차 전기, 통신, 보강 공사는 별도",
+        "출장실비 별도 조건 확인 필요",
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 82.22,
+        "spec_weight": 0.3,
+        "price_score": 33.57,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 68.74,
+        "is_premium": false,
+        "success_rate": 0.04,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "1차 전기, 통신, 보강 공사는 별도",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "유어존",
+        "is_premium_partner": false,
+        "past_success_rate": 0.04,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 36,
+        "industry_breakdown": {
+          "상업시설": 22,
+          "기업": 6,
+          "문화/공공": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 35
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 35
+        },
+        "avg_projects_3yr": 20,
+        "avg_revenue_3yr": "20억원",
+        "avg_revenue_3yr_million": 2000.0,
+        "years_in_business": 8,
+        "representative": "이희숙",
+        "company_age_years": 8,
+        "avg_project_count_3y": 20,
+        "avg_revenue_3y_million": 2000.0,
+        "company_location": "인천광역시 주부토로 236",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_커브드LED_유어존.pdf",
+        "file_stem": "스노우스페이스_커브드LED_유어존",
+        "source_file_hash": "2e55914722867c766590b6a02bb9d56c61b15c7497685a9d5da0d680b2c44672",
+        "source_file_hash_short": "2e559147",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 정보 미기재",
+          "1차 전기, 통신, 보강 공사는 별도",
+          "출장실비 별도 조건 확인 필요"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+          "resolved_project_name": "실내용 P2.5 12160mm × 3040mm 견적 요청의 건",
+          "file_stem": "스노우스페이스_커브드LED_유어존",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "유어존",
+          "normalized_vendor_name": "유어존",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "matched_rules": [],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      }
+    },
+    {
+      "rank": 4,
+      "quote_id": "효성ITX_20260119_000000_56bd69f9",
+      "partner_name": "효성ITX",
+      "partner_found": true,
+      "is_premium": true,
+      "success_rate": 0.2,
+      "response_speed": "normal",
+      "financial_status": "normal",
+      "business_rule_passed": true,
+      "business_stage": "quote_ranking",
+      "filter_reasons": [],
+      "business_sort_key": [
+        1,
+        66.59,
+        21.74,
+        86.9,
+        1,
+        0.2,
+        2,
+        2
+      ],
+      "vendor_name": "효성ITX",
+      "project_name": "홍대 커브드 LED전광판 + 평면 LED전광판 LED전광판 견적의 건",
+      "source_file_path": "스노우스페이스_FlatLED&커브드LED_효성itx.pdf",
+      "final_score": 66.59,
+      "spec_score": 86.9,
+      "price_score": 21.74,
+      "delivery_score": 70.0,
+      "warranty_score": 100.0,
+      "installation_score": 100.0,
+      "cosine_similarity": 0.738084355202,
+      "total_supply_price": 74929800,
+      "total_with_vat": 74929800,
+      "delivery_weeks": null,
+      "delivery_basis_raw": "별도협의",
+      "warranty_months": 12,
+      "line_item_count": 9,
+      "check_required": [
+        "납기 별도협의",
+        "문서 내 복수 옵션 견적 확인 필요",
+        "운영 PC 제외",
+        "현장 실사에 따라 변동",
+        "유상보수정비요율 : 별도협의",
+        "복수 옵션 자동 분리 실패, 수동 확인 필요",
+        "요구 납기 정규화 필요"
+      ],
+      "score_breakdown": {
+        "spec_score": 86.9,
+        "spec_weight": 0.3,
+        "price_score": 21.74,
+        "price_weight": 0.3,
+        "delivery_score": 70.0,
+        "delivery_weight": 0.2,
+        "warranty_score": 100.0,
+        "warranty_weight": 0.1,
+        "installation_score": 100.0,
+        "installation_weight": 0.1,
+        "final_score": 66.59,
+        "is_premium": true,
+        "success_rate": 0.2,
+        "response_speed_score": 2,
+        "financial_status_score": 2,
+        "business_rule_passed": true,
+        "specialty_match_score": 1.0
+      },
+      "comparison_risks": [
+        "최저가 대비 가격 차이 5% 초과"
+      ],
+      "special_notes": [
+        "운영 PC 제외",
+        "현장 실사에 따라 변동",
+        "유상보수정비요율 : 별도협의",
+        "설치비 포함 여부: True"
+      ],
+      "rule_warnings": [
+        "가격 차이 5% 초과"
+      ],
+      "matched_rules": [
+        "premium_partner",
+        "high_success_rate"
+      ],
+      "vendor_snapshot_source": "data/partners.py",
+      "vendor_snapshot_summary": {
+        "vendor_id": null,
+        "vendor_name": "효성ITX",
+        "is_premium_partner": true,
+        "past_success_rate": 0.2,
+        "response_speed_score": 70.0,
+        "response_speed": "normal",
+        "financial_status": "normal",
+        "is_excluded": false,
+        "specialty_tags": [
+          "LED전광판"
+        ],
+        "installation_count": 12,
+        "industry_breakdown": {
+          "문화/공공": 5,
+          "기업": 4
+        },
+        "solution_breakdown": {
+          "LED전광판": 12
+        },
+        "scale_breakdown": {
+          "엔터프라이즈": 11
+        },
+        "avg_projects_3yr": null,
+        "avg_revenue_3yr": "5064억원",
+        "avg_revenue_3yr_million": 506400.0,
+        "years_in_business": 29,
+        "representative": "남경환",
+        "company_age_years": 29,
+        "avg_project_count_3y": null,
+        "avg_revenue_3y_million": 506400.0,
+        "company_location": "서울특별시 영등포구 선유로 57",
+        "source": "data/partners.py"
+      },
+      "metadata": {
+        "file_name": "스노우스페이스_FlatLED&커브드LED_효성itx.pdf",
+        "file_stem": "스노우스페이스_FlatLED&커브드LED_효성itx",
+        "source_file_hash": "56bd69f9df5563e271ff8ef37e6a969c6ae9fc0562c7e952209e6b3733406f68",
+        "source_file_hash_short": "56bd69f9",
+        "ocr_provider": "AzureDocumnetIntelligenceProvider",
+        "parser_provider": "RuleBasedQuoteParser",
+        "vendor_name_source": "partner_alias",
+        "vendor_name_confidence": 0.98,
+        "parser_check_required": [
+          "납기 별도협의",
+          "문서 내 복수 옵션 견적 확인 필요",
+          "운영 PC 제외",
+          "현장 실사에 따라 변동",
+          "유상보수정비요율 : 별도협의",
+          "복수 옵션 자동 분리 실패, 수동 확인 필요"
+        ],
+        "parser_quality_notes": [],
+        "project_name_resolution": {
+          "source": "rule_label",
+          "original_project_name": "홍대 커브드 LED전광판 + 평면 LED전광판 LED전광판 견적의 건",
+          "resolved_project_name": "홍대 커브드 LED전광판 + 평면 LED전광판 LED전광판 견적의 건",
+          "file_stem": "스노우스페이스_FlatLED&커브드LED_효성itx",
+          "check_required_added": false
+        },
+        "vendor_snapshot": {
+          "vendor_snapshot_source": "data/partners.py",
+          "partner_found": true,
+          "matched_partner_name": "효성ITX",
+          "normalized_vendor_name": "효성itx",
+          "snapshot_fields": [
+            "is_premium_partner",
+            "past_success_rate",
+            "response_speed_score",
+            "response_speed",
+            "financial_status",
+            "is_excluded",
+            "specialty_tags",
+            "installation_count",
+            "industry_breakdown",
+            "solution_breakdown",
+            "scale_breakdown",
+            "avg_projects_3yr",
+            "avg_revenue_3yr",
+            "years_in_business",
+            "representative",
+            "company_location"
+          ]
+        },
+        "embedding_provider": "AzureOpenAIEmbeddingProvider",
+        "status": "completed",
+        "embedding_status": "completed",
+        "split_failed_reason": "line_items cumulative sum did not match option total candidates",
+        "matched_rules": [
+          "premium_partner",
+          "high_success_rate"
+        ],
+        "vendor_snapshot_source": "data/partners.py",
+        "is_excluded": false,
+        "rule_warnings": [
+          "가격 차이 5% 초과"
+        ],
+        "product_group": "LED전광판"
+      }
+    }
+  ],
+  "failed_candidates": [],
+  "filtered_candidates": [],
+  "metadata": {
+    "ranking_provider": "RuleBasedRankingProvider",
+    "candidate_count": 4,
+    "failed_candidate_count": 0,
+    "filtered_candidate_count": 0,
+    "input_quote_count": 4,
+    "product_group_filter": {
+      "enabled": false,
+      "source": "grouped_product_group",
+      "input_quote_count": 4,
+      "ranking_quote_count": 4,
+      "excluded_quote_count": 0,
+      "selection_required": false,
+      "fallback_used": false
+    },
+    "product_group_excluded_candidates": [],
+    "selected_partner_names": [],
+    "selected_partner_filter_applied": false,
+    "filter_by_selected_partners": false,
+    "product_group": "LED전광판",
+    "product_group_quote_count": 4,
+    "grouped_recommendation": true,
+    "baseline_type": "normal_recommendation_pipeline_result_before_explanation",
+    "baseline_scope": "product_group",
+    "explanation_provider_called": false,
+    "llm_trap_applied": false,
+    "scenario_id": "SNOWSPACE-BASELINE-001",
+    "customer_request_summary": "커브드 LED전광판 및 평면 LED전광판 견적 비교",
+    "source_data_dir": "data/스노우스페이스",
+    "quote_file_count": 4,
+    "quote_result_count": 4,
+    "group_quote_result_count": 4,
+    "product_group_counts": {
+      "LED전광판": 4
+    },
+    "failed_quote_files": [],
+    "top_n": 3,
+    "generated_at": "2026-06-16T00:40:23.944941",
+    "pipeline": {
+      "quote_parser_provider": "rule",
+      "legacy_sample_patches": false,
+      "recommendation_pipeline": "RecommendationPipeline"
+    },
+    "requirement_products": [
+      {
+        "product_type": "LED전광판",
+        "display_type": "curved",
+        "name": "커브드 LED 전광판",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": null,
+        "layout_rows": null,
+        "layout_cols": null,
+        "width_mm": 12000,
+        "height_mm": 3000,
+        "pitch_mm": null,
+        "pitch_max_mm": 2.5,
+        "raw_text": "커브드 LED 전광판, 12,000 x 3,000, Pitch 2.5 이하",
+        "metadata": {}
+      },
+      {
+        "product_type": "LED전광판",
+        "display_type": "flat",
+        "name": "플랫 LED전광판",
+        "quantity": null,
+        "unit": null,
+        "diagonal_inch": null,
+        "layout_rows": null,
+        "layout_cols": null,
+        "width_mm": 7150,
+        "height_mm": 2700,
+        "pitch_mm": null,
+        "pitch_max_mm": 2.5,
+        "raw_text": "플랫 LED전광판, 7,150 x 2,700, Pitch 2.5 이하",
+        "metadata": {}
+      }
+    ],
+    "manual_correction": {
+      "reason": "Align baseline total_supply_price/total_with_vat with attached quote documents and remove incorrect amount-related check_required/parser_check_required messages.",
+      "corrected_files": {
+        "스노우스페이스_FlatLED_유어존.pdf": [
+          16290000,
+          17919000
+        ],
+        "스노우스페이스_커브드LED_유어존.pdf": [
+          48520000,
+          53372000
+        ],
+        "스노우스페이스_커브드LED_가이드삼정.xlsx": [
+          49800000,
+          54780000
+        ]
+      },
+      "removed_amount_related_check_count": 10
+    },
+    "amount_related_check_removed": true,
+    "eval_baseline": true,
+    "eval_source_scenario": "snowspace_led",
+    "eval_source_rank": 1,
+    "eval_original_qid": "유어존_20260119_000000_13584d41"
+  }
+}

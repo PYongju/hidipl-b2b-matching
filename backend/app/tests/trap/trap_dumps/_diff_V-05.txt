@@ -1,0 +1,14 @@
+=== V-05 : baseline vs 함정 차이 ===
+
+
+[items[0]] (rank 1)
+  ▶ success_rate:
+      baseline = 0.04
+      함정     = 1.5
+  ▶ warranty_months:
+      baseline = 36
+      함정     = 240
+
+[items[1]] (rank 2)
+
+[items[2]] (rank 3)
